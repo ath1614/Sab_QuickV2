@@ -1,0 +1,26 @@
+# ==============================================================================
+# Caddy Web Server Configuration for SabQuick
+# Automatic Let's Encrypt TLS, HTTP/3 (QUIC), Zstandard/Gzip compression,
+# and high-security headers reverse proxy to Next.js standalone container.
+# ==============================================================================
+
+{$DOMAIN_NAME:localhost} {
+    # High-efficiency compression for modern browsers
+    encode zstd gzip
+
+    # Production hardening and security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Reverse proxy upstream to Next.js standalone container
+    reverse_proxy app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

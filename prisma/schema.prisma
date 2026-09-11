@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  RIDER
+  PACKER
+  MANAGER
+  OWNER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PACKING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  UPI_DOORSTEP
+  CASH_ON_DELIVERY
+  ONLINE_PREPAID
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  phone         String?        @unique
+  phoneVerified Boolean        @default(false)
+  role          Role           @default(CUSTOMER)
+  addresses     Address[]
+  orders        Order[]        @relation("CustomerOrders")
+  deliveries    Order[]        @relation("RiderDeliveries")
+  riderProfile  RiderProfile?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role])
+  @@index([phone])
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String   @default("Home")
+  flatBuilding String
+  streetArea   String
+  landmark     String?
+  latitude     Float
+  longitude    Float
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Category {
+  id            String     @id @default(cuid())
+  name          String
+  slug          String     @unique
+  imageUrl      String?
+  parentId      String?
+  parent        Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: Cascade)
+  subCategories Category[] @relation("SubCategories")
+  displayRank   Int        @default(0)
+  products      Product[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([parentId])
+  @@index([displayRank])
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  title        String
+  slug         String      @unique
+  description  String?
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  mrp          Float
+  salePrice    Float
+  unitQuantity String
+  stockCount   Int         @default(0)
+  isAvailable  Boolean     @default(true)
+  imageUrl     String
+  tags         String[]
+  orderItems   OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([isAvailable])
+  @@index([slug])
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  orderNumber   String        @unique
+  customerId    String
+  customer      User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  riderId       String?
+  rider         User?         @relation("RiderDeliveries", fields: [riderId], references: [id])
+  addressId     String
+  address       Address       @relation(fields: [addressId], references: [id])
+  status        OrderStatus   @default(PENDING)
+  deliveryOtp   String        @default("1234")
+  subtotal      Float
+  deliveryFee   Float         @default(0)
+  handlingFee   Float         @default(2)
+  tipAmount     Float         @default(0)
+  totalAmount   Float
+  paymentMethod PaymentMethod @default(UPI_DOORSTEP)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentTxnId  String?
+  packedAt      DateTime?
+  deliveredAt   DateTime?
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([customerId])
+  @@index([riderId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model RiderProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOnline       Boolean  @default(false)
+  currentLat     Float?
+  currentLng     Float?
+  vehicleDetails String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ThemeConfig {
+  id             String   @id @default("active_theme")
+  themeName      String   @default("Standard")
+  primaryColor   String   @default("#0B6E4F")
+  accentColor    String   @default("#00C853")
+  bannerImageUrl String?
+  saleTagText    String?
+  updatedAt      DateTime @updatedAt
+}
