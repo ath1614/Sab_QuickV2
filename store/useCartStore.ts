@@ -7,7 +7,8 @@ export interface CartItem {
   quantity: number;
 }
 
-export type PaymentMethod = "UPI_DOORSTEP" | "ONLINE_PREPAID" | "RAZORPAY";
+export type PaymentMethodType = "UPI_DOORSTEP" | "RAZORPAY" | "CASH_ON_DELIVERY";
+export type PaymentMethod = PaymentMethodType;
 
 export const FREE_DELIVERY_THRESHOLD = 199;
 export const STANDARD_DELIVERY_FEE = 15;

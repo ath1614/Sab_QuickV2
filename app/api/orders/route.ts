@@ -18,7 +18,7 @@ const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, "At least one item is required in cart"),
   tipAmount: z.number().min(0).default(0),
   paymentMethod: z
-    .enum(["UPI_DOORSTEP", "ONLINE_PREPAID", "RAZORPAY", "CASH_ON_DELIVERY"])
+    .enum(["UPI_DOORSTEP", "RAZORPAY", "CASH_ON_DELIVERY"])
     .default("UPI_DOORSTEP"),
   couponCode: z.string().optional(),
 });

@@ -48,6 +48,7 @@ import {
   ChevronRight,
   ArrowRight,
   Tag,
+  Banknote,
 } from "lucide-react";
 
 export function CartDrawer() {
@@ -315,7 +316,7 @@ export function CartDrawer() {
           amount: rzpData.amount,
           currency: rzpData.currency || "INR",
           name: "SabQuick",
-          description: `Order #${data.orderNumber} - 10-Min Delivery`,
+          description: `Order #${data.orderNumber}`,
           order_id: rzpData.razorpayOrderId,
           handler: async function (response: any) {
             try {
@@ -330,16 +331,20 @@ export function CartDrawer() {
                 }),
               });
 
-              const verifyData = await verifyRes.json();
-              if (verifyRes.ok && verifyData.success) {
+              if (verifyRes.ok) {
                 clearCart();
                 closeCart();
                 router.push(`/orders/${data.orderNumber}`);
               } else {
-                setOrderError(verifyData.error || "Payment verification failed.");
+                const errData = await verifyRes.json().catch(() => ({}));
+                const msg = errData.error || "Payment verification failed. Please contact support.";
+                setOrderError(msg);
+                alert(msg);
               }
             } catch (vErr: any) {
-              setOrderError(vErr.message || "Payment verification error.");
+              const msg = vErr.message || "Payment verification failed. Please contact support.";
+              setOrderError(msg);
+              alert(msg);
             }
           },
           prefill: {
@@ -907,44 +912,7 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: Razorpay Online Payment */}
-                    <div
-                      onClick={() => setPaymentMethod("RAZORPAY")}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "RAZORPAY"
-                          ? "border-primary bg-primary/5 shadow-2xs"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
-                    >
-                      <div className="mt-0.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === "RAZORPAY"}
-                          onChange={() => setPaymentMethod("RAZORPAY")}
-                          className="accent-primary w-4 h-4 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-surface-dark">
-                            Pay Online (Razorpay)
-                          </span>
-                          <Badge
-                            variant="accent"
-                            className="text-[9px] py-0 px-1 font-bold"
-                          >
-                            UPI • Cards • NetBanking
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Instant digital prepaid confirmation via secure Razorpay.
-                        </p>
-                      </div>
-                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    </div>
-
-                    {/* Option 2: UPI at Doorstep */}
+                    {/* Option 1: UPI at Doorstep (Scan QR) */}
                     <div
                       onClick={() => setPaymentMethod("UPI_DOORSTEP")}
                       className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
@@ -975,10 +943,76 @@ export function CartDrawer() {
                           </Badge>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Pay via GPay, PhonePe, or Paytm when rider arrives.
+                          Scan dynamic QR at delivery via GPay/PhonePe/Paytm • 0% Extra
                         </p>
                       </div>
                       <QrCode className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    </div>
+
+                    {/* Option 2: Pay Online with Razorpay */}
+                    <div
+                      onClick={() => setPaymentMethod("RAZORPAY")}
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                        paymentMethod === "RAZORPAY"
+                          ? "border-primary bg-primary/5 shadow-2xs"
+                          : "border-slate-200 hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="mt-0.5">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "RAZORPAY"}
+                          onChange={() => setPaymentMethod("RAZORPAY")}
+                          className="accent-primary w-4 h-4 cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-surface-dark">
+                            Pay Online (Razorpay)
+                          </span>
+                          <Badge
+                            variant="accent"
+                            className="text-[9px] py-0 px-1 font-bold"
+                          >
+                            Cards, UPI, NetBanking, Wallets
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Instant online payment via Razorpay secure gateway
+                        </p>
+                      </div>
+                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    </div>
+
+                    {/* Option 3: Cash on Delivery */}
+                    <div
+                      onClick={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                        paymentMethod === "CASH_ON_DELIVERY"
+                          ? "border-primary bg-primary/5 shadow-2xs"
+                          : "border-slate-200 hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="mt-0.5">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "CASH_ON_DELIVERY"}
+                          onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                          className="accent-primary w-4 h-4 cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-xs font-bold text-surface-dark">
+                          Cash on Delivery
+                        </span>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Pay cash at doorstep upon delivery
+                        </p>
+                      </div>
+                      <Banknote className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                     </div>
                   </div>
                 </div>
