@@ -61,9 +61,6 @@ jobs:
           DATABASE_URL: "postgresql://sabquick_admin:sabquick_ci_password@localhost:5432/sabquick_ci_db?schema=public"
         run: npx prisma db seed
 
-      - name: Run TypeScript Validation
-        run: npx tsc --noEmit
-
       - name: Run Core Test Suite
         env:
           DATABASE_URL: "postgresql://sabquick_admin:sabquick_ci_password@localhost:5432/sabquick_ci_db?schema=public"
@@ -82,7 +79,9 @@ jobs:
           npx tsx scripts/verify-order-tracking.ts
           npx tsx scripts/verify-rider-flow.ts
           npx tsx scripts/verify-ops.ts
-          npx tsx scripts/verify-prod-config.ts
+
+      - name: Run TypeScript Validation
+        run: npx tsc --noEmit
 
       - name: Build Next.js Standalone
         env:
@@ -91,3 +90,6 @@ jobs:
           NEXTAUTH_SECRET: "ci_pipeline_secret_test_32_characters_minimum"
           NEXTAUTH_URL: "http://localhost:3000"
         run: npm run build
+
+      - name: Verify Production Configuration
+        run: npx tsx scripts/verify-prod-config.ts
