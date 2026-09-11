@@ -7,14 +7,22 @@ export interface CartItem {
   quantity: number;
 }
 
-export type PaymentMethod = "UPI_DOORSTEP" | "ONLINE_PREPAID";
+export type PaymentMethod = "UPI_DOORSTEP" | "ONLINE_PREPAID" | "RAZORPAY";
 
 export const FREE_DELIVERY_THRESHOLD = 199;
 export const STANDARD_DELIVERY_FEE = 15;
 export const HANDLING_FEE = 2;
 
+export interface AppliedCoupon {
+  code: string;
+  discountAmount: number;
+  description?: string;
+}
+
 export interface CartTotals {
   itemTotal: number;
+  discountAmount: number;
+  subtotalAfterDiscount: number;
   freeDeliveryThreshold: number;
   deliveryFee: number;
   handlingFee: number;
@@ -25,7 +33,8 @@ export interface CartTotals {
 
 export function calculateCartTotals(
   items: CartItem[],
-  tipAmount: number = 0
+  tipAmount: number = 0,
+  discountAmount: number = 0
 ): CartTotals {
   const itemTotal = items.reduce(
     (sum, item) => sum + item.product.salePrice * item.quantity,
@@ -37,6 +46,8 @@ export function calculateCartTotals(
   if (items.length === 0) {
     return {
       itemTotal: 0,
+      discountAmount: 0,
+      subtotalAfterDiscount: 0,
       freeDeliveryThreshold,
       deliveryFee: 0,
       handlingFee: 0,
@@ -46,17 +57,24 @@ export function calculateCartTotals(
     };
   }
 
+  // Deduct discountAmount before computing delivery fee and grand total
+  const validDiscount = Math.min(Math.max(0, discountAmount), itemTotal);
+  const subtotalAfterDiscount = Math.max(0, itemTotal - validDiscount);
+
   const deliveryFee =
-    itemTotal >= freeDeliveryThreshold ? 0 : STANDARD_DELIVERY_FEE;
+    subtotalAfterDiscount >= freeDeliveryThreshold ? 0 : STANDARD_DELIVERY_FEE;
   const handlingFee = HANDLING_FEE;
-  const grandTotal = itemTotal + deliveryFee + handlingFee + tipAmount;
+  const grandTotal =
+    Math.round((subtotalAfterDiscount + deliveryFee + handlingFee + tipAmount) * 100) / 100;
   const amountNeededForFreeDelivery = Math.max(
     0,
-    freeDeliveryThreshold - itemTotal
+    freeDeliveryThreshold - subtotalAfterDiscount
   );
 
   return {
     itemTotal,
+    discountAmount: validDiscount,
+    subtotalAfterDiscount,
     freeDeliveryThreshold,
     deliveryFee,
     handlingFee,
@@ -70,6 +88,7 @@ export interface CartStoreState {
   items: CartItem[];
   tipAmount: number;
   paymentMethod: PaymentMethod;
+  appliedCoupon: AppliedCoupon | null;
   isOpen: boolean;
 
   // Actions
@@ -78,6 +97,8 @@ export interface CartStoreState {
   updateQuantity: (productId: string, quantity: number) => void;
   setTip: (amount: number) => void;
   setPaymentMethod: (method: PaymentMethod) => void;
+  applyCoupon: (coupon: AppliedCoupon) => void;
+  removeCoupon: () => void;
   clearCart: () => void;
   setIsOpen: (open: boolean) => void;
   openCart: () => void;
@@ -85,6 +106,7 @@ export interface CartStoreState {
 
   // Getters for derived computations
   getItemTotal: () => number;
+  getDiscountAmount: () => number;
   getDeliveryFee: () => number;
   getGrandTotal: () => number;
   getAmountNeededForFreeDelivery: () => number;
@@ -96,6 +118,7 @@ export const useCartStore = create<CartStoreState>()(
       items: [],
       tipAmount: 0,
       paymentMethod: "UPI_DOORSTEP",
+      appliedCoupon: null,
       isOpen: false,
 
       addItem: (product: ProductData) => {
@@ -176,8 +199,16 @@ export const useCartStore = create<CartStoreState>()(
         set({ paymentMethod: method });
       },
 
+      applyCoupon: (coupon: AppliedCoupon) => {
+        set({ appliedCoupon: coupon });
+      },
+
+      removeCoupon: () => {
+        set({ appliedCoupon: null });
+      },
+
       clearCart: () => {
-        set({ items: [], tipAmount: 0 });
+        set({ items: [], tipAmount: 0, appliedCoupon: null });
       },
 
       setIsOpen: (open: boolean) => {
@@ -193,19 +224,27 @@ export const useCartStore = create<CartStoreState>()(
       },
 
       getItemTotal: () => {
-        return calculateCartTotals(get().items, get().tipAmount).itemTotal;
+        const discount = get().appliedCoupon?.discountAmount || 0;
+        return calculateCartTotals(get().items, get().tipAmount, discount).itemTotal;
+      },
+
+      getDiscountAmount: () => {
+        return get().appliedCoupon?.discountAmount || 0;
       },
 
       getDeliveryFee: () => {
-        return calculateCartTotals(get().items, get().tipAmount).deliveryFee;
+        const discount = get().appliedCoupon?.discountAmount || 0;
+        return calculateCartTotals(get().items, get().tipAmount, discount).deliveryFee;
       },
 
       getGrandTotal: () => {
-        return calculateCartTotals(get().items, get().tipAmount).grandTotal;
+        const discount = get().appliedCoupon?.discountAmount || 0;
+        return calculateCartTotals(get().items, get().tipAmount, discount).grandTotal;
       },
 
       getAmountNeededForFreeDelivery: () => {
-        return calculateCartTotals(get().items, get().tipAmount)
+        const discount = get().appliedCoupon?.discountAmount || 0;
+        return calculateCartTotals(get().items, get().tipAmount, discount)
           .amountNeededForFreeDelivery;
       },
     }),
@@ -216,6 +255,7 @@ export const useCartStore = create<CartStoreState>()(
         items: state.items,
         tipAmount: state.tipAmount,
         paymentMethod: state.paymentMethod,
+        appliedCoupon: state.appliedCoupon,
       }),
     }
   )

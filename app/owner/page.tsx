@@ -24,6 +24,7 @@ import {
   Eye,
   Store,
   LayoutDashboard,
+  FolderTree,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -305,6 +306,13 @@ export default function OwnerControlPage() {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-3">
+          <Link href="/owner/catalog">
+            <Button variant="accent" size="sm" className="h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm">
+              <FolderTree className="w-4 h-4" />
+              <span>Catalog &amp; Dual Pricing</span>
+            </Button>
+          </Link>
+
           <Link href="/manager">
             <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5">
               <LayoutDashboard className="w-4 h-4 text-slate-600" />

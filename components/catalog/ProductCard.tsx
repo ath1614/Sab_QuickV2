@@ -54,10 +54,10 @@ export function ProductCard({
       {/* Top Media & Speed Badges */}
       <div>
         <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100 group-hover:bg-slate-100/50 transition-colors">
-          {/* Discount Badge */}
+          {/* Discount Badge in Kinetic Green */}
           {discountPercent > 0 && (
             <div className="absolute top-2 left-2 z-10">
-              <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
+              <span className="bg-primary-accent text-surface-dark text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
                 {discountPercent}% OFF
               </span>
             </div>

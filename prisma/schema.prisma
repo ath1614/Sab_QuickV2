@@ -29,7 +29,14 @@ enum PaymentMethod {
   UPI_DOORSTEP
   CASH_ON_DELIVERY
   ONLINE_PREPAID
+  RAZORPAY
 }
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
 
 enum PaymentStatus {
   PENDING
@@ -128,20 +135,48 @@ model Order {
   deliveryFee   Float         @default(0)
   handlingFee   Float         @default(2)
   tipAmount     Float         @default(0)
-  totalAmount   Float
-  paymentMethod PaymentMethod @default(UPI_DOORSTEP)
-  paymentStatus PaymentStatus @default(PENDING)
-  paymentTxnId  String?
-  packedAt      DateTime?
-  deliveredAt   DateTime?
-  items         OrderItem[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  totalAmount       Float
+  paymentMethod     PaymentMethod @default(UPI_DOORSTEP)
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentTxnId      String?
+  couponId          String?
+  coupon            Coupon?       @relation(fields: [couponId], references: [id])
+  discountAmount    Float         @default(0)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  packedAt          DateTime?
+  deliveredAt       DateTime?
+  items             OrderItem[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([customerId])
   @@index([riderId])
   @@index([status])
+  @@index([couponId])
 }
+
+model Coupon {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  description    String?
+  discountType   DiscountType
+  discountValue  Float
+  minOrderAmount Float        @default(0)
+  maxDiscount    Float?
+  validFrom      DateTime     @default(now())
+  validTill      DateTime
+  isActive       Boolean      @default(true)
+  usageLimit     Int?
+  usedCount      Int          @default(0)
+  orders         Order[]
+  createdAt      DateTime     @default(now())
+
+  @@index([code])
+  @@index([isActive])
+}
+
 
 model OrderItem {
   id        String   @id @default(cuid())

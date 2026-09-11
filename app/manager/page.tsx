@@ -25,6 +25,7 @@ import {
   Package,
   Layers,
   Sparkles,
+  FolderTree,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -318,6 +319,13 @@ export default function ManagerDispatchPage() {
 
         {/* Action Controls */}
         <div className="flex items-center space-x-3">
+          <Link href="/owner/catalog">
+            <Button variant="accent" size="sm" className="h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm">
+              <FolderTree className="w-4 h-4" />
+              <span>Catalog &amp; Dual Pricing</span>
+            </Button>
+          </Link>
+
           <Link href="/packer">
             <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5 text-slate-700">
               <PackageCheck className="w-4 h-4 text-primary" />

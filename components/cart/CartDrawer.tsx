@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Sheet,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   useCartStore,
   calculateCartTotals,
@@ -27,6 +29,7 @@ import {
 } from "@/components/location/LocationPickerModal";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { loadRazorpayCheckoutScript } from "@/lib/razorpay";
 import {
   ShoppingBag,
   Plus,
@@ -44,15 +47,18 @@ import {
   Trash2,
   ChevronRight,
   ArrowRight,
+  Tag,
 } from "lucide-react";
 
 export function CartDrawer() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   const {
     items,
     tipAmount,
     paymentMethod,
+    appliedCoupon,
     isOpen,
     setIsOpen,
     closeCart,
@@ -61,6 +67,8 @@ export function CartDrawer() {
     updateQuantity,
     setTip,
     setPaymentMethod,
+    applyCoupon,
+    removeCoupon,
     clearCart,
   } = useCartStore();
 
@@ -92,13 +100,23 @@ export function CartDrawer() {
     totalAmount: number;
   } | null>(null);
 
-  // Calculate dynamic totals
-  const totals = calculateCartTotals(items, tipAmount);
+  // Coupon State
+  const [couponCodeInput, setCouponCodeInput] = React.useState<string>("");
+  const [isValidatingCoupon, setIsValidatingCoupon] = React.useState<boolean>(false);
+  const [couponError, setCouponError] = React.useState<string | null>(null);
+  const [couponSuccessMsg, setCouponSuccessMsg] = React.useState<string | null>(null);
+
+  // Calculate dynamic totals with applied coupon discount
+  const totals = calculateCartTotals(
+    items,
+    tipAmount,
+    appliedCoupon?.discountAmount || 0
+  );
 
   // Free delivery progress percentage
   const freeDeliveryProgress = Math.min(
     100,
-    Math.round((totals.itemTotal / FREE_DELIVERY_THRESHOLD) * 100)
+    Math.round((totals.subtotalAfterDiscount / FREE_DELIVERY_THRESHOLD) * 100)
   );
 
   // Load user saved address when session exists
@@ -181,6 +199,44 @@ export function CartDrawer() {
     loadRecommendations();
   }, [items, isOpen]);
 
+  // Coupon Validation Handler
+  const handleApplyCoupon = async () => {
+    if (!couponCodeInput.trim()) return;
+    setCouponError(null);
+    setCouponSuccessMsg(null);
+    setIsValidatingCoupon(true);
+
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponCodeInput.trim(),
+          cartTotal: totals.itemTotal,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.valid) {
+        setCouponError(data.error || "Failed to apply coupon.");
+        return;
+      }
+
+      applyCoupon({
+        code: data.code,
+        discountAmount: data.discountAmount,
+        description: data.description,
+      });
+      setCouponSuccessMsg(`Saved ₹${data.discountAmount} with ${data.code}! 🎉`);
+      setCouponCodeInput("");
+    } catch (err: any) {
+      setCouponError(err.message || "Failed to validate coupon.");
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
   // Handle Checkout / Place Order
   const handlePlaceOrder = async () => {
     setOrderError(null);
@@ -214,6 +270,7 @@ export function CartDrawer() {
         })),
         tipAmount,
         paymentMethod,
+        couponCode: appliedCoupon?.code,
       };
 
       const res = await fetch("/api/orders", {
@@ -233,7 +290,82 @@ export function CartDrawer() {
         return;
       }
 
-      // Order created successfully
+      // If Razorpay payment method, launch Razorpay Checkout modal
+      if (paymentMethod === "RAZORPAY") {
+        const isScriptLoaded = await loadRazorpayCheckoutScript();
+        if (!isScriptLoaded) {
+          setOrderError("Unable to load Razorpay payment SDK. Please try again.");
+          return;
+        }
+
+        const rzpRes = await fetch("/api/payments/razorpay/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: data.orderId }),
+        });
+
+        const rzpData = await rzpRes.json();
+        if (!rzpRes.ok) {
+          setOrderError(rzpData.error || "Failed to initiate Razorpay payment.");
+          return;
+        }
+
+        const options = {
+          key: rzpData.keyId,
+          amount: rzpData.amount,
+          currency: rzpData.currency || "INR",
+          name: "SabQuick",
+          description: `Order #${data.orderNumber} - 10-Min Delivery`,
+          order_id: rzpData.razorpayOrderId,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await fetch("/api/payments/razorpay/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: data.orderId,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.success) {
+                clearCart();
+                closeCart();
+                router.push(`/orders/${data.orderNumber}`);
+              } else {
+                setOrderError(verifyData.error || "Payment verification failed.");
+              }
+            } catch (vErr: any) {
+              setOrderError(vErr.message || "Payment verification error.");
+            }
+          },
+          prefill: {
+            name: session?.user?.name || "",
+            email: session?.user?.email || "",
+            contact: session?.user?.phone || "",
+          },
+          theme: {
+            color: "#0B6E4F",
+          },
+          modal: {
+            ondismiss: function () {
+              setOrderError("Payment was cancelled. You can retry payment or choose another method.");
+            },
+          },
+        };
+
+        const rzpInstance = new (window as any).Razorpay(options);
+        rzpInstance.on("payment.failed", function (response: any) {
+          setOrderError(response.error?.description || "Payment failed. Please try again.");
+        });
+        rzpInstance.open();
+        return;
+      }
+
+      // Order created successfully for UPI_DOORSTEP
       setOrderSuccess({
         orderNumber: data.orderNumber,
         deliveryOtp: data.deliveryOtp,
@@ -623,7 +755,85 @@ export function CartDrawer() {
                   </div>
                 </div>
 
-                {/* 6. BILL SUMMARY BREAKDOWN */}
+                {/* 6. COUPON / PROMO CODE SECTION */}
+                <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-surface-dark text-xs flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-primary" />
+                      Coupons & Offers
+                    </h4>
+                    {appliedCoupon && (
+                      <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                        {appliedCoupon.code} ACTIVE
+                      </span>
+                    )}
+                  </div>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
+                      <div>
+                        <div className="font-bold text-emerald-800 flex items-center gap-1">
+                          <span>{appliedCoupon.code}</span>
+                          <span className="text-[11px] text-emerald-600 font-black">
+                            (-₹{totals.discountAmount})
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-emerald-700">
+                          {appliedCoupon.description || "Promo discount applied to your order"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeCoupon}
+                        className="h-7 px-2 text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        REMOVE
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter code (e.g. WELCOME50)"
+                          value={couponCodeInput}
+                          onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                          className="h-9 text-xs uppercase font-mono tracking-wider font-bold"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyCoupon();
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!couponCodeInput.trim() || isValidatingCoupon}
+                          onClick={handleApplyCoupon}
+                          className="h-9 px-3.5 text-xs font-black bg-primary hover:bg-primary/90 text-white rounded-lg shadow-xs"
+                        >
+                          {isValidatingCoupon ? "..." : "APPLY"}
+                        </Button>
+                      </div>
+
+                      {couponError && (
+                        <p className="text-[11px] text-red-600 font-medium">
+                          {couponError}
+                        </p>
+                      )}
+                      {couponSuccessMsg && (
+                        <p className="text-[11px] text-emerald-600 font-medium">
+                          {couponSuccessMsg}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 7. BILL SUMMARY BREAKDOWN */}
                 <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2 text-xs">
                   <h4 className="font-bold text-surface-dark text-xs pb-1 border-b border-slate-100">
                     Bill Summary
@@ -635,6 +845,18 @@ export function CartDrawer() {
                       ₹{totals.itemTotal}
                     </span>
                   </div>
+
+                  {totals.discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5" />
+                        Coupon Discount {appliedCoupon?.code ? `(${appliedCoupon.code})` : ""}
+                      </span>
+                      <span className="font-mono font-bold">
+                        -₹{totals.discountAmount}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-center text-muted-foreground">
                     <span>Delivery Partner Fee</span>
@@ -678,14 +900,51 @@ export function CartDrawer() {
                   </div>
                 </div>
 
-                {/* 7. PAYMENT METHOD SELECTOR */}
+                {/* 8. PAYMENT METHOD SELECTOR */}
                 <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2.5">
                   <h4 className="font-bold text-surface-dark text-xs">
                     Select Payment Method
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: UPI at Doorstep */}
+                    {/* Option 1: Razorpay Online Payment */}
+                    <div
+                      onClick={() => setPaymentMethod("RAZORPAY")}
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                        paymentMethod === "RAZORPAY"
+                          ? "border-primary bg-primary/5 shadow-2xs"
+                          : "border-slate-200 hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="mt-0.5">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "RAZORPAY"}
+                          onChange={() => setPaymentMethod("RAZORPAY")}
+                          className="accent-primary w-4 h-4 cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-surface-dark">
+                            Pay Online (Razorpay)
+                          </span>
+                          <Badge
+                            variant="accent"
+                            className="text-[9px] py-0 px-1 font-bold"
+                          >
+                            UPI • Cards • NetBanking
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Instant digital prepaid confirmation via secure Razorpay.
+                        </p>
+                      </div>
+                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    </div>
+
+                    {/* Option 2: UPI at Doorstep */}
                     <div
                       onClick={() => setPaymentMethod("UPI_DOORSTEP")}
                       className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
@@ -709,10 +968,10 @@ export function CartDrawer() {
                             UPI at Doorstep (Scan QR)
                           </span>
                           <Badge
-                            variant="accent"
+                            variant="secondary"
                             className="text-[9px] py-0 px-1 font-bold"
                           >
-                            Most Popular • 0% Extra
+                            0% Extra
                           </Badge>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -720,35 +979,6 @@ export function CartDrawer() {
                         </p>
                       </div>
                       <QrCode className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    </div>
-
-                    {/* Option 2: Pay Online via UPI App */}
-                    <div
-                      onClick={() => setPaymentMethod("ONLINE_PREPAID")}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "ONLINE_PREPAID"
-                          ? "border-primary bg-primary/5 shadow-2xs"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
-                    >
-                      <div className="mt-0.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === "ONLINE_PREPAID"}
-                          onChange={() => setPaymentMethod("ONLINE_PREPAID")}
-                          className="accent-primary w-4 h-4 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-xs font-bold text-surface-dark">
-                          Pay Online via UPI App
-                        </span>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Instant digital prepaid confirmation.
-                        </p>
-                      </div>
-                      <CreditCard className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                     </div>
                   </div>
                 </div>
@@ -776,7 +1006,11 @@ export function CartDrawer() {
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 fill-surface-dark" />
                   <span>
-                    {isPlacingOrder ? "Dispatching Order..." : "Place Order"}
+                    {isPlacingOrder
+                      ? "Processing..."
+                      : paymentMethod === "RAZORPAY"
+                      ? "Proceed to Pay (Razorpay)"
+                      : "Place Order (10-Min Dispatch)"}
                   </span>
                 </div>
 

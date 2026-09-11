@@ -18,8 +18,9 @@ const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, "At least one item is required in cart"),
   tipAmount: z.number().min(0).default(0),
   paymentMethod: z
-    .enum(["UPI_DOORSTEP", "ONLINE_PREPAID"])
+    .enum(["UPI_DOORSTEP", "ONLINE_PREPAID", "RAZORPAY", "CASH_ON_DELIVERY"])
     .default("UPI_DOORSTEP"),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { addressId, items, tipAmount, paymentMethod } = parseResult.data;
+    const { addressId, items, tipAmount, paymentMethod, couponCode } = parseResult.data;
 
     // 4. Verify delivery address and 2.5 km Geofence
     const address = await prisma.address.findUnique({
@@ -149,15 +150,70 @@ export async function POST(req: NextRequest) {
       // 5d. Generate secure 4-digit Delivery OTP
       const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-      // 5e. Financial calculations
+      // 5e. Financial calculations & Coupon validation
       const subtotal = items.reduce((sum, item) => {
         const product = productMap.get(item.productId)!;
         return sum + product.salePrice * item.quantity;
       }, 0);
 
-      const deliveryFee = subtotal >= 199 ? 0 : 15;
+      let couponId: string | undefined = undefined;
+      let discountAmount = 0;
+
+      if (couponCode && couponCode.trim()) {
+        const cleanCode = couponCode.trim().toUpperCase();
+        const coupon = await tx.coupon.findUnique({
+          where: { code: cleanCode },
+        });
+
+        if (!coupon || !coupon.isActive) {
+          throw new Error("Invalid or inactive coupon code.");
+        }
+
+        const now = new Date();
+        if (now < coupon.validFrom || now > coupon.validTill) {
+          throw new Error("Coupon is expired or not yet active.");
+        }
+
+        if (subtotal < coupon.minOrderAmount) {
+          throw new Error(
+            `Minimum order amount of ₹${coupon.minOrderAmount} required for coupon ${cleanCode}.`
+          );
+        }
+
+        if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+          throw new Error("Coupon usage limit has been reached.");
+        }
+
+        if (coupon.discountType === "FLAT") {
+          discountAmount = coupon.discountValue;
+        } else if (coupon.discountType === "PERCENTAGE") {
+          discountAmount = (subtotal * coupon.discountValue) / 100;
+          if (coupon.maxDiscount !== null && coupon.maxDiscount !== undefined) {
+            discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+          }
+        }
+
+        discountAmount = Math.min(discountAmount, subtotal);
+        discountAmount = Math.round(discountAmount * 100) / 100;
+        couponId = coupon.id;
+
+        // Atomically increment Coupon.usedCount
+        await tx.coupon.update({
+          where: { id: coupon.id },
+          data: {
+            usedCount: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+      // Deduct discountAmount before computing delivery fee and grand total
+      const deliveryFee = discountedSubtotal >= 199 ? 0 : 15;
       const handlingFee = 2;
-      const totalAmount = subtotal + deliveryFee + handlingFee + tipAmount;
+      const totalAmount =
+        Math.round((discountedSubtotal + deliveryFee + handlingFee + tipAmount) * 100) / 100;
 
       // 5f. Create Order and OrderItem records
       const newOrder = await tx.order.create({
@@ -168,6 +224,8 @@ export async function POST(req: NextRequest) {
           status: "PENDING",
           deliveryOtp,
           subtotal,
+          couponId,
+          discountAmount,
           deliveryFee,
           handlingFee,
           tipAmount,
