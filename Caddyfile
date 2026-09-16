@@ -4,13 +4,12 @@
 # and high-security headers reverse proxy to Next.js standalone container.
 # ==============================================================================
 
-{$DOMAIN_NAME:localhost} {
+{$DOMAIN_NAME:srv1985371.hstgr.cloud}, :80 {
     # High-efficiency compression for modern browsers
     encode zstd gzip
 
     # Production hardening and security headers
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
