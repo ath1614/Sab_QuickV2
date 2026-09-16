@@ -7,7 +7,7 @@
 # Stage 1: Dependencies Cache
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy dependency manifests and prisma schema
@@ -21,7 +21,7 @@ RUN npm ci
 # Stage 2: Application Builder
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy cached dependencies from deps stage
@@ -57,7 +57,7 @@ RUN npm run build
 # Stage 3: Minimal Production Runner
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
