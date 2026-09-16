@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeSync } from "@/components/theme/ThemeSync";
+import { ActiveOrderFloatingBar } from "@/components/orders/ActiveOrderFloatingBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -53,6 +54,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeSync />
           {children}
+          <ActiveOrderFloatingBar />
         </AuthProvider>
       </body>
     </html>
