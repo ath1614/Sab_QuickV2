@@ -2,7 +2,20 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Sparkles, Layers } from "lucide-react";
+import {
+  Sparkles,
+  Layers,
+  Milk,
+  Cookie,
+  CupSoda,
+  UtensilsCrossed,
+  Apple,
+  ShoppingBag,
+  Coffee,
+  Flame,
+  Heart,
+  Baby,
+} from "lucide-react";
 
 export interface SubCategoryItem {
   id: string;
@@ -15,6 +28,7 @@ export interface ParentCategoryItem {
   id: string;
   name: string;
   slug: string;
+  imageUrl?: string | null;
   displayRank: number;
   subCategories: SubCategoryItem[];
 }
@@ -26,11 +40,16 @@ interface CategoryNavProps {
   onSelectCategory: (catSlug: string, subSlug?: string) => void;
 }
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  "dairy-and-breakfast": "🥛",
-  "snacks-and-munchies": "🍿",
-  "cold-drinks-and-juices": "🥤",
-  "instant-foods": "🍜",
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "dairy-and-breakfast": Milk,
+  "snacks-and-munchies": Cookie,
+  "cold-drinks-and-juices": CupSoda,
+  "instant-foods": UtensilsCrossed,
+  "fruits-and-vegetables": Apple,
+  "tea-coffee-health-drinks": Coffee,
+  "personal-care": Heart,
+  "baby-care": Baby,
+  "atta-rice-dal": Flame,
 };
 
 export function CategoryNav({
@@ -64,7 +83,7 @@ export function CategoryNav({
           {/* Parent Category Aisle Buttons */}
           {categories.map((cat) => {
             const isActive = activeCategorySlug === cat.slug;
-            const emoji = CATEGORY_EMOJIS[cat.slug] || "🛒";
+            const IconComponent = CATEGORY_ICONS[cat.slug] || ShoppingBag;
             return (
               <button
                 key={cat.id}
@@ -77,7 +96,15 @@ export function CategoryNav({
                     : "bg-slate-100 hover:bg-slate-200/80 text-surface-dark border border-border-subtle/60"
                 )}
               >
-                <span className="text-sm">{emoji}</span>
+                {cat.imageUrl && cat.imageUrl.startsWith("http") ? (
+                  <img
+                    src={cat.imageUrl}
+                    alt={cat.name}
+                    className="w-4 h-4 object-contain rounded-sm"
+                  />
+                ) : (
+                  <IconComponent className={cn("w-3.5 h-3.5", isActive ? "text-white" : "text-primary")} />
+                )}
                 <span>{cat.name}</span>
               </button>
             );
