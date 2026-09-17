@@ -34,7 +34,13 @@ async function runOpsTestSuite() {
       where: { email: "manager@sabquick.local" },
     });
     const owner = await prisma.user.findFirst({
-      where: { email: "owner@sabquick.local" },
+      where: {
+        OR: [
+          { role: "OWNER" },
+          { email: "sabsupermart68@gmail.com" },
+          { email: "owner@sabquick.local" },
+        ],
+      },
     });
     const rider = await prisma.user.findFirst({
       where: { email: "rider1@sabquick.local" },

@@ -28,9 +28,9 @@ async function main() {
   console.log("\u{1F465} Seeding Staff & Customer Users...");
   const owner = await prisma.user.create({
     data: {
-      name: "SabQuick Owner",
-      email: "owner@sabquick.local",
-      phone: "9876500001",
+      name: "Anurag Soni",
+      email: "sabsupermart68@gmail.com",
+      phone: "9109066668",
       phoneVerified: true,
       role: import_client.Role.OWNER
     }
