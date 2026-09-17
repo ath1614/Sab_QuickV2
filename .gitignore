@@ -42,3 +42,13 @@ backups/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mobile build artifacts
+/dist/
+*.apk
+*.aab
+*.ipa
+public/downloads/
+android/local.properties
+ios/App/Pods/
+ios/App/build/

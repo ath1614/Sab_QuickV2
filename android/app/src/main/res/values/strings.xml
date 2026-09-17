@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SabQuick</string>
+    <string name="title_activity_main">SabQuick</string>
+    <string name="package_name">com.sabquick.app</string>
+    <string name="custom_url_scheme">com.sabquick.app</string>
+</resources>
