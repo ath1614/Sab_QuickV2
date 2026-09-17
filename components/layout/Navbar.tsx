@@ -273,7 +273,7 @@ export function Navbar({
                 className="rounded-xl h-10 px-3.5 text-xs font-semibold gap-1.5 border-border-subtle hover:bg-slate-50"
               >
                 <LogIn className="w-4 h-4 text-primary" />
-                <span>Login / Fast Roles</span>
+                <span>Sign In</span>
               </Button>
             )}
 

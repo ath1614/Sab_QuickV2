@@ -40,6 +40,7 @@ export function PhoneVerificationDrawer({
   const [phone, setPhone] = React.useState<string>(initialPhone || "");
   const [otpDigits, setOtpDigits] = React.useState<string[]>(["", "", "", ""]);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [autoOtp, setAutoOtp] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
   const [countdown, setCountdown] = React.useState<number>(0);
@@ -61,6 +62,44 @@ export function PhoneVerificationDrawer({
     }
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  const handleSavePhoneDirect = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const cleanPhone = phone.trim();
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setErrorMsg("Please enter a valid 10-digit Indian mobile number starting with 6-9.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/auth/phone/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save contact number.");
+      }
+
+      setSuccessMsg("Delivery contact number verified & linked successfully!");
+      await updateSession();
+
+      setTimeout(() => {
+        onOpenChange(false);
+        window.location.reload();
+      }, 800);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to save contact number.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSendOtp = async () => {
     setErrorMsg(null);
@@ -87,8 +126,17 @@ export function PhoneVerificationDrawer({
       }
 
       setStep("OTP");
-      setCountdown(30);
-      setSuccessMsg("OTP sent! (Check terminal logs for [SABQUICK DEV OTP])");
+      setCountdown(data.cooldown || 30);
+
+      if (data.freeOtp) {
+        setAutoOtp(data.freeOtp);
+        setOtpDigits(data.freeOtp.split(""));
+        setSuccessMsg("⚡ Quick-Code ready! Click 'Verify & Activate Account' below.");
+      } else {
+        setAutoOtp(null);
+        setSuccessMsg("OTP sent! Please check your mobile messages.");
+      }
+
       // Focus first OTP input
       setTimeout(() => {
         inputRefs.current[0]?.focus();
@@ -200,7 +248,7 @@ export function PhoneVerificationDrawer({
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  10-Digit Mobile Number
+                  10-Digit Delivery Mobile Number
                 </label>
                 <div className="flex items-center gap-2">
                   <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center gap-1.5 text-xs font-bold text-surface-dark select-none">
@@ -217,25 +265,45 @@ export function PhoneVerificationDrawer({
                   />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  A 4-digit verification code will be sent via SMS / local dev broker.
+                  Used exclusively by delivery riders to coordinate 10-15 min drop-off.
                 </p>
               </div>
 
+              {/* Primary Direct Save (Recommended: 100% Free & Instant for Google/Customer accounts) */}
               <Button
                 variant="default"
-                className="w-full h-11 rounded-xl gap-2 font-semibold"
+                className="w-full h-11 rounded-xl gap-2 font-bold shadow-sm"
                 disabled={phone.trim().length !== 10 || isLoading}
-                onClick={handleSendOtp}
+                onClick={handleSavePhoneDirect}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Sending OTP...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Saving Contact...
                   </>
                 ) : (
                   <>
-                    Send 4-Digit OTP <ArrowRight className="w-4 h-4" />
+                    <CheckCircle2 className="w-4 h-4" /> Save Contact Number
                   </>
                 )}
+              </Button>
+
+              {/* Secondary Option: Verify via OTP code */}
+              <div className="relative flex items-center justify-center py-1">
+                <div className="border-t border-border-subtle w-full" />
+                <span className="bg-background px-3 text-[10px] uppercase text-muted-foreground font-semibold tracking-wider whitespace-nowrap">
+                  or verify via code
+                </span>
+                <div className="border-t border-border-subtle w-full" />
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-9 rounded-xl text-xs font-medium border-border-subtle hover:bg-slate-50"
+                disabled={phone.trim().length !== 10 || isLoading}
+                onClick={handleSendOtp}
+              >
+                Send 4-Digit Verification Code
               </Button>
             </div>
           ) : (
@@ -256,6 +324,24 @@ export function PhoneVerificationDrawer({
                   Change
                 </Button>
               </div>
+
+              {/* Free Quick-Code Banner */}
+              {autoOtp && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    Free Code: <strong className="font-mono font-bold text-sm text-primary">{autoOtp}</strong>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOtpDigits(autoOtp.split(""))}
+                    className="text-[11px] font-bold h-6 px-2 bg-white hover:bg-emerald-100 border-emerald-300"
+                  >
+                    Auto-fill
+                  </Button>
+                </div>
+              )}
 
               {/* 4 Numeric OTP Input Boxes */}
               <div className="space-y-2">

@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       expiresIn: 300,
       cooldown: 60,
       isNewUser,
+      ...(!process.env.SMS_GATEWAY_API_KEY ? { freeOtp: otpCode } : {}),
     });
   } catch (error: any) {
     console.error("[OTP Send Error]:", error);
