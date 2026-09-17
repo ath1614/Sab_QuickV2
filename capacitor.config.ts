@@ -14,12 +14,6 @@ const config: CapacitorConfig = {
     captureInput: true,
     webContentsDebuggingEnabled: true,
   },
-  plugins: {
-    StatusBar: {
-      backgroundColor: "#0B6E4F",
-      style: "DARK",
-    },
-  },
 };
 
 export default config;
