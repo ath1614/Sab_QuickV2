@@ -43,6 +43,7 @@ import {
 } from "@/components/location/LocationPickerModal";
 
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { Logo } from "@/components/brand/Logo";
 
 interface NavbarProps {
@@ -59,9 +60,9 @@ export function Navbar({
   onSearchChange,
 }: NavbarProps) {
   const { data: session, status } = useSession();
+  const { items: storeItems, openCart } = useCartStore();
+  const { isOpen: authModalOpen, setIsOpen: setAuthModalOpen } = useAuthModalStore();
   const [mounted, setMounted] = React.useState(false);
-  const storeItems = useCartStore((s) => s.items);
-  const openCart = useCartStore((s) => s.openCart);
 
   React.useEffect(() => {
     setMounted(true);
@@ -75,7 +76,6 @@ export function Navbar({
     : 0;
 
   const handleOpenCart = onOpenCart || openCart;
-  const [authModalOpen, setAuthModalOpen] = React.useState(false);
   const [phoneDrawerOpen, setPhoneDrawerOpen] = React.useState(false);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
 

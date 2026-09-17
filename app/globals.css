@@ -99,5 +99,28 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent pull-to-refresh overscroll bounce on mobile PWA */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
   }
 }
+
+@layer utilities {
+  /* iPhone Notch & Dynamic Island Safe Area Insets */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .h-screen-safe {
+    height: 100dvh;
+  }
+  .min-h-screen-safe {
+    min-height: 100dvh;
+  }
+}
+

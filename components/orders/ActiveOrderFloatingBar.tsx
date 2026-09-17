@@ -199,7 +199,7 @@ export function ActiveOrderFloatingBar() {
   return (
     <aside
       aria-label="Active delivery order status"
-      className={`fixed bottom-4 inset-x-4 max-w-xl mx-auto z-50 transition-all duration-400 ease-out ${
+      className={`fixed bottom-20 md:bottom-4 inset-x-4 max-w-xl mx-auto z-50 transition-all duration-400 ease-out ${
         isExiting
           ? "opacity-0 translate-y-8 pointer-events-none"
           : "opacity-100 translate-y-0"
