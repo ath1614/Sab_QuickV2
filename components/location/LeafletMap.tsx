@@ -142,9 +142,9 @@ export default function LeafletMap({
       },
       (err) => {
         console.warn("Geolocation permission error or unavailable:", err.message);
-        // Default to a realistic geofence location
-        const fallbackLat = 28.619;
-        const fallbackLng = 77.214;
+        // Default to configured store hub location
+        const fallbackLat = parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "28.6139");
+        const fallbackLng = parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "77.2090");
         if (mapInstanceRef.current && customerMarkerRef.current) {
           mapInstanceRef.current.flyTo([fallbackLat, fallbackLng], 15);
           customerMarkerRef.current.setLatLng([fallbackLat, fallbackLng]);

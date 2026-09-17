@@ -253,17 +253,6 @@ export function Navbar({
                   </Link>
                 )}
 
-                {/* Role Switcher Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAuthModalOpen(true)}
-                  className="rounded-xl h-9 text-xs gap-1 border-border-subtle"
-                  title="Switch Persona / Role"
-                >
-                  <RotateCw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Role</span>
-                </Button>
 
                 {/* Logout Button */}
                 <Button

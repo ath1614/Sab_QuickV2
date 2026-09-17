@@ -80,6 +80,7 @@ jobs:
           npx tsx scripts/verify-rider-flow.ts
           npx tsx scripts/verify-ops.ts
           npx tsx scripts/verify-razorpay-coupons-catalog.ts
+          npx tsx scripts/verify-production-readiness.ts
 
       - name: Run TypeScript Validation
         run: npx tsc --noEmit

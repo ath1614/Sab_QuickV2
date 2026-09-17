@@ -124,19 +124,7 @@ export function CartDrawer() {
   React.useEffect(() => {
     async function loadAddress() {
       if (!session?.user?.id) {
-        // Fallback demo address within geofence for unauthenticated/demo view
-        setActiveAddress((prev) =>
-          prev || {
-            id: "default-geofenced-addr",
-            label: "Home",
-            flatBuilding: "Suite 101, Connaught Court",
-            streetArea: "Barakhamba Road, Connaught Place",
-            latitude: 28.619,
-            longitude: 77.214,
-            distanceKm: 0.75,
-            estimatedMinutes: 10,
-          }
-        );
+        setIsLoadingAddress(false);
         return;
       }
 
