@@ -195,12 +195,14 @@ function StorefrontContent() {
       />
 
       {/* Sticky Two-Tier Category Navigation */}
-      <CategoryNav
-        categories={categories}
-        activeCategorySlug={categoryParam}
-        activeSubSlug={subParam}
-        onSelectCategory={handleSelectCategory}
-      />
+      <div id="category-nav">
+        <CategoryNav
+          categories={categories}
+          activeCategorySlug={categoryParam}
+          activeSubSlug={subParam}
+          onSelectCategory={handleSelectCategory}
+        />
+      </div>
 
       {/* Main Storefront Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">

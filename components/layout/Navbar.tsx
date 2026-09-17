@@ -109,28 +109,28 @@ export function Navbar({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-sm pt-[env(safe-area-inset-top,0px)] w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 w-full">
           {/* Logo & Interactive Geofence Address Trigger */}
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="flex items-center hover:opacity-95 transition-opacity" title="SabQuick Home">
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
+            <Link href="/" className="flex items-center hover:opacity-95 transition-opacity shrink-0" title="SabQuick Home">
               <span className="hidden sm:inline-block">
                 <Logo variant="compact" size={38} />
               </span>
               <span className="inline-block sm:hidden">
-                <Logo variant="icon" size={40} />
+                <Logo variant="icon" size={32} />
               </span>
             </Link>
 
-            <div className="border-l border-slate-200 pl-3">
+            <div className="border-l border-slate-200 pl-2 sm:pl-3 min-w-0">
               <div className="flex items-center gap-1.5">
                 <Badge
                   variant="accent"
-                  className="inline-flex gap-1 text-[10px] tracking-wide uppercase cursor-pointer hover:bg-primary-accent/80 transition-colors py-0.5 px-2"
+                  className="inline-flex gap-1 text-[9px] sm:text-[10px] tracking-wide uppercase cursor-pointer hover:bg-primary-accent/80 transition-colors py-0.2 px-1.5 sm:px-2"
                   onClick={() => setLocationPickerOpen(true)}
                   title="Click to check or change delivery geofence"
                 >
-                  <Zap className="w-3 h-3 fill-surface-dark" /> {activeAddress.estimatedMinutes} Mins
+                  <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-surface-dark" /> {activeAddress.estimatedMinutes} Mins
                 </Badge>
               </div>
 
@@ -138,11 +138,11 @@ export function Navbar({
               <button
                 type="button"
                 onClick={() => setLocationPickerOpen(true)}
-                className="flex items-center text-xs text-muted-foreground gap-1.5 hover:text-primary transition-colors text-left group mt-0.5"
+                className="flex items-center text-[11px] sm:text-xs text-muted-foreground gap-1 hover:text-primary transition-colors text-left group mt-0.5"
                 title="Change delivery address & map pin"
               >
-                <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-surface-dark max-w-[150px] sm:max-w-[180px] truncate underline-offset-2 group-hover:underline">
+                <MapPin className="w-3 h-3 text-primary shrink-0" />
+                <span className="font-semibold text-surface-dark max-w-[105px] xs:max-w-[140px] sm:max-w-[180px] truncate underline-offset-2 group-hover:underline">
                   {activeAddress.flatBuilding || activeAddress.streetArea}
                 </span>
                 <span className="text-slate-400 text-[11px] hidden md:inline">
@@ -165,7 +165,7 @@ export function Navbar({
           </div>
 
           {/* Actions & Authentication */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
             {/* Interactive Map & Geofence Picker Trigger */}
             <Button
               variant="outline"
@@ -178,9 +178,9 @@ export function Navbar({
 
             {/* Authentication Controller */}
             {status === "loading" ? (
-              <div className="h-9 w-24 bg-slate-100 rounded-lg animate-pulse" />
+              <div className="h-8 w-16 sm:h-9 sm:w-24 bg-slate-100 rounded-lg animate-pulse" />
             ) : user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 {/* User Info & Role Badge */}
                 <div className="hidden sm:flex flex-col items-end">
                   <div className="flex items-center gap-1.5">
@@ -213,53 +213,52 @@ export function Navbar({
                 {user.role === "RIDER" && (
                   <Link
                     href="/rider/dashboard"
-                    className="h-9 px-3 rounded-xl bg-primary-accent text-surface-dark font-black text-xs flex items-center gap-1.5 shadow-sm hover:bg-primary-accent/90 transition-all"
+                    className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-primary-accent text-surface-dark font-black text-xs flex items-center gap-1.5 shadow-sm hover:bg-primary-accent/90 transition-all"
                   >
                     <Bike className="w-3.5 h-3.5" />
-                    <span>Rider Hub</span>
+                    <span className="hidden sm:inline">Rider Hub</span>
                   </Link>
                 )}
 
                 {["PACKER", "MANAGER", "OWNER"].includes(user.role as string) && (
                   <Link
                     href="/packer"
-                    className="h-9 px-3 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-emerald-200 transition-all"
+                    className="hidden sm:flex h-9 px-3 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs items-center gap-1.5 shadow-sm hover:bg-emerald-200 transition-all"
                     title="Packer Picking Station"
                   >
                     <PackageCheck className="w-3.5 h-3.5 text-primary" />
-                    <span className="hidden sm:inline">Packer</span>
+                    <span>Packer</span>
                   </Link>
                 )}
 
                 {["MANAGER", "OWNER"].includes(user.role as string) && (
                   <Link
                     href="/manager"
-                    className="h-9 px-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-slate-200 transition-all"
+                    className="hidden sm:flex h-9 px-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs items-center gap-1.5 shadow-sm hover:bg-slate-200 transition-all"
                     title="Live Manager Kanban Board"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5 text-slate-700" />
-                    <span className="hidden sm:inline">Manager</span>
+                    <span>Manager</span>
                   </Link>
                 )}
 
                 {user.role === "OWNER" && (
                   <Link
                     href="/owner"
-                    className="h-9 px-3 rounded-xl bg-amber-100 text-amber-900 font-black text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-200 transition-all"
+                    className="hidden sm:flex h-9 px-3 rounded-xl bg-amber-100 text-amber-900 font-black text-xs items-center gap-1.5 shadow-sm hover:bg-amber-200 transition-all"
                     title="Owner Executive Control"
                   >
                     <TrendingUp className="w-3.5 h-3.5 text-amber-700" />
-                    <span className="hidden sm:inline">Owner</span>
+                    <span>Owner</span>
                   </Link>
                 )}
-
 
                 {/* Logout Button */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-red-600"
+                  className="rounded-xl h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-red-600"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -270,9 +269,9 @@ export function Navbar({
                 variant="outline"
                 size="sm"
                 onClick={() => setAuthModalOpen(true)}
-                className="rounded-xl h-10 px-3.5 text-xs font-semibold gap-1.5 border-border-subtle hover:bg-slate-50"
+                className="rounded-xl h-8 sm:h-10 px-2.5 sm:px-3.5 text-[11px] sm:text-xs font-semibold gap-1 sm:gap-1.5 border-border-subtle hover:bg-slate-50"
               >
-                <LogIn className="w-4 h-4 text-primary" />
+                <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                 <span>Sign In</span>
               </Button>
             )}
@@ -281,11 +280,11 @@ export function Navbar({
             <Button
               variant="default"
               onClick={handleOpenCart}
-              className="relative gap-2 rounded-xl h-10 sm:h-11 px-3.5 sm:px-4 shadow-sm hover:shadow-md"
+              className="relative gap-1.5 rounded-xl h-8 sm:h-11 px-2.5 sm:px-4 shadow-sm hover:shadow-md"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="font-semibold hidden sm:inline">Cart</span>
-              <span className="bg-primary-accent text-surface-dark text-xs font-bold px-1.5 py-0.5 rounded-full">
+              <span className="bg-primary-accent text-surface-dark text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full">
                 {displayCartCount}
               </span>
             </Button>

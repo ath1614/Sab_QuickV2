@@ -65,8 +65,18 @@ function MobileBottomNavInner() {
         </Link>
 
         {/* 2. Aisles / Categories Tab */}
-        <Link
-          href="/?category=all"
+        <button
+          type="button"
+          onClick={() => {
+            if (pathname === "/") {
+              const el = document.getElementById("category-nav");
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            } else {
+              window.location.href = "/?category=all#category-nav";
+            }
+          }}
           className={cn(
             "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
             isCategoryActive
@@ -81,7 +91,7 @@ function MobileBottomNavInner() {
             )}
           </div>
           <span className="text-[10px] tracking-tight">Aisles</span>
-        </Link>
+        </button>
 
         {/* 3. Cart Trigger (Center Hero with Live Items Badge & Price) */}
         <button
@@ -104,7 +114,7 @@ function MobileBottomNavInner() {
 
         {/* 4. Orders Tab */}
         <Link
-          href="/orders/active"
+          href="/orders"
           className={cn(
             "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
             isOrdersActive

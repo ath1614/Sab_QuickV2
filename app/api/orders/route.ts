@@ -305,3 +305,39 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ success: true, orders: [] }, { status: 200 });
+    }
+
+    const orders = await prisma.order.findMany({
+      where: { customerId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        address: true,
+        rider: {
+          include: {
+            riderProfile: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true, orders });
+  } catch (error: any) {
+    console.error("[GET /api/orders error]:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch orders" },
+      { status: 500 }
+    );
+  }
+}
