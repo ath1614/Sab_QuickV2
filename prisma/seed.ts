@@ -32,12 +32,12 @@ async function main() {
   // 3. Seed Users & Staff Roles
   console.log("👥 Seeding Staff & Customer Users...");
 
-  // Owner
+  // Owner (Executive Super-Admin)
   const owner = await prisma.user.create({
     data: {
-      name: "SabQuick Owner",
-      email: "owner@sabquick.local",
-      phone: "9876500001",
+      name: "Anurag Soni",
+      email: "sabsupermart68@gmail.com",
+      phone: "9109066668",
       phoneVerified: true,
       role: Role.OWNER,
     },
