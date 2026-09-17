@@ -67,8 +67,8 @@ jobs:
           REDIS_URL: "redis://localhost:6379"
           NEXTAUTH_SECRET: "ci_pipeline_secret_test_32_characters_minimum"
           NEXTAUTH_URL: "http://localhost:3000"
-          NEXT_PUBLIC_STORE_LAT: "28.6139"
-          NEXT_PUBLIC_STORE_LNG: "77.2090"
+          NEXT_PUBLIC_STORE_LAT: "23.129243"
+          NEXT_PUBLIC_STORE_LNG: "83.190082"
           NEXT_PUBLIC_STORE_MAX_RADIUS_KM: "2.5"
         run: |
           npx tsx scripts/verify-db.ts
@@ -95,3 +95,35 @@ jobs:
 
       - name: Verify Production Configuration
         run: npx tsx scripts/verify-prod-config.ts
+
+  deploy-to-vps:
+    name: Auto-Deploy to Hostinger VPS
+    needs: validate-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Check Deployment Secrets
+        id: check-secrets
+        run: |
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "has_secret=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ VPS_SSH_KEY is not configured in GitHub Secrets. Skipping auto-deploy."
+          else
+            echo "has_secret=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to VPS via SSH
+        if: steps.check-secrets.outputs.has_secret == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST || '187.126.112.24' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/sabquick
+            git pull origin main
+            docker compose --env-file .env.prod -f docker-compose.prod.yml build app
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d app
+            docker exec sabquick-caddy-prod caddy reload --config /etc/caddy/Caddyfile
+            docker ps

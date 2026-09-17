@@ -65,6 +65,9 @@ async function main() {
     },
   });
 
+  const storeLat = parseFloat(process.env.STORE_LATITUDE || process.env.NEXT_PUBLIC_STORE_LAT || "23.129243");
+  const storeLng = parseFloat(process.env.STORE_LONGITUDE || process.env.NEXT_PUBLIC_STORE_LNG || "83.190082");
+
   // Rider 1
   const rider1 = await prisma.user.create({
     data: {
@@ -76,8 +79,8 @@ async function main() {
       riderProfile: {
         create: {
           isOnline: true,
-          currentLat: 28.6142,
-          currentLng: 77.2095,
+          currentLat: storeLat + 0.0003,
+          currentLng: storeLng + 0.0005,
           vehicleDetails: "EV Scooter - DL-01-EQ-9871",
         },
       },
@@ -95,15 +98,15 @@ async function main() {
       riderProfile: {
         create: {
           isOnline: true,
-          currentLat: 28.6135,
-          currentLng: 77.2082,
+          currentLat: storeLat - 0.0004,
+          currentLng: storeLng - 0.0008,
           vehicleDetails: "Ather 450X - DL-03-EB-4512",
         },
       },
     },
   });
 
-  // Demo Customer with Address (within 1.2 km of store 28.6139, 77.2090)
+  // Demo Customer with Address (within 0.75 km of store hub)
   const customer = await prisma.user.create({
     data: {
       name: "Aakash Verma",
@@ -115,10 +118,10 @@ async function main() {
         create: {
           label: "Home",
           flatBuilding: "Flat 402, Royal Residency",
-          streetArea: "Barakhamba Road, Connaught Place",
-          landmark: "Near Metro Gate No. 2",
-          latitude: 28.619,
-          longitude: 77.214,
+          streetArea: "Main Market Road",
+          landmark: "Near Central Tower",
+          latitude: storeLat + 0.0051,
+          longitude: storeLng + 0.0050,
         },
       },
     },

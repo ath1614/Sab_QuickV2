@@ -17,12 +17,12 @@ export const STORE_CONFIG: StoreConfig = {
   lat: parseFloat(
     process.env.NEXT_PUBLIC_STORE_LAT ||
       process.env.STORE_LATITUDE ||
-      "28.6139"
+      "23.129243"
   ),
   lng: parseFloat(
     process.env.NEXT_PUBLIC_STORE_LNG ||
       process.env.STORE_LONGITUDE ||
-      "77.2090"
+      "83.190082"
   ),
   maxRadiusKm: parseFloat(
     process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM ||

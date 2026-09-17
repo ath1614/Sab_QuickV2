@@ -16,34 +16,34 @@ async function runGeoVerification() {
   console.log(` - Maximum Geofence: ${STORE_CONFIG.maxRadiusKm} km`);
   console.log(` - Service SLA: 10 - 15 Minutes\n`);
 
-  // 1. Test Serviceable Location: Connaught Place
-  console.log("🎯 1. Testing In-Geofence Location (Connaught Place)...");
-  const cpLat = 28.619;
-  const cpLng = 77.214;
-  const cpResult = checkDeliveryServiceability(cpLat, cpLng);
+  // 1. Test Serviceable In-Geofence Location (~0.75 km from Store Hub)
+  console.log("🎯 1. Testing In-Geofence Location (~0.75 km from Store Hub)...");
+  const inRangeLat = STORE_CONFIG.lat + 0.0051;
+  const inRangeLng = STORE_CONFIG.lng + 0.0050;
+  const inRangeResult = checkDeliveryServiceability(inRangeLat, inRangeLng);
 
-  console.log(` - Destination: (${cpLat}, ${cpLng})`);
-  console.log(` - Calculated Distance: ${cpResult.distanceKm} km`);
-  console.log(` - Estimated Delivery Time: ${cpResult.estimatedMinutes} mins`);
-  console.log(` - Is Serviceable: ${cpResult.isServiceable ? "✅ YES (Serviceable)" : "❌ NO"}`);
+  console.log(` - Destination: (${inRangeLat}, ${inRangeLng})`);
+  console.log(` - Calculated Distance: ${inRangeResult.distanceKm} km`);
+  console.log(` - Estimated Delivery Time: ${inRangeResult.estimatedMinutes} mins`);
+  console.log(` - Is Serviceable: ${inRangeResult.isServiceable ? "✅ YES (Serviceable)" : "❌ NO"}`);
 
-  if (!cpResult.isServiceable || cpResult.distanceKm > 2.5) {
-    throw new Error("Connaught Place should be serviceable within 2.5 km!");
+  if (!inRangeResult.isServiceable || inRangeResult.distanceKm > 2.5) {
+    throw new Error("Location should be serviceable within 2.5 km!");
   }
 
-  // 2. Test Out-of-Service Location: Karol Bagh
-  console.log("\n🚫 2. Testing Out-of-Geofence Location (Karol Bagh)...");
-  const kbLat = 28.6517;
-  const kbLng = 77.1906;
-  const kbResult = checkDeliveryServiceability(kbLat, kbLng);
+  // 2. Test Out-of-Service Location (~10 km from Store Hub)
+  console.log("\n🚫 2. Testing Out-of-Geofence Location (~10 km from Store Hub)...");
+  const outOfRangeLat = STORE_CONFIG.lat + 0.085;
+  const outOfRangeLng = STORE_CONFIG.lng + 0.085;
+  const outOfRangeResult = checkDeliveryServiceability(outOfRangeLat, outOfRangeLng);
 
-  console.log(` - Destination: (${kbLat}, ${kbLng})`);
-  console.log(` - Calculated Distance: ${kbResult.distanceKm} km`);
-  console.log(` - Estimated Delivery Time: ${kbResult.estimatedMinutes} mins`);
-  console.log(` - Is Serviceable: ${!kbResult.isServiceable ? "✅ NO (Correctly Out of Range)" : "❌ ERROR"}`);
+  console.log(` - Destination: (${outOfRangeLat}, ${outOfRangeLng})`);
+  console.log(` - Calculated Distance: ${outOfRangeResult.distanceKm} km`);
+  console.log(` - Estimated Delivery Time: ${outOfRangeResult.estimatedMinutes} mins`);
+  console.log(` - Is Serviceable: ${!outOfRangeResult.isServiceable ? "✅ NO (Correctly Out of Range)" : "❌ ERROR"}`);
 
-  if (kbResult.isServiceable) {
-    throw new Error("Karol Bagh should NOT be serviceable (> 2.5 km)!");
+  if (outOfRangeResult.isServiceable) {
+    throw new Error("Destination should NOT be serviceable (> 2.5 km)!");
   }
 
   // 3. Test SLA Calculation Formula
@@ -72,27 +72,27 @@ async function runGeoVerification() {
   }
 
   // Simulation A: Attempt to save Karol Bagh address (should be rejected)
-  console.log(" - Testing validation rejection for Karol Bagh address (> 2.5 km)...");
-  const unserviceableCheck = checkDeliveryServiceability(kbLat, kbLng);
+  console.log(" - Testing validation rejection for out-of-range address (> 2.5 km)...");
+  const unserviceableCheck = checkDeliveryServiceability(outOfRangeLat, outOfRangeLng);
   if (!unserviceableCheck.isServiceable) {
     console.log(`   ✅ Successfully blocked saving address: Outside ${unserviceableCheck.maxRadiusKm} km radius (${unserviceableCheck.distanceKm} km away)`);
   } else {
-    throw new Error("Karol Bagh should not have passed serviceability!");
+    throw new Error("Out-of-range address should not have passed serviceability!");
   }
 
-  // Simulation B: Save valid Connaught Place address for demo customer
-  console.log(" - Testing address insertion for Connaught Place address (<= 2.5 km)...");
-  const serviceableCheck = checkDeliveryServiceability(cpLat, cpLng);
+  // Simulation B: Save valid in-geofence address for demo customer
+  console.log(" - Testing address insertion for in-geofence address (<= 2.5 km)...");
+  const serviceableCheck = checkDeliveryServiceability(inRangeLat, inRangeLng);
   if (serviceableCheck.isServiceable) {
     const savedAddress = await prisma.address.create({
       data: {
         userId: demoCustomer.id,
         label: "Home",
-        flatBuilding: "Suite 101, Connaught Court",
-        streetArea: "Inner Circle, Connaught Place",
-        landmark: "Opposite Regal Cinema",
-        latitude: cpLat,
-        longitude: cpLng,
+        flatBuilding: "Suite 101, Hub View Residency",
+        streetArea: "Main Road",
+        landmark: "Near Market Gate",
+        latitude: inRangeLat,
+        longitude: inRangeLng,
       },
     });
 
