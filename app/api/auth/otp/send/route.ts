@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if phone belongs to Owner or internal Staff
     const existingUser = await prisma.user.findUnique({
       where: { phone },
-      select: { id: true, name: true, role: true, email: true, pin: true },
+      select: { id: true, name: true, role: true, email: true },
     });
 
     const isOwner = phone === "9109066668" || existingUser?.role === "OWNER";
