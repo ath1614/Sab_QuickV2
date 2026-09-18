@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { Role } from "@prisma/client";
 import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
+import { ensureDatabaseSchema } from "@/lib/db-self-heal";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
@@ -34,6 +35,9 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.phone) {
           throw new Error("Mobile number is required.");
         }
+
+        // Self-heal: Guarantee columns like "pin" exist in PostgreSQL before queries execute
+        await ensureDatabaseSchema();
 
         const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();

@@ -143,6 +143,11 @@ jobs:
           script: |
             cd /opt/sabquick
             git pull origin main
+            # Apply database migrations to production PostgreSQL container
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS pin TEXT;"' || true
+            for f in $(find prisma/migrations -name "migration.sql" | sort); do
+              docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$f" || true
+            done
             docker compose --env-file .env.prod -f docker-compose.prod.yml build app
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d app
             docker exec sabquick-caddy-prod caddy reload --config /etc/caddy/Caddyfile

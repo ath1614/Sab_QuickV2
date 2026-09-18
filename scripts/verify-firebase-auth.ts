@@ -9,6 +9,30 @@
  * 5. Preservation of Staff PIN Shift Clock-in (zero SMS/reCAPTCHA).
  */
 
+import fs from "fs";
+import path from "path";
+
+// Auto-load .env.local for local verification runs
+const envLocalPath = path.resolve(__dirname, "../.env.local");
+if (fs.existsSync(envLocalPath)) {
+  const envContent = fs.readFileSync(envLocalPath, "utf-8");
+  envContent.split("\n").forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+    const match = trimmed.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      let val = match[2].trim();
+      if (val.startsWith('"') && val.endsWith('"')) {
+        val = val.slice(1, -1);
+      }
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  });
+}
+
 import prisma from "../lib/prisma";
 import { getFirebaseAdminApp } from "../lib/firebase-admin";
 import { getAuth } from "firebase-admin/auth";
