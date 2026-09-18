@@ -63,14 +63,12 @@ export function ProductCard({
             </div>
           )}
 
-          {/* Speed Pill */}
-          <div className="absolute top-2 right-2 z-10">
-            <Badge
-              variant="accent"
-              className="text-[9px] py-0 px-1.5 gap-0.5 font-bold shadow-2xs"
-            >
-              <Zap className="w-2.5 h-2.5 fill-surface-dark" /> 10 MINS
-            </Badge>
+          {/* Speed Pill positioned at bottom-left of image (Blinkit style, zero badge collision) */}
+          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+            <div className="inline-flex items-center gap-1 bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-200 text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs">
+              <Zap className="w-2.5 h-2.5 fill-[#0B6E4F] text-[#0B6E4F]" />
+              <span>10 MINS</span>
+            </div>
           </div>
 
           {/* Product Image with Fallback */}

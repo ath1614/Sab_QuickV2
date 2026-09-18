@@ -26,6 +26,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
 import { SplashScreen } from "@/components/brand/SplashScreen";
+import { CustomLoadingScreen } from "@/components/ui/CustomLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +64,19 @@ function StorefrontContent() {
   // Cart store
   const { items: cartItems, addItem, removeItem, openCart } = useCartStore();
   const [authError, setAuthError] = React.useState<string | null>(null);
-  const [showSplash, setShowSplash] = React.useState<boolean>(true);
+
+  // Cold-start splash screen runs only once per session
+  const [showSplash, setShowSplash] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const alreadyShown = sessionStorage.getItem("sq_splash_seen");
+      if (!alreadyShown) {
+        setShowSplash(true);
+        sessionStorage.setItem("sq_splash_seen", "true");
+      }
+    }
+  }, []);
 
   // 1. Fetch Theme & Categories
   React.useEffect(() => {
@@ -358,8 +371,8 @@ function StorefrontContent() {
       {/* Slide-Over Quick Cart Drawer */}
       <CartDrawer />
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-border-subtle bg-white py-8">
+      {/* Footer (Desktop Only - hidden on mobile apps) */}
+      <footer className="hidden md:block mt-20 border-t border-border-subtle bg-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center space-x-2">
             <Logo variant="icon" size={24} className="rounded shrink-0" />
@@ -379,7 +392,7 @@ function StorefrontContent() {
 
 export default function HomePage() {
   return (
-    <React.Suspense fallback={<SplashScreen forceShow={true} />}>
+    <React.Suspense fallback={<CustomLoadingScreen message="Loading SabQuick Catalog..." />}>
       <StorefrontContent />
     </React.Suspense>
   );

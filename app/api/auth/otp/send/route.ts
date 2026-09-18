@@ -50,9 +50,10 @@ export async function POST(req: NextRequest) {
     // 5. Query whether customer already exists to advise onboarding form
     const existingUser = await prisma.user.findUnique({
       where: { phone },
-      select: { id: true, name: true },
+      select: { id: true, name: true, role: true, email: true },
     });
     const isNewUser = !existingUser || !existingUser.name;
+    const isElevatedRole = existingUser?.role === "OWNER" || existingUser?.role === "MANAGER";
 
     // 6. SMS Dispatch Gateway Integration
     if (process.env.SMS_GATEWAY_API_KEY && process.env.NODE_ENV === "production") {
@@ -66,9 +67,12 @@ export async function POST(req: NextRequest) {
     } else {
       // Developer terminal output for local / staging verification
       console.log(`\n======================================================`);
-      console.log(`[SABQUICK SECURE OTP] >>> Phone: +91 ${phone} | OTP: ${otpCode} <<<`);
+      console.log(`[SABQUICK SECURE OTP] >>> Phone: +91 ${phone} | OTP: ${otpCode} | Role: ${existingUser?.role || "CUSTOMER"} <<<`);
       console.log(`======================================================\n`);
     }
+
+    // Security: Never leak freeOtp in client response for Owner or Manager accounts
+    const shouldExposeDevOtp = !process.env.SMS_GATEWAY_API_KEY && !isElevatedRole;
 
     return NextResponse.json({
       success: true,
@@ -76,7 +80,7 @@ export async function POST(req: NextRequest) {
       expiresIn: 300,
       cooldown: 60,
       isNewUser,
-      ...(!process.env.SMS_GATEWAY_API_KEY ? { freeOtp: otpCode } : {}),
+      ...(shouldExposeDevOtp ? { freeOtp: otpCode } : {}),
     });
   } catch (error: any) {
     console.error("[OTP Send Error]:", error);
