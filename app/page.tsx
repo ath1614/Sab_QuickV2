@@ -166,28 +166,6 @@ function StorefrontContent() {
       {/* Animated SabQuick Initial Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
-      {/* Top Notification Bar */}
-      <div className="bg-surface-dark text-white px-4 py-2 text-xs font-medium">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-accent opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-accent"></span>
-            </span>
-            <span>Automated Dark Store #01</span>
-            <span className="text-slate-400">|</span>
-            <span className="text-slate-300">Geofence: 2.5 km (Connaught Place Hub)</span>
-          </div>
-          <div className="hidden sm:flex items-center space-x-4">
-            <span className="text-primary-accent font-semibold flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" /> 10-15 Min Delivery Guaranteed
-            </span>
-            <span className="text-slate-400">|</span>
-            <span>Zero-Cost OSM Geofencing</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Authenticated Navbar */}
       <Navbar
         searchQuery={activeSearch}
