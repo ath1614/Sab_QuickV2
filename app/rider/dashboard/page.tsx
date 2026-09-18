@@ -154,7 +154,7 @@ export default function RiderDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-primary-accent selection:text-surface-dark pb-16">
       {/* Top Mobile-First App Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <Logo variant="icon" theme="dark" size={36} className="rounded-xl shrink-0" />

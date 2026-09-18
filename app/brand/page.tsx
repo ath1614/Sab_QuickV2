@@ -121,7 +121,7 @@ export default function BrandShowcasePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-surface-dark pb-24 selection:bg-primary-accent selection:text-surface-dark">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Link href="/" className="hover:opacity-80 transition-opacity">

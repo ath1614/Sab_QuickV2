@@ -286,60 +286,88 @@ export default function OwnerControlPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased">
       {/* Top Bar */}
-      <header className="h-16 bg-white border-b border-border-subtle px-4 lg:px-8 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex items-center space-x-3">
-          <Logo variant="icon" size={40} className="rounded-xl shadow-xs shrink-0" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black tracking-tight text-surface-dark leading-tight">
-                SabQuick <span className="text-primary">Owner Executive Hub</span>
-              </h1>
-              <Badge variant="default" className="text-[10px] uppercase font-black px-1.5 py-0 bg-primary">
-                EXECUTIVE
-              </Badge>
+      <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between sm:justify-start space-x-3">
+            <div className="flex items-center space-x-3">
+              <Link href="/" title="Back to Storefront">
+                <Logo variant="icon" size={38} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
+              </Link>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
+                    SabQuick <span className="text-primary">Owner Hub</span>
+                  </h1>
+                  <Badge variant="default" className="text-[9px] sm:text-[10px] uppercase font-black px-1.5 py-0 bg-primary">
+                    PRO
+                  </Badge>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  Financial metrics, catalog &amp; theme branding
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Financial intelligence, catalog overrides & theme branding
-            </p>
+
+            {/* Mobile Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchOperationsData();
+                fetchCurrentTheme();
+              }}
+              disabled={isRefreshing}
+              className="sm:hidden h-8 w-8 p-0 rounded-xl shrink-0"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+            </Button>
           </div>
-        </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center space-x-3">
-          <Link href="/owner/catalog">
-            <Button variant="accent" size="sm" className="h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm">
-              <FolderTree className="w-4 h-4" />
-              <span>Catalog &amp; Dual Pricing</span>
+          {/* Action Controls */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <Link href="/owner/catalog" className="shrink-0">
+              <Button variant="accent" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm px-2.5 sm:px-3">
+                <FolderTree className="w-3.5 h-3.5" />
+                <span>Catalog &amp; Pricing</span>
+              </Button>
+            </Link>
+
+            <Link href="/manager" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                <LayoutDashboard className="w-3.5 h-3.5 text-slate-600" />
+                <span>Manager</span>
+              </Button>
+            </Link>
+
+            <Link href="/packer" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                <PackageCheck className="w-3.5 h-3.5 text-primary" />
+                <span>Packer</span>
+              </Button>
+            </Link>
+
+            <Link href="/" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                <Store className="w-3.5 h-3.5 text-slate-600" />
+                <span>Store</span>
+              </Button>
+            </Link>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchOperationsData();
+                fetchCurrentTheme();
+              }}
+              disabled={isRefreshing}
+              className="hidden sm:inline-flex h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+              <span>Refresh</span>
             </Button>
-          </Link>
-
-          <Link href="/manager">
-            <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5">
-              <LayoutDashboard className="w-4 h-4 text-slate-600" />
-              <span>Manager Kanban</span>
-            </Button>
-          </Link>
-
-          <Link href="/packer">
-            <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5">
-              <PackageCheck className="w-4 h-4 text-primary" />
-              <span>Packer Station</span>
-            </Button>
-          </Link>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              fetchOperationsData();
-              fetchCurrentTheme();
-            }}
-            disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl text-xs font-semibold gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
+          </div>
         </div>
       </header>
 
@@ -650,8 +678,103 @@ export default function OwnerControlPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
+          {/* Mobile High-Density Touch Cards (< md) */}
+          <div className="block md:hidden space-y-3">
+            {isLoading ? (
+              <div className="py-8 text-center text-slate-500 font-medium">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary mb-2" />
+                Loading inventory records...
+              </div>
+            ) : filteredInventory.length === 0 ? (
+              <div className="py-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                No matching products found in catalog.
+              </div>
+            ) : (
+              filteredInventory.map((product) => {
+                const isLowStock = product.stockCount < 15;
+                const isUpdating = toggleStockId === product.id;
+
+                return (
+                  <div
+                    key={product.id}
+                    className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white relative shrink-0 overflow-hidden border border-slate-200 p-0.5">
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.title}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">
+                            {product.category?.name || "General"}
+                          </span>
+                          <span className="text-xs font-black text-slate-900 font-mono">
+                            ₹{product.price}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-black text-surface-dark truncate mt-0.5" title={product.title}>
+                          {product.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {product.packSize}
+                          </span>
+                          <span className="text-slate-300">&bull;</span>
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.2 rounded font-bold text-[10px] ${
+                              isLowStock
+                                ? "bg-rose-100 text-rose-800"
+                                : "bg-slate-200 text-slate-700"
+                            }`}
+                          >
+                            {product.stockCount} units
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${product.isAvailable ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className={`text-xs font-bold ${product.isAvailable ? "text-emerald-700" : "text-rose-600"}`}>
+                          {product.isAvailable ? "In Stock" : "Out of Stock"}
+                        </span>
+                      </div>
+
+                      <Button
+                        variant={product.isAvailable ? "outline" : "default"}
+                        size="sm"
+                        disabled={isUpdating}
+                        onClick={() => handleToggleStock(product.id, product.isAvailable)}
+                        className={`h-8 px-3 rounded-xl text-xs font-black transition-all ${
+                          product.isAvailable
+                            ? "border-rose-300 text-rose-700 hover:bg-rose-50"
+                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                        }`}
+                      >
+                        {isUpdating ? (
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                        ) : product.isAvailable ? (
+                          "Mark Out-of-Stock"
+                        ) : (
+                          "Mark In-Stock"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table (>= md) */}
+          <div className="hidden md:block border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                 <tr>

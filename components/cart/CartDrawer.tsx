@@ -1018,7 +1018,7 @@ export function CartDrawer() {
 
           {/* 8. STICKY CHECKOUT CTA BUTTON */}
           {!orderSuccess && items.length > 0 && (
-            <div className="p-4 bg-white border-t border-border-subtle sticky bottom-0 z-10 shadow-lg">
+            <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-white border-t border-border-subtle sticky bottom-0 z-10 shadow-lg">
               <Button
                 variant="accent"
                 disabled={isPlacingOrder || items.length === 0}

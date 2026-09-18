@@ -45,6 +45,7 @@ import {
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { Logo } from "@/components/brand/Logo";
+import { MobileOperationsSheet } from "./MobileOperationsSheet";
 
 interface NavbarProps {
   cartCount?: number;
@@ -78,6 +79,7 @@ export function Navbar({
   const handleOpenCart = onOpenCart || openCart;
   const [phoneDrawerOpen, setPhoneDrawerOpen] = React.useState(false);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
+  const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
 
   const [activeAddress, setActiveAddress] = React.useState<SavedAddressData>({
     label: "Home",
@@ -181,7 +183,22 @@ export function Navbar({
               <div className="h-8 w-16 sm:h-9 sm:w-24 bg-slate-100 rounded-lg animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-1 sm:gap-2">
-                {/* User Info & Role Badge */}
+                {/* Mobile Operations & Role Switcher Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setOperationsSheetOpen(true)}
+                  className="sm:hidden flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-border-subtle text-surface-dark transition-colors shrink-0"
+                  title="Open Operations & Role Hub"
+                >
+                  <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black">
+                    {user.role === "OWNER" ? "👑" : user.name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-slate-700 max-w-[55px] truncate">
+                    {user.role}
+                  </span>
+                </button>
+
+                {/* Desktop User Info & Role Badge */}
                 <div className="hidden sm:flex flex-col items-end">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-surface-dark truncate max-w-[120px]">
@@ -304,6 +321,12 @@ export function Navbar({
         onOpenChange={setLocationPickerOpen}
         onAddressSaved={setActiveAddress}
         currentAddress={activeAddress}
+      />
+      <MobileOperationsSheet
+        isOpen={operationsSheetOpen}
+        onOpenChange={setOperationsSheetOpen}
+        onOpenPhoneVerification={() => setPhoneDrawerOpen(true)}
+        onOpenLocationPicker={() => setLocationPickerOpen(true)}
       />
     </>
   );

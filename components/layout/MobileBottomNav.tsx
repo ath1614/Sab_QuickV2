@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
+import { MobileOperationsSheet } from "./MobileOperationsSheet";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
@@ -23,6 +24,7 @@ function MobileBottomNavInner() {
   const { data: session } = useSession();
   const { items, openCart, getItemTotal } = useCartStore();
   const { openAuthModal } = useAuthModalStore();
+  const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
@@ -131,27 +133,18 @@ function MobileBottomNavInner() {
           <span className="text-[10px] tracking-tight">Orders</span>
         </Link>
 
-        {/* 5. Account / Sign In Tab */}
+        {/* 5. Account / Operations Tab */}
         {user ? (
-          <Link
-            href={
-              user.role === "OWNER"
-                ? "/owner"
-                : user.role === "MANAGER"
-                ? "/manager"
-                : user.role === "RIDER"
-                ? "/rider/dashboard"
-                : user.role === "PACKER"
-                ? "/packer"
-                : "/"
-            }
+          <button
+            type="button"
+            onClick={() => setOperationsSheetOpen(true)}
             className={cn(
               "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
               user.role !== "CUSTOMER"
-                ? "text-primary-accent font-bold"
+                ? "text-primary font-bold"
                 : "text-muted-foreground hover:text-surface-dark"
             )}
-            title={user.name || "My Account"}
+            title={user.name || "My Account & Operations"}
           >
             <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-surface-dark text-xs font-bold border border-border-subtle">
               {user.role === "OWNER" ? (
@@ -163,7 +156,7 @@ function MobileBottomNavInner() {
             <span className="text-[10px] tracking-tight truncate max-w-[55px]">
               {user.role !== "CUSTOMER" ? user.role : user.name?.split(" ")[0] || "Account"}
             </span>
-          </Link>
+          </button>
         ) : (
           <button
             type="button"
@@ -177,6 +170,11 @@ function MobileBottomNavInner() {
           </button>
         )}
       </div>
+
+      <MobileOperationsSheet
+        isOpen={operationsSheetOpen}
+        onOpenChange={setOperationsSheetOpen}
+      />
     </nav>
   );
 }

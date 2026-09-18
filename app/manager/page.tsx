@@ -26,6 +26,7 @@ import {
   Layers,
   Sparkles,
   FolderTree,
+  Store,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,7 @@ export default function ManagerDispatchPage() {
 
   // View Delivered orders drawer/modal
   const [showDeliveredTab, setShowDeliveredTab] = React.useState(false);
+  const [activeKanbanStage, setActiveKanbanStage] = React.useState<"PENDING" | "PACKING" | "READY" | "OUT">("PENDING");
 
   // 1. Fetch live orders & riders
   const fetchOrdersAndRiders = React.useCallback(async (silent = false) => {
@@ -299,66 +301,89 @@ export default function ManagerDispatchPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased">
       {/* Top Cockpit Header */}
-      <header className="h-16 bg-white border-b border-border-subtle px-4 lg:px-8 flex items-center justify-between shadow-sm shrink-0">
-        <div className="flex items-center space-x-3">
-          <Logo variant="icon" theme="dark" size={40} className="rounded-xl shadow-xs shrink-0" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black tracking-tight text-surface-dark leading-tight">
-                SabQuick <span className="text-primary">Dispatch Cockpit</span>
-              </h1>
-              <Badge variant="dark" className="text-[10px] uppercase font-black px-1.5 py-0">
-                KANBAN OPS
-              </Badge>
+      <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between sm:justify-start space-x-3">
+            <div className="flex items-center space-x-3">
+              <Link href="/" title="Back to Storefront">
+                <Logo variant="icon" theme="dark" size={38} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
+              </Link>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
+                    SabQuick <span className="text-primary">Dispatch Cockpit</span>
+                  </h1>
+                  <Badge variant="dark" className="text-[9px] sm:text-[10px] uppercase font-black px-1.5 py-0">
+                    KANBAN
+                  </Badge>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  Live floor orchestration &amp; 15-minute SLA dispatch
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Live floor orchestration & 15-minute SLA dispatch
-            </p>
+
+            {/* Mobile Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchOrdersAndRiders();
+                fetchAnalyticsAndCatalog();
+              }}
+              disabled={isRefreshing}
+              className="sm:hidden h-8 w-8 p-0 rounded-xl shrink-0"
+              title="Sync"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+            </Button>
           </div>
-        </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center space-x-3">
-          <Link href="/owner/catalog">
-            <Button variant="accent" size="sm" className="h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm">
-              <FolderTree className="w-4 h-4" />
-              <span>Catalog &amp; Dual Pricing</span>
-            </Button>
-          </Link>
-
-          <Link href="/packer">
-            <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5 text-slate-700">
-              <PackageCheck className="w-4 h-4 text-primary" />
-              <span>Packer Station</span>
-            </Button>
-          </Link>
-
-          {role === "OWNER" && (
-            <Link href="/owner">
-              <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs font-bold gap-1.5 text-slate-700">
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
-                <span>Owner Hub</span>
+          {/* Action Controls */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <Link href="/owner/catalog" className="shrink-0">
+              <Button variant="accent" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm px-2.5 sm:px-3">
+                <FolderTree className="w-3.5 h-3.5" />
+                <span>Catalog &amp; Pricing</span>
               </Button>
             </Link>
-          )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              fetchOrdersAndRiders();
-              fetchAnalyticsAndCatalog();
-            }}
-            disabled={isRefreshing}
-            className="h-9 px-3 rounded-xl text-xs font-semibold gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
-            <span className="hidden sm:inline">Sync</span>
-          </Button>
+            <Link href="/packer" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                <PackageCheck className="w-3.5 h-3.5 text-primary" />
+                <span>Packer Station</span>
+              </Button>
+            </Link>
 
-          <div className="flex items-center gap-2 pl-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">Live</span>
+            {role === "OWNER" && (
+              <Link href="/owner" className="shrink-0">
+                <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Owner Hub</span>
+                </Button>
+              </Link>
+            )}
+
+            <Link href="/" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
+                <Store className="w-3.5 h-3.5 text-slate-600" />
+                <span>Store</span>
+              </Button>
+            </Link>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchOrdersAndRiders();
+                fetchAnalyticsAndCatalog();
+              }}
+              disabled={isRefreshing}
+              className="hidden sm:inline-flex h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+              <span>Sync</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -517,9 +542,170 @@ export default function ManagerDispatchPage() {
         </div>
       </section>
 
-      {/* 4-Column Operations Kanban Board */}
-      <main className="flex-1 p-4 lg:p-6 overflow-x-auto">
-        <div className="min-w-[1050px] grid grid-cols-4 gap-4 h-full items-start">
+      {/* Mobile Stage Selector Tabs (< lg) */}
+      <div className="lg:hidden px-4 pt-3 pb-2 bg-white border-b border-border-subtle shrink-0">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-2xl text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveKanbanStage("PENDING")}
+            className={`py-2 px-1 rounded-xl text-center transition-all ${
+              activeKanbanStage === "PENDING"
+                ? "bg-white text-blue-700 font-black shadow-xs ring-1 ring-slate-200"
+                : "text-slate-600 font-bold hover:bg-white/50"
+            }`}
+          >
+            <div className="text-[10px] uppercase tracking-tight">1. Recv</div>
+            <div className="text-xs font-black">{pendingOrders.length}</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveKanbanStage("PACKING")}
+            className={`py-2 px-1 rounded-xl text-center transition-all ${
+              activeKanbanStage === "PACKING"
+                ? "bg-white text-amber-700 font-black shadow-xs ring-1 ring-slate-200"
+                : "text-slate-600 font-bold hover:bg-white/50"
+            }`}
+          >
+            <div className="text-[10px] uppercase tracking-tight">2. Pick</div>
+            <div className="text-xs font-black">{packingOrders.length}</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveKanbanStage("READY")}
+            className={`py-2 px-1 rounded-xl text-center transition-all ${
+              activeKanbanStage === "READY"
+                ? "bg-white text-emerald-700 font-black shadow-xs ring-1 ring-slate-200"
+                : "text-slate-600 font-bold hover:bg-white/50"
+            }`}
+          >
+            <div className="text-[10px] uppercase tracking-tight">3. Ready</div>
+            <div className="text-xs font-black">{readyOrders.length}</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveKanbanStage("OUT")}
+            className={`py-2 px-1 rounded-xl text-center transition-all ${
+              activeKanbanStage === "OUT"
+                ? "bg-white text-indigo-700 font-black shadow-xs ring-1 ring-slate-200"
+                : "text-slate-600 font-bold hover:bg-white/50"
+            }`}
+          >
+            <div className="text-[10px] uppercase tracking-tight">4. Road</div>
+            <div className="text-xs font-black">{outOrders.length}</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Operations Kanban Board Workspace */}
+      <main className="flex-1 p-3 sm:p-4 lg:p-6">
+        {/* Mobile View (< lg): Single Active Column at Full Width */}
+        <div className="block lg:hidden">
+          {activeKanbanStage === "PENDING" && (
+            <div className="bg-slate-200/70 rounded-2xl p-3 border border-slate-300/80 flex flex-col">
+              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    1. Received Orders
+                  </h3>
+                </div>
+                <Badge variant="secondary" className="font-black text-xs px-2 py-0">
+                  {pendingOrders.length}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {pendingOrders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium bg-white/50 rounded-xl">
+                    No orders waiting for floor intake.
+                  </div>
+                ) : (
+                  pendingOrders.map((order) => renderOrderCard(order, "PENDING"))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeKanbanStage === "PACKING" && (
+            <div className="bg-slate-200/70 rounded-2xl p-3 border border-slate-300/80 flex flex-col">
+              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    2. Floor Picking Totes
+                  </h3>
+                </div>
+                <Badge variant="accent" className="font-black text-xs px-2 py-0">
+                  {packingOrders.length}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {packingOrders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium bg-white/50 rounded-xl">
+                    No orders actively in picking totes.
+                  </div>
+                ) : (
+                  packingOrders.map((order) => renderOrderCard(order, "PACKING"))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeKanbanStage === "READY" && (
+            <div className="bg-emerald-50/70 rounded-2xl p-3 border border-emerald-300/80 flex flex-col">
+              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-emerald-200">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                    3. Ready for Pickup
+                  </h3>
+                </div>
+                <Badge variant="default" className="font-black text-xs px-2 py-0 bg-emerald-700">
+                  {readyOrders.length}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {readyOrders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium bg-white/50 rounded-xl">
+                    No orders staged in Dispatch Bay.
+                  </div>
+                ) : (
+                  readyOrders.map((order) => renderOrderCard(order, "READY_FOR_PICKUP"))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeKanbanStage === "OUT" && (
+            <div className="bg-slate-200/70 rounded-2xl p-3 border border-slate-300/80 flex flex-col">
+              <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    4. En Route Deliveries
+                  </h3>
+                </div>
+                <Badge variant="dark" className="font-black text-xs px-2 py-0">
+                  {outOrders.length}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {outOrders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium bg-white/50 rounded-xl">
+                    No active rider deliveries en route.
+                  </div>
+                ) : (
+                  outOrders.map((order) => renderOrderCard(order, "OUT_FOR_DELIVERY"))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View (>= lg): Full 4-Column Grid */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-4 h-full items-start">
           {/* COLUMN 1: PENDING / RECEIVED */}
           <div className="bg-slate-200/70 rounded-2xl p-3 border border-slate-300/80 flex flex-col max-h-[calc(100vh-210px)]">
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-300">

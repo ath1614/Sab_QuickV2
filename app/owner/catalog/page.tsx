@@ -399,65 +399,87 @@ export default function OwnerCatalogPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
       {/* 1. TOP APP BAR */}
-      <header className="sticky top-0 z-40 bg-surface-dark/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href={session.user.role === "OWNER" ? "/owner" : "/manager"}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Hub</span>
-          </Link>
-          <div className="h-4 w-px bg-slate-800" />
-          <Logo variant="compact" theme="dark" size={24} />
-          <div>
-            <h1 className="text-sm font-black text-white flex items-center gap-2">
-              Catalog & Pricing Manager
-              <Badge variant="accent" className="text-[10px] font-black uppercase">
-                {session.user.role}
-              </Badge>
-            </h1>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              Two-tier Category &bull; Subcategory Tree &bull; Dual MRP / Sale Price Engine
-            </p>
+      <header className="sticky top-0 z-40 bg-surface-dark/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-8 py-2.5 sm:py-3.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href={session.user.role === "OWNER" ? "/owner" : "/manager"}
+                className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
+                title="Back to Hub"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Back</span>
+              </Link>
+              <div className="h-4 w-px bg-slate-800" />
+              <Logo variant="compact" theme="dark" size={24} />
+              <div>
+                <h1 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
+                  <span>Catalog &amp; Pricing</span>
+                  <Badge variant="accent" className="text-[9px] sm:text-[10px] font-black uppercase py-0 px-1.5">
+                    {session.user.role}
+                  </Badge>
+                </h1>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 hidden sm:block">
+                  Two-tier Category &bull; Subcategory Tree &bull; Dual MRP / Sale Price Engine
+                </p>
+              </div>
+            </div>
+
+            {/* Mobile Fast Action: Add Product */}
+            <Button
+              size="sm"
+              onClick={() => {
+                if (allSubcategories.length > 0 && !prodCategoryId) {
+                  setProdCategoryId(allSubcategories[0].id);
+                }
+                setProductModalOpen(true);
+              }}
+              variant="accent"
+              className="sm:hidden h-8 px-2.5 text-xs font-black shadow-md shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Product
+            </Button>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => setParentModalOpen(true)}
-            variant="outline"
-            className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Parent Category
-          </Button>
+          {/* Action Controls */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <Button
+              size="sm"
+              onClick={() => setParentModalOpen(true)}
+              variant="outline"
+              className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200 shrink-0 px-2.5 sm:px-3"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Parent Cat
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={() => setSubModalOpen(true)}
-            variant="outline"
-            className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Subcategory
-          </Button>
+            <Button
+              size="sm"
+              onClick={() => setSubModalOpen(true)}
+              variant="outline"
+              className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200 shrink-0 px-2.5 sm:px-3"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Subcategory
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              if (allSubcategories.length > 0 && !prodCategoryId) {
-                setProdCategoryId(allSubcategories[0].id);
-              }
-              setProductModalOpen(true);
-            }}
-            variant="accent"
-            className="h-8 text-xs font-black shadow-md"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Add Product
-          </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (allSubcategories.length > 0 && !prodCategoryId) {
+                  setProdCategoryId(allSubcategories[0].id);
+                }
+                setProductModalOpen(true);
+              }}
+              variant="accent"
+              className="hidden sm:inline-flex h-8 text-xs font-black shadow-md shrink-0 px-3"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Add Product
+            </Button>
+          </div>
         </div>
       </header>
 
