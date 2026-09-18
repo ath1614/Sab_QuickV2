@@ -138,7 +138,7 @@ export function AislesDirectorySheet({
                 <span>Store Aisles & Categories</span>
               </SheetTitle>
               <SheetDescription className="text-xs text-slate-500 mt-0.5">
-                Quickly browse our full Connaught Place dark store inventory
+                Quickly browse our full Ambikapur dark store inventory
               </SheetDescription>
             </div>
             <Badge

@@ -58,7 +58,7 @@ export default function OrderRouteMap({
     storeMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
         <strong style="color: #0B6E4F;">⚡ SabQuick Dark Store Hub</strong><br/>
-        Connaught Place Dispatch Center<br/>
+        Ambikapur Dispatch Center, Chhattisgarh<br/>
         <span style="color: #64748b;">Packing & Dispatch Hub</span>
       </div>
     `);

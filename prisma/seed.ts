@@ -118,8 +118,8 @@ async function main() {
         create: {
           label: "Home",
           flatBuilding: "Flat 402, Royal Residency",
-          streetArea: "Main Market Road",
-          landmark: "Near Central Tower",
+          streetArea: "Gandhi Chowk, Ambikapur, Chhattisgarh",
+          landmark: "Near Ghadi Chowk",
           latitude: storeLat + 0.0051,
           longitude: storeLng + 0.0050,
         },

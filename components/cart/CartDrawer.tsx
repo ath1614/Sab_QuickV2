@@ -900,53 +900,16 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: UPI at Doorstep (Scan QR) */}
-                    <div
-                      onClick={() => setPaymentMethod("UPI_DOORSTEP")}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "UPI_DOORSTEP"
-                          ? "border-primary bg-primary/5 shadow-2xs"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
-                    >
-                      <div className="mt-0.5">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === "UPI_DOORSTEP"}
-                          onChange={() => setPaymentMethod("UPI_DOORSTEP")}
-                          className="accent-primary w-4 h-4 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-surface-dark">
-                            UPI at Doorstep (Scan QR)
-                          </span>
-                          <Badge
-                            variant="secondary"
-                            className="text-[9px] py-0 px-1 font-bold"
-                          >
-                            0% Extra
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Scan dynamic QR at delivery via GPay/PhonePe/Paytm • 0% Extra
-                        </p>
-                      </div>
-                      <QrCode className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    </div>
-
-                    {/* Option 2: Pay Online with Razorpay */}
+                    {/* Option 1: Pay Online */}
                     <div
                       onClick={() => setPaymentMethod("RAZORPAY")}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         paymentMethod === "RAZORPAY"
                           ? "border-primary bg-primary/5 shadow-2xs"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
                     >
-                      <div className="mt-0.5">
+                      <div className="flex items-center gap-3">
                         <input
                           type="radio"
                           name="paymentMethod"
@@ -954,36 +917,57 @@ export function CartDrawer() {
                           onChange={() => setPaymentMethod("RAZORPAY")}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div>
                           <span className="text-xs font-bold text-surface-dark">
-                            Pay Online (Razorpay)
+                            Pay Online
                           </span>
-                          <Badge
-                            variant="accent"
-                            className="text-[9px] py-0 px-1 font-bold"
-                          >
-                            Cards, UPI, NetBanking, Wallets
-                          </Badge>
+                          <p className="text-[11px] text-muted-foreground">
+                            UPI, Cards, NetBanking
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Instant online payment via Razorpay secure gateway
-                        </p>
                       </div>
-                      <CreditCard className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                    </div>
+
+                    {/* Option 2: UPI at Doorstep */}
+                    <div
+                      onClick={() => setPaymentMethod("UPI_DOORSTEP")}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                        paymentMethod === "UPI_DOORSTEP"
+                          ? "border-primary bg-primary/5 shadow-2xs"
+                          : "border-slate-200 hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "UPI_DOORSTEP"}
+                          onChange={() => setPaymentMethod("UPI_DOORSTEP")}
+                          className="accent-primary w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-surface-dark">
+                            UPI at Delivery
+                          </span>
+                          <p className="text-[11px] text-muted-foreground">
+                            Scan QR with any UPI app
+                          </p>
+                        </div>
+                      </div>
+                      <QrCode className="w-4 h-4 text-slate-400 shrink-0" />
                     </div>
 
                     {/* Option 3: Cash on Delivery */}
                     <div
                       onClick={() => setPaymentMethod("CASH_ON_DELIVERY")}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         paymentMethod === "CASH_ON_DELIVERY"
                           ? "border-primary bg-primary/5 shadow-2xs"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
                     >
-                      <div className="mt-0.5">
+                      <div className="flex items-center gap-3">
                         <input
                           type="radio"
                           name="paymentMethod"
@@ -991,16 +975,16 @@ export function CartDrawer() {
                           onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
+                        <div>
+                          <span className="text-xs font-bold text-surface-dark">
+                            Cash on Delivery
+                          </span>
+                          <p className="text-[11px] text-muted-foreground">
+                            Pay cash at doorstep
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <span className="text-xs font-bold text-surface-dark">
-                          Cash on Delivery
-                        </span>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Pay cash at doorstep upon delivery
-                        </p>
-                      </div>
-                      <Banknote className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                      <Banknote className="w-4 h-4 text-slate-400 shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -1031,8 +1015,8 @@ export function CartDrawer() {
                     {isPlacingOrder
                       ? "Processing..."
                       : paymentMethod === "RAZORPAY"
-                      ? "Proceed to Pay (Razorpay)"
-                      : "Place Order (10-Min Dispatch)"}
+                      ? "Pay Now"
+                      : "Place Order"}
                   </span>
                 </div>
 

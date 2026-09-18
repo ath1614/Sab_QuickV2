@@ -429,7 +429,7 @@ export default function BrandShowcasePage() {
                     <span>14:32 IST</span>
                   </div>
                   <div>CUSTOMER: Aarav Sharma</div>
-                  <div>DEST: Connaught Place, CP-04</div>
+                  <div>DEST: Ambikapur, CG-15</div>
                 </div>
                 <div className="border-t border-dashed border-slate-300 pt-2 flex justify-between font-bold text-xs">
                   <span>TOTAL PAID:</span>

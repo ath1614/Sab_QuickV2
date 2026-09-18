@@ -54,6 +54,16 @@ interface NavbarProps {
   onSearchChange?: (val: string) => void;
 }
 
+const DEFAULT_STORE_ADDRESS: SavedAddressData = {
+  label: "Home",
+  flatBuilding: "Gandhi Chowk",
+  streetArea: "Ambikapur, Chhattisgarh",
+  latitude: 23.129243,
+  longitude: 83.190082,
+  distanceKm: 0.5,
+  estimatedMinutes: 10,
+};
+
 export function Navbar({
   cartCount,
   onOpenCart,
@@ -63,15 +73,16 @@ export function Navbar({
   const { data: session, status } = useSession();
   const { items: storeItems, openCart } = useCartStore();
   const { isOpen: authModalOpen, setIsOpen: setAuthModalOpen } = useAuthModalStore();
-  const [mounted, setMounted] = React.useState(false);
+  const [totalCartQty, setTotalCartQty] = React.useState(0);
 
+  // Sync client state after hydration
   React.useEffect(() => {
-    setMounted(true);
-  }, []);
+    const qty = storeItems.reduce((acc, item) => acc + item.quantity, 0);
+    setTotalCartQty(qty);
+  }, [storeItems]);
 
-  const totalCartQty = storeItems.reduce((acc, item) => acc + item.quantity, 0);
-  const displayCartCount = mounted
-    ? cartCount !== undefined
+  const displayCartCount = status !== "loading"
+    ? typeof cartCount === "number"
       ? cartCount
       : totalCartQty
     : 0;
@@ -81,15 +92,42 @@ export function Navbar({
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
 
-  const [activeAddress, setActiveAddress] = React.useState<SavedAddressData>({
-    label: "Home",
-    flatBuilding: "Flat 402, Royal Residency",
-    streetArea: "Barakhamba Road, Connaught Place",
-    latitude: 28.619,
-    longitude: 77.214,
-    distanceKm: 0.75,
-    estimatedMinutes: 11,
-  });
+  const [activeAddress, setActiveAddress] = React.useState<SavedAddressData>(DEFAULT_STORE_ADDRESS);
+
+  // Sync user saved address when logged in
+  React.useEffect(() => {
+    async function loadUserAddress() {
+      if (!session?.user?.id) {
+        setActiveAddress(DEFAULT_STORE_ADDRESS);
+        return;
+      }
+      try {
+        const res = await fetch("/api/addresses");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.addresses && data.addresses.length > 0) {
+            const first = data.addresses[0];
+            setActiveAddress({
+              id: first.id,
+              label: first.label,
+              flatBuilding: first.flatBuilding,
+              streetArea: first.streetArea,
+              landmark: first.landmark,
+              latitude: first.latitude,
+              longitude: first.longitude,
+              distanceKm: 0.5,
+              estimatedMinutes: 10,
+            });
+          } else {
+            setActiveAddress(DEFAULT_STORE_ADDRESS);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load user address in Navbar:", err);
+      }
+    }
+    loadUserAddress();
+  }, [session?.user?.id]);
 
   const user = session?.user;
   const isPhoneVerified = Boolean(user?.phoneVerified);
@@ -145,7 +183,7 @@ export function Navbar({
               >
                 <MapPin className="w-3 h-3 text-primary shrink-0" />
                 <span className="font-semibold text-surface-dark max-w-[105px] xs:max-w-[140px] sm:max-w-[180px] truncate underline-offset-2 group-hover:underline">
-                  {activeAddress.flatBuilding || activeAddress.streetArea}
+                  {activeAddress.streetArea || activeAddress.flatBuilding}
                 </span>
                 <span className="text-slate-400 text-[11px] hidden md:inline">
                   ({activeAddress.distanceKm} km away)

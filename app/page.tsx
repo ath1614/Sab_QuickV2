@@ -251,17 +251,14 @@ function StorefrontContent() {
                   className="gap-1.5 uppercase font-black tracking-wider text-[11px] py-1 px-3 bg-primary-accent text-surface-dark shadow-sm"
                 >
                   <Zap className="w-3.5 h-3.5 fill-surface-dark" />
-                  {theme.themeName}
+                  10-15 Min Delivery
                 </Badge>
-                <span className="text-xs text-white/95 font-semibold bg-black/40 backdrop-blur-xs px-3 py-1 rounded-full border border-white/20 shadow-inner">
-                  Active Seasonal Theme
-                </span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
                 {theme.saleTagText}
               </h1>
               <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-medium drop-shadow-xs max-w-lg">
-                Fresh milk, dairy staples, farm produce, and midnight munchies dispatched from our Connaught Place dark store within minutes.
+                Fresh milk, dairy staples, farm produce, and midnight munchies dispatched from our Ambikapur dark store within minutes.
               </p>
             </div>
 

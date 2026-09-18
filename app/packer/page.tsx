@@ -794,7 +794,7 @@ export default function PackerStationPage() {
             <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-4 font-mono text-xs text-slate-800 space-y-3">
               <div className="flex flex-col items-center pb-2 border-b border-dashed border-slate-300 gap-1.5">
                 <Logo variant="thermal" size={170} />
-                <div className="text-[10px] text-slate-500 font-bold tracking-wider">HUB #104 - CONNAUGHT PLACE</div>
+                <div className="text-[10px] text-slate-500 font-bold tracking-wider">HUB #01 - AMBIKAPUR, CHHATTISGARH</div>
               </div>
 
               <div className="space-y-1 text-[11px]">

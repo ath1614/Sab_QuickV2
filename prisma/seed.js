@@ -98,10 +98,10 @@ async function main() {
         create: {
           label: "Home",
           flatBuilding: "Flat 402, Royal Residency",
-          streetArea: "Barakhamba Road, Connaught Place",
-          landmark: "Near Metro Gate No. 2",
-          latitude: 28.619,
-          longitude: 77.214
+          streetArea: "Gandhi Chowk, Ambikapur, Chhattisgarh",
+          landmark: "Near Ghadi Chowk",
+          latitude: 23.134343,
+          longitude: 83.195082
         }
       }
     }

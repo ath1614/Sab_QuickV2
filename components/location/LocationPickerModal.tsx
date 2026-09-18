@@ -72,10 +72,10 @@ export function LocationPickerModal({
   onAddressSaved,
   currentAddress,
 }: LocationPickerModalProps) {
-  // Default coordinates: Connaught Place within geofence (28.6190, 77.2140)
+  // Default coordinates: Ambikapur, Chhattisgarh within geofence (23.129243, 83.190082)
   const [coords, setCoords] = React.useState<{ lat: number; lng: number }>({
-    lat: currentAddress?.latitude || 28.619,
-    lng: currentAddress?.longitude || 77.214,
+    lat: currentAddress?.latitude || 23.129243,
+    lng: currentAddress?.longitude || 83.190082,
   });
 
   const [label, setLabel] = React.useState<"Home" | "Work" | "Other">(
@@ -85,10 +85,10 @@ export function LocationPickerModal({
     currentAddress?.flatBuilding || ""
   );
   const [streetArea, setStreetArea] = React.useState<string>(
-    currentAddress?.streetArea || "Barakhamba Road, Connaught Place"
+    currentAddress?.streetArea || "Gandhi Chowk, Ambikapur, Chhattisgarh"
   );
   const [landmark, setLandmark] = React.useState<string>(
-    currentAddress?.landmark || ""
+    currentAddress?.landmark || "Near Ghadi Chowk"
   );
 
   const [serviceability, setServiceability] =
@@ -344,7 +344,7 @@ export function LocationPickerModal({
               Street / Area / Locality *
             </label>
             <Input
-              placeholder="e.g. Barakhamba Road, Connaught Place"
+              placeholder="e.g. Gandhi Chowk, Ambikapur, Chhattisgarh"
               value={streetArea}
               onChange={(e) => setStreetArea(e.target.value)}
               className="h-10 text-xs rounded-xl"
