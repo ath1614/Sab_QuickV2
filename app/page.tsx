@@ -102,19 +102,30 @@ function StorefrontContent() {
     }
   }, [searchParams]);
 
+  // Synchronize activeSearch if URL query param changes
+  React.useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    setActiveSearch(urlSearch);
+  }, [searchParams]);
+
   // 2. Fetch Products based on Category & Search
   React.useEffect(() => {
     async function loadProducts() {
       setIsLoadingProducts(true);
       try {
-        const targetCategory = subParam || (categoryParam !== "all" ? categoryParam : "");
+        // When searching, bypass category scoping so user can find items across the entire catalog
+        const hasSearch = Boolean(activeSearch && activeSearch.trim().length > 0);
+        const targetCategory = hasSearch
+          ? ""
+          : (subParam || (categoryParam !== "all" ? categoryParam : ""));
+
         const queryParams = new URLSearchParams();
 
         if (targetCategory) {
           queryParams.set("categoryId", targetCategory);
         }
-        if (activeSearch) {
-          queryParams.set("search", activeSearch);
+        if (hasSearch) {
+          queryParams.set("search", activeSearch.trim());
         }
 
         const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
@@ -152,13 +163,22 @@ function StorefrontContent() {
 
   // Search submission
   const handleSearchSubmit = (query: string) => {
-    setActiveSearch(query);
+    const trimmed = query.trim();
+    setActiveSearch(trimmed);
     const params = new URLSearchParams();
-    if (query) {
-      params.set("search", query);
+    if (trimmed) {
+      params.set("search", trimmed);
     }
     const queryString = params.toString();
     router.push(queryString ? `/?${queryString}` : "/");
+
+    // Smooth scroll down to products
+    setTimeout(() => {
+      const el = document.getElementById("product-grid");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   return (
@@ -243,7 +263,7 @@ function StorefrontContent() {
         </section>
 
         {/* Active Search / Category Filter Header */}
-        <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+        <div id="product-grid" className="flex items-center justify-between border-b border-border-subtle pb-3 scroll-mt-24">
           <div>
             <h2 className="text-lg font-black text-surface-dark flex items-center gap-2">
               <span>

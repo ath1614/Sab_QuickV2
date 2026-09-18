@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
+import { AislesDirectorySheet } from "@/components/catalog/AislesDirectorySheet";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
@@ -25,6 +26,7 @@ function MobileBottomNavInner() {
   const { items, openCart, getItemTotal } = useCartStore();
   const { openAuthModal } = useAuthModalStore();
   const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
+  const [aislesSheetOpen, setAislesSheetOpen] = React.useState(false);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
@@ -69,16 +71,7 @@ function MobileBottomNavInner() {
         {/* 2. Aisles / Categories Tab */}
         <button
           type="button"
-          onClick={() => {
-            if (pathname === "/") {
-              const el = document.getElementById("category-nav");
-              if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }
-            } else {
-              window.location.href = "/?category=all#category-nav";
-            }
-          }}
+          onClick={() => setAislesSheetOpen(true)}
           className={cn(
             "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
             isCategoryActive
@@ -174,6 +167,13 @@ function MobileBottomNavInner() {
       <MobileOperationsSheet
         isOpen={operationsSheetOpen}
         onOpenChange={setOperationsSheetOpen}
+      />
+
+      <AislesDirectorySheet
+        isOpen={aislesSheetOpen}
+        onOpenChange={setAislesSheetOpen}
+        activeCategorySlug={searchParams?.get("category") || undefined}
+        activeSubSlug={searchParams?.get("sub") || undefined}
       />
     </nav>
   );

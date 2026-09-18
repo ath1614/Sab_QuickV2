@@ -76,11 +76,26 @@ export function SearchBar({
     }, 300);
   };
 
+  // Sync query when initialQuery prop changes
+  React.useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  const scrollToResults = () => {
+    setTimeout(() => {
+      const el = document.getElementById("product-grid");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       setIsOpen(false);
       onSearchSubmit(query.trim());
+      scrollToResults();
     }
   };
 
@@ -91,11 +106,24 @@ export function SearchBar({
     onSearchSubmit("");
   };
 
+  const handleExecuteSearch = (val: string) => {
+    setIsOpen(false);
+    onSearchSubmit(val.trim());
+    scrollToResults();
+  };
+
   return (
     <div ref={containerRef} className="relative w-full max-w-2xl mx-auto">
       {/* Search Input Container */}
       <div className="relative flex items-center">
-        <Search className="absolute left-4 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <button
+          type="button"
+          onClick={() => handleExecuteSearch(query)}
+          className="absolute left-3.5 p-1 text-slate-400 hover:text-primary transition-colors z-10"
+          title="Search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
 
         <Input
           type="text"
@@ -108,22 +136,33 @@ export function SearchBar({
             }
           }}
           placeholder={placeholder}
-          className="w-full h-12 pl-11 pr-12 rounded-2xl bg-white border border-border-subtle shadow-sm focus-visible:ring-2 focus-visible:ring-primary text-sm font-medium transition-all"
+          className="w-full h-12 pl-11 pr-20 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 shadow-md focus-visible:ring-2 focus-visible:ring-primary text-sm font-medium transition-all"
         />
 
-        {/* Clear or Loading Indicator */}
-        <div className="absolute right-3.5 flex items-center">
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-          ) : query.length > 0 ? (
+        {/* Clear or Loading Indicator + Search CTA Button */}
+        <div className="absolute right-2 flex items-center gap-1.5">
+          {isLoading && (
+            <Loader2 className="w-4 h-4 text-primary animate-spin mr-1" />
+          )}
+          {query.length > 0 && !isLoading && (
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 rounded-full text-muted-foreground hover:text-surface-dark hover:bg-slate-100 transition-colors"
+              className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              title="Clear search"
             >
               <X className="w-3.5 h-3.5" />
             </button>
-          ) : null}
+          )}
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => handleExecuteSearch(query)}
+              className="px-2.5 py-1 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-all active:scale-95"
+            >
+              Go
+            </button>
+          )}
         </div>
       </div>
 
@@ -136,8 +175,7 @@ export function SearchBar({
                 key={product.id}
                 className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                 onClick={() => {
-                  setIsOpen(false);
-                  onSearchSubmit(product.title);
+                  handleExecuteSearch(product.title);
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -192,10 +230,7 @@ export function SearchBar({
           {/* View All Matches Footer */}
           <button
             type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onSearchSubmit(query.trim());
-            }}
+            onClick={() => handleExecuteSearch(query)}
             className="w-full bg-slate-50 hover:bg-slate-100/80 px-4 py-2.5 text-xs font-bold text-primary flex items-center justify-center gap-1 border-t border-slate-100 transition-colors"
           >
             <span>View all matching results for &ldquo;{query}&rdquo;</span>
