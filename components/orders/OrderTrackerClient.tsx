@@ -215,13 +215,22 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Navigation Top Bar */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-surface-dark transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Storefront</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-border-subtle shadow-sm text-xs font-bold text-muted-foreground hover:text-surface-dark hover:border-surface-dark transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Store</span>
+          </Link>
+          <Link
+            href="/orders"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-border-subtle shadow-sm text-xs font-bold text-muted-foreground hover:text-surface-dark hover:border-surface-dark transition-colors"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>All Orders</span>
+          </Link>
+        </div>
 
         {/* Live SSE Status Pill */}
         <div className="flex items-center gap-2">

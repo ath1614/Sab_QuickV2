@@ -36,6 +36,7 @@ import {
   Phone,
   Mail,
   Plus,
+  ArrowLeft,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -440,9 +441,18 @@ export default function OwnerControlPage() {
       <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center justify-between sm:justify-start space-x-3">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2.5">
+              <Link
+                href="/"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 shadow-xs"
+                title="Back to Storefront"
+              >
+                <ArrowLeft className="w-4 h-4 text-primary" />
+                <span>Store</span>
+              </Link>
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
               <Link href="/" title="Back to Storefront">
-                <Logo variant="icon" size={38} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
+                <Logo variant="icon" size={36} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
               </Link>
               <div>
                 <div className="flex items-center gap-2">
@@ -500,7 +510,7 @@ export default function OwnerControlPage() {
 
             <Link href="/" className="shrink-0">
               <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
-                <Store className="w-3.5 h-3.5 text-slate-600" />
+                <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
                 <span>Store</span>
               </Button>
             </Link>

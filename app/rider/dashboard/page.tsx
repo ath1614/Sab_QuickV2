@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
@@ -181,10 +182,11 @@ export default function RiderDashboardPage() {
 
             <Link
               href="/"
-              className="h-9 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="h-9 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              title="Back to Storefront"
             >
-              <Home className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Store</span>
+              <ArrowLeft className="w-3.5 h-3.5 text-primary-accent" />
+              <span>Store</span>
             </Link>
 
             <Button

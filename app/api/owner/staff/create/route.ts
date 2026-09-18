@@ -5,6 +5,8 @@ import { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 const createStaffSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters"),
   phone: z
@@ -12,7 +14,8 @@ const createStaffSchema = z.object({
     .trim()
     .regex(/^[6-9]\d{9}$/, "Must be a valid 10-digit Indian mobile number starting with 6-9"),
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
-  role: z.enum(["RIDER", "PACKER", "MANAGER", "OWNER"]),
+  role: z.enum(["RIDER", "PACKER", "MANAGER"]),
+  pin: z.string().trim().regex(/^\d{4}$/, "Staff PIN must be 4 digits").optional(),
   vehicleDetails: z.string().trim().optional(),
 });
 
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Validate input payload
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const parseResult = createStaffSchema.safeParse(body);
 
     if (!parseResult.success) {
@@ -46,52 +49,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, email, role, vehicleDetails } = parseResult.data;
+    const { name, phone, email, role, pin, vehicleDetails } = parseResult.data;
 
-    // 3. Check for existing user by phone
-    const existingUser = await prisma.user.findUnique({
-      where: { phone },
-    });
-
-    let staffUser;
-
-    if (existingUser) {
-      staffUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          name,
-          role: role as Role,
-          phoneVerified: true,
-          ...(email ? { email } : {}),
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          phoneVerified: true,
-          role: true,
-        },
-      });
-    } else {
-      staffUser = await prisma.user.create({
-        data: {
-          name,
-          phone,
-          role: role as Role,
-          phoneVerified: true,
-          ...(email ? { email } : {}),
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          phoneVerified: true,
-          role: true,
-        },
-      });
+    // Disallow overriding the main Owner account
+    if (phone === "9109066668") {
+      return NextResponse.json(
+        { error: "Owner account cannot be modified via Staff provisioning." },
+        { status: 400 }
+      );
     }
+
+    // 3. Upsert user record with safe nullable email and PIN
+    const staffUser = await prisma.user.upsert({
+      where: { phone },
+      update: {
+        name,
+        email: email || null,
+        role: role as Role,
+        phoneVerified: true,
+        ...(pin ? { pin } : {}),
+      },
+      create: {
+        phone,
+        name,
+        email: email || null,
+        role: role as Role,
+        phoneVerified: true,
+        pin: pin || "1234",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        phoneVerified: true,
+        role: true,
+        pin: true,
+      },
+    });
 
     // 4. If RIDER role, upsert RiderProfile
     if (role === "RIDER") {
@@ -105,8 +100,8 @@ export async function POST(req: NextRequest) {
           userId: staffUser.id,
           vehicleDetails: vehicleDetails || "EV Delivery Scooter",
           isOnline: true,
-          currentLat: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "28.6139"),
-          currentLng: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "77.2090"),
+          currentLat: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "23.129243"),
+          currentLng: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "83.190082"),
         },
       });
     }
@@ -116,14 +111,15 @@ export async function POST(req: NextRequest) {
       message: `Staff account successfully provisioned for ${staffUser.name} as [${staffUser.role}].`,
       user: staffUser,
     });
-  } catch (error: any) {
-    console.error("[POST /api/owner/staff/create error]:", error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to create staff account.";
+    console.error("[POST /api/owner/staff/create error]:", errorMsg);
     return NextResponse.json(
       {
         error:
           process.env.NODE_ENV === "production"
             ? "Internal server error provisioning staff."
-            : error.message || "Failed to create staff account.",
+            : errorMsg,
       },
       { status: 500 }
     );

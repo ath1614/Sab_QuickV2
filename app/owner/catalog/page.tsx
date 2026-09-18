@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
@@ -99,6 +100,22 @@ export default function OwnerCatalogPage() {
   const [subName, setSubName] = React.useState("");
   const [subSlug, setSubSlug] = React.useState("");
   const [subImage, setSubImage] = React.useState("");
+
+  // Edit Aisle / Sub-Aisle Form
+  const [editCategoryModalOpen, setEditCategoryModalOpen] = React.useState<boolean>(false);
+  const [editCatId, setEditCatId] = React.useState<string>("");
+  const [editCatName, setEditCatName] = React.useState<string>("");
+  const [editCatSlug, setEditCatSlug] = React.useState<string>("");
+  const [editCatImage, setEditCatImage] = React.useState<string>("");
+  const [editCatIsParent, setEditCatIsParent] = React.useState<boolean>(true);
+
+  // Delete Aisle / Sub-Aisle Confirmation
+  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = React.useState<boolean>(false);
+  const [deleteCatId, setDeleteCatId] = React.useState<string>("");
+  const [deleteCatName, setDeleteCatName] = React.useState<string>("");
+  const [deleteCatIsParent, setDeleteCatIsParent] = React.useState<boolean>(true);
+  const [deleteCatSkuCount, setDeleteCatSkuCount] = React.useState<number>(0);
+  const [isDeletingCategory, setIsDeletingCategory] = React.useState<boolean>(false);
 
   // Add Product Form
   const [prodCategoryId, setProdCategoryId] = React.useState("");
@@ -227,6 +244,77 @@ export default function OwnerCatalogPage() {
       fetchCatalogData();
     } catch (err: any) {
       setErrorMsg(err.message);
+    }
+  };
+
+  // 2b. Open Edit Category / Subcategory
+  const handleOpenEditCategory = (
+    cat: { id: string; name: string; slug: string; imageUrl?: string | null },
+    isParent: boolean
+  ) => {
+    setEditCatId(cat.id);
+    setEditCatName(cat.name);
+    setEditCatSlug(cat.slug);
+    setEditCatImage(cat.imageUrl || "");
+    setEditCatIsParent(isParent);
+    setEditCategoryModalOpen(true);
+  };
+
+  // 2c. Submit Update Category / Subcategory
+  const handleUpdateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/ops/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editCatId,
+          name: editCatName.trim(),
+          slug: editCatSlug.trim() || slugify(editCatName),
+          imageUrl: editCatImage.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update category.");
+
+      setSuccessMsg(`Aisle "${data.category.name}" updated successfully!`);
+      setEditCategoryModalOpen(false);
+      fetchCatalogData();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to update category.");
+    }
+  };
+
+  // 2d. Open Delete Category Confirmation
+  const handleOpenDeleteCategory = (
+    cat: { id: string; name: string },
+    isParent: boolean,
+    skuCount: number
+  ) => {
+    setDeleteCatId(cat.id);
+    setDeleteCatName(cat.name);
+    setDeleteCatIsParent(isParent);
+    setDeleteCatSkuCount(skuCount);
+    setDeleteCategoryModalOpen(true);
+  };
+
+  // 2e. Confirm Delete Category / Subcategory
+  const handleConfirmDeleteCategory = async () => {
+    try {
+      setIsDeletingCategory(true);
+      const res = await fetch(`/api/ops/categories?id=${deleteCatId}&force=true`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete category.");
+
+      setSuccessMsg(data.message || `Deleted "${deleteCatName}".`);
+      setDeleteCategoryModalOpen(false);
+      fetchCatalogData();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to delete category.");
+    } finally {
+      setIsDeletingCategory(false);
     }
   };
 
@@ -405,11 +493,11 @@ export default function OwnerCatalogPage() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href={session.user.role === "OWNER" ? "/owner" : "/manager"}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors shadow-xs shrink-0"
                 title="Back to Hub"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back</span>
+                <ArrowLeft className="w-4 h-4 text-primary-accent" />
+                <span>Back to Hub</span>
               </Link>
               <div className="h-4 w-px bg-slate-800" />
               <Logo variant="compact" theme="dark" size={24} />
@@ -622,7 +710,27 @@ export default function OwnerCatalogPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenEditCategory(parent, true)}
+                        className="h-8 px-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1"
+                        title="Edit Aisle"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span className="hidden md:inline">Edit</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenDeleteCategory(parent, true, totalParentSkus)}
+                        className="h-8 px-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl text-xs gap-1"
+                        title="Delete Aisle"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                        <span className="hidden md:inline text-rose-400">Delete</span>
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -633,7 +741,8 @@ export default function OwnerCatalogPage() {
                         className="h-8 text-xs font-bold text-primary-accent hover:bg-primary-accent/10"
                       >
                         <Plus className="w-3.5 h-3.5 mr-1" />
-                        Add Subcategory
+                        <span className="hidden sm:inline">Add Subcategory</span>
+                        <span className="sm:hidden">Sub</span>
                       </Button>
                     </div>
                   </div>
@@ -677,18 +786,38 @@ export default function OwnerCatalogPage() {
                                   </span>
                                 </div>
 
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setProdCategoryId(sub.id);
-                                    setProductModalOpen(true);
-                                  }}
-                                  className="h-7 text-[11px] font-bold text-primary-accent hover:bg-primary-accent/10"
-                                >
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  Add SKU to {sub.name}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleOpenEditCategory(sub, false)}
+                                    className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                                    title="Edit Sub-Aisle"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleOpenDeleteCategory(sub, false, filteredProducts.length)}
+                                    className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                    title="Delete Sub-Aisle"
+                                  >
+                                    <Trash2 className="w-3 h-3 text-rose-500" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setProdCategoryId(sub.id);
+                                      setProductModalOpen(true);
+                                    }}
+                                    className="h-7 text-[11px] font-bold text-primary-accent hover:bg-primary-accent/10"
+                                  >
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Add SKU
+                                  </Button>
+                                </div>
                               </div>
 
                               {/* Products Grid */}
@@ -1367,6 +1496,157 @@ export default function OwnerCatalogPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 5: EDIT AISLE / SUB-AISLE                               */}
+      {/* ------------------------------------------------------------- */}
+      {editCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-sm font-black flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-primary-accent" />
+                Edit {editCatIsParent ? "Aisle (Parent Category)" : "Sub-Aisle"}
+              </h3>
+              <button
+                onClick={() => setEditCategoryModalOpen(false)}
+                className="text-slate-400 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCategory} className="space-y-3 text-xs">
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  Name *
+                </label>
+                <Input
+                  required
+                  value={editCatName}
+                  onChange={(e) => {
+                    setEditCatName(e.target.value);
+                    if (!editCatSlug || editCatSlug === slugify(editCatName)) {
+                      setEditCatSlug(slugify(e.target.value));
+                    }
+                  }}
+                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  URL Slug *
+                </label>
+                <Input
+                  required
+                  value={editCatSlug}
+                  onChange={(e) => setEditCatSlug(e.target.value)}
+                  className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  Image URL (Optional)
+                </label>
+                <Input
+                  placeholder="https://..."
+                  value={editCatImage}
+                  onChange={(e) => setEditCatImage(e.target.value)}
+                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditCategoryModalOpen(false)}
+                  className="h-9 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="accent" className="h-9 text-xs font-bold">
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 6: DELETE AISLE / SUB-AISLE CONFIRMATION               */}
+      {/* ------------------------------------------------------------- */}
+      {deleteCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
+                <Trash2 className="w-4 h-4 text-rose-500" />
+                Delete {deleteCatIsParent ? "Aisle" : "Sub-Aisle"}
+              </h3>
+              <button
+                onClick={() => setDeleteCategoryModalOpen(false)}
+                className="text-slate-400 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <p className="text-slate-300">
+                Are you sure you want to permanently delete{" "}
+                <strong className="text-white">&quot;{deleteCatName}&quot;</strong>?
+              </p>
+
+              {deleteCatSkuCount > 0 ? (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-rose-200">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>Active SKUs Warning</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    This {deleteCatIsParent ? "aisle" : "sub-aisle"} currently contains{" "}
+                    <strong>{deleteCatSkuCount} active product SKU(s)</strong>.
+                    Deleting it will permanently remove these products and any child subcategories from the store!
+                  </p>
+                </div>
+              ) : (
+                <p className="text-slate-400 text-[11px]">
+                  This {deleteCatIsParent ? "aisle" : "sub-aisle"} has 0 active SKUs and can be deleted safely.
+                </p>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setDeleteCategoryModalOpen(false)}
+                  disabled={isDeletingCategory}
+                  className="h-9 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmDeleteCategory}
+                  disabled={isDeletingCategory}
+                  className="h-9 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1.5 shadow-md"
+                >
+                  {isDeletingCategory ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Delete Permanently</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
