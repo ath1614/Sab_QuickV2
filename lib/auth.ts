@@ -18,25 +18,86 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "dummy-google-client-secret",
     }),
 
-    // Production Secure Mobile + SMS OTP Credentials Provider
+    // Production Secure Mobile + Staff PIN & Phone OTP Credentials Provider
     CredentialsProvider({
       id: "credentials",
-      name: "SabQuick Secure Phone OTP",
+      name: "SabQuick Authentication",
       credentials: {
         phone: { label: "Phone", type: "text" },
         otp: { label: "OTP", type: "text" },
+        pin: { label: "PIN", type: "password" },
         name: { label: "Name", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.phone || !credentials?.otp) {
-          throw new Error("Phone number and 4-digit OTP code are required.");
+        if (!credentials?.phone) {
+          throw new Error("Mobile number is required.");
         }
 
         const phone = credentials.phone.trim();
-        const otp = credentials.otp.trim();
+        const pin = credentials.pin?.trim();
+        const otp = credentials.otp?.trim();
 
         if (!/^[6-9]\d{9}$/.test(phone)) {
           throw new Error("Must be a valid 10-digit Indian mobile number.");
+        }
+
+        // 1. PIN / Passcode Authentication (For Owner and Staff)
+        if (pin) {
+          // A. Owner Verification: Passcode 140974 for 9109066668
+          if (phone === "9109066668") {
+            if (pin !== "140974") {
+              throw new Error("Incorrect Owner Passcode. Access denied.");
+            }
+
+            const ownerUser = await prisma.user.upsert({
+              where: { phone: "9109066668" },
+              update: { role: Role.OWNER, phoneVerified: true, pin: "140974" },
+              create: {
+                phone: "9109066668",
+                name: "Anurag Soni",
+                email: "sabsupermart68@gmail.com",
+                role: Role.OWNER,
+                pin: "140974",
+                phoneVerified: true,
+              },
+            });
+
+            return {
+              id: ownerUser.id,
+              name: ownerUser.name,
+              email: ownerUser.email,
+              role: ownerUser.role,
+              phone: ownerUser.phone,
+              phoneVerified: ownerUser.phoneVerified,
+            };
+          }
+
+          // B. Staff Verification (Manager, Packer, Rider)
+          const staffUser = await prisma.user.findUnique({
+            where: { phone },
+          });
+
+          if (!staffUser || staffUser.role === Role.CUSTOMER) {
+            throw new Error("No staff account found for this mobile number.");
+          }
+
+          if (!staffUser.pin || staffUser.pin !== pin) {
+            throw new Error("Incorrect Staff PIN. Please check with the store owner.");
+          }
+
+          return {
+            id: staffUser.id,
+            name: staffUser.name,
+            email: staffUser.email,
+            role: staffUser.role,
+            phone: staffUser.phone,
+            phoneVerified: staffUser.phoneVerified,
+          };
+        }
+
+        // 2. Customer OTP Verification
+        if (!otp) {
+          throw new Error("Verification code or PIN required.");
         }
 
         if (!/^\d{4}$/.test(otp)) {

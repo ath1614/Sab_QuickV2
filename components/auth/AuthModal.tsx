@@ -21,6 +21,8 @@ import {
   Loader2,
   Phone,
   User,
+  KeyRound,
+  Lock,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -30,11 +32,13 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onOpenChange }: AuthModalProps) {
-  const [step, setStep] = React.useState<"PHONE" | "OTP">("PHONE");
+  const [step, setStep] = React.useState<"PHONE" | "OTP" | "OWNER_PIN" | "STAFF_PIN">("PHONE");
   const [phone, setPhone] = React.useState<string>("");
   const [fullName, setFullName] = React.useState<string>("");
   const [isNewUser, setIsNewUser] = React.useState<boolean>(false);
   const [otpDigits, setOtpDigits] = React.useState<string[]>(["", "", "", ""]);
+  const [pinValue, setPinValue] = React.useState<string>("");
+  const [staffRole, setStaffRole] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
@@ -51,6 +55,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       setFullName("");
       setIsNewUser(false);
       setOtpDigits(["", "", "", ""]);
+      setPinValue("");
+      setStaffRole("");
       setAutoOtp(null);
       setErrorMsg(null);
       setSuccessMsg(null);
@@ -89,6 +95,20 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to send verification code");
+      }
+
+      // Check if this account requires Passcode / PIN instead of SMS OTP
+      if (data.requirePin) {
+        setPinValue("");
+        if (data.isOwner) {
+          setStep("OWNER_PIN");
+          setSuccessMsg("👑 Store Owner detected. Enter your 6-digit passcode.");
+        } else {
+          setStep("STAFF_PIN");
+          setStaffRole(data.role || "STAFF");
+          setSuccessMsg(`🛡️ Staff account [${data.role}] detected. Enter your 4-digit PIN.`);
+        }
+        return;
       }
 
       setIsNewUser(Boolean(data.isNewUser));
@@ -174,6 +194,54 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     }
   };
 
+  const handleVerifyPinAndLogin = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const cleanPin = pinValue.trim();
+    if (step === "OWNER_PIN" && cleanPin.length !== 6) {
+      setErrorMsg("Owner Passcode must be exactly 6 digits.");
+      return;
+    }
+    if (step === "STAFF_PIN" && cleanPin.length !== 4) {
+      setErrorMsg("Staff PIN must be exactly 4 digits.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const res = await signIn("credentials", {
+        phone: phone.trim(),
+        pin: cleanPin,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        throw new Error(res.error);
+      }
+
+      if (res?.ok) {
+        setSuccessMsg("Authenticated successfully! Loading portal...");
+        onOpenChange(false);
+        if (step === "OWNER_PIN") {
+          window.location.href = "/owner";
+        } else if (staffRole === "RIDER") {
+          window.location.href = "/rider/dashboard";
+        } else if (staffRole === "PACKER") {
+          window.location.href = "/packer";
+        } else if (staffRole === "MANAGER") {
+          window.location.href = "/manager";
+        } else {
+          window.location.reload();
+        }
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Incorrect passcode or PIN. Access denied.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = () => {
     signIn("google", { callbackUrl: window.location.pathname });
   };
@@ -185,12 +253,22 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           <div className="flex items-center gap-2.5 mb-1">
             <Logo variant="icon" size={32} className="rounded-lg shadow-sm shrink-0" />
             <DialogTitle className="text-xl font-black text-surface-dark">
-              {step === "PHONE" ? "Welcome to SabQuick" : "Verify Mobile Number"}
+              {step === "PHONE"
+                ? "Welcome to SabQuick"
+                : step === "OWNER_PIN"
+                ? "Store Owner Passcode"
+                : step === "STAFF_PIN"
+                ? `Staff Shift Login (${staffRole})`
+                : "Verify Mobile Number"}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
             {step === "PHONE"
               ? "Sign in or create your customer account for hyper-local 10-15 minute grocery delivery."
+              : step === "OWNER_PIN"
+              ? "Store Owner account (+91 9109066668). Enter your 6-digit Secret Passcode."
+              : step === "STAFF_PIN"
+              ? `Internal Staff account (+91 ${phone}). Enter your 4-digit Staff PIN.`
               : `Enter the 4-digit code sent to +91 ${phone}`}
           </DialogDescription>
         </DialogHeader>
@@ -310,6 +388,161 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <p className="text-[11px] text-center text-muted-foreground pt-1">
               By proceeding, you agree to SabQuick&apos;s Terms of Service and Privacy Policy.
             </p>
+          </div>
+        ) : step === "OWNER_PIN" ? (
+          <div className="space-y-4 py-2">
+            {/* Account Display */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/80 border border-amber-200">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-amber-500 text-white font-black text-[10px] px-1.5 py-0">👑 OWNER</Badge>
+                  <span className="text-[11px] text-amber-900 font-semibold">Anurag Soni</span>
+                </div>
+                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5">+91 {phone}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStep("PHONE");
+                  setPinValue("");
+                  setErrorMsg(null);
+                }}
+                className="text-xs text-amber-800 font-bold hover:bg-white"
+              >
+                Change
+              </Button>
+            </div>
+
+            {/* 6-Digit Passcode Input */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" /> 6-Digit Owner Passcode
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal">Zero-SMS Instant Auth</span>
+              </label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="••••••"
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && pinValue.trim().length === 6) {
+                    handleVerifyPinAndLogin();
+                  }
+                }}
+                className="h-14 text-center text-3xl font-black tracking-widest font-mono rounded-xl border-amber-300 focus:border-amber-500 focus:ring-amber-200"
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Enter your confidential 6-digit passcode to enter the Owner Command Center.
+              </p>
+            </div>
+
+            {/* Verify Button */}
+            <Button
+              variant="default"
+              className="w-full h-11 rounded-xl font-bold gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white shadow-md"
+              disabled={pinValue.trim().length !== 6 || isLoading}
+              onClick={handleVerifyPinAndLogin}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying Passcode...
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" /> Verify & Enter Owner Portal
+                </>
+              )}
+            </Button>
+
+            {/* Google OAuth Alternative */}
+            <div className="pt-1">
+              <Button
+                variant="outline"
+                className="w-full h-10 rounded-xl text-xs font-semibold gap-2 border-slate-200 hover:bg-slate-50"
+                onClick={handleGoogleLogin}
+              >
+                <span>Or sign in with Google (sabsupermart68@gmail.com)</span>
+              </Button>
+            </div>
+          </div>
+        ) : step === "STAFF_PIN" ? (
+          <div className="space-y-4 py-2">
+            {/* Staff Account Display */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/80 border border-blue-200">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-blue-600 text-white font-black text-[10px] px-1.5 py-0">
+                    🛡️ {staffRole}
+                  </Badge>
+                  <span className="text-[11px] text-blue-900 font-semibold">Store Operations</span>
+                </div>
+                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5">+91 {phone}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStep("PHONE");
+                  setPinValue("");
+                  setErrorMsg(null);
+                }}
+                className="text-xs text-blue-800 font-bold hover:bg-white"
+              >
+                Change
+              </Button>
+            </div>
+
+            {/* 4-Digit Staff PIN Input */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-blue-600" /> 4-Digit Staff PIN
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal">Fast Shift Clock-In</span>
+              </label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="••••"
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && pinValue.trim().length === 4) {
+                    handleVerifyPinAndLogin();
+                  }
+                }}
+                className="h-14 text-center text-3xl font-black tracking-widest font-mono rounded-xl border-blue-300 focus:border-blue-500 focus:ring-blue-200"
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Enter your 4-digit staff shift PIN assigned by the store owner.
+              </p>
+            </div>
+
+            {/* Clock In Button */}
+            <Button
+              variant="default"
+              className="w-full h-11 rounded-xl font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+              disabled={pinValue.trim().length !== 4 || isLoading}
+              onClick={handleVerifyPinAndLogin}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying Shift PIN...
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" /> Clock In & Open Staff Portal
+                </>
+              )}
+            </Button>
           </div>
         ) : (
           <div className="space-y-4 py-2">
@@ -434,3 +667,4 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     </Dialog>
   );
 }
+

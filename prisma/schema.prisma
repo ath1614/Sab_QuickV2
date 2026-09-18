@@ -53,6 +53,7 @@ model User {
   phone         String?        @unique
   phoneVerified Boolean        @default(false)
   role          Role           @default(CUSTOMER)
+  pin           String?
   addresses     Address[]
   orders        Order[]        @relation("CustomerOrders")
   deliveries    Order[]        @relation("RiderDeliveries")

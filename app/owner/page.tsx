@@ -22,14 +22,33 @@ import {
   Check,
   AlertCircle,
   Eye,
+  EyeOff,
   Store,
   LayoutDashboard,
   FolderTree,
+  Users,
+  UserPlus,
+  Shield,
+  KeyRound,
+  Bike,
+  Trash2,
+  Lock,
+  Phone,
+  Mail,
+  Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Logo } from "@/components/brand/Logo";
 
 interface ProductItem {
@@ -45,6 +64,21 @@ interface ProductItem {
     name: string;
     slug: string;
   };
+}
+
+interface StaffMember {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  role: "OWNER" | "MANAGER" | "PACKER" | "RIDER";
+  pin: string | null;
+  phoneVerified: Date | null;
+  createdAt: string;
+  riderProfile?: {
+    vehicleDetails: string | null;
+    isOnline: boolean;
+  } | null;
 }
 
 interface AnalyticsData {
@@ -93,6 +127,23 @@ export default function OwnerControlPage() {
   const [allProducts, setAllProducts] = React.useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  // Staff Hub State
+  const [staffList, setStaffList] = React.useState<StaffMember[]>([]);
+  const [isStaffLoading, setIsStaffLoading] = React.useState(true);
+  const [isAddStaffOpen, setIsAddStaffOpen] = React.useState(false);
+  const [staffFormData, setStaffFormData] = React.useState({
+    name: "",
+    phone: "",
+    email: "",
+    role: "PACKER" as "MANAGER" | "PACKER" | "RIDER",
+    pin: "",
+    vehicleDetails: "",
+  });
+  const [staffFormSubmitting, setStaffFormSubmitting] = React.useState(false);
+  const [staffFormError, setStaffFormError] = React.useState<string | null>(null);
+  const [revealedPins, setRevealedPins] = React.useState<Record<string, boolean>>({});
+  const [deletingStaffId, setDeletingStaffId] = React.useState<string | null>(null);
 
   // Inventory Table filters
   const [inventorySearch, setInventorySearch] = React.useState("");
@@ -143,16 +194,116 @@ export default function OwnerControlPage() {
     }
   }, []);
 
+  // Fetch Staff directory
+  const fetchStaff = React.useCallback(async () => {
+    try {
+      setIsStaffLoading(true);
+      const res = await fetch("/api/owner/staff");
+      if (!res.ok) throw new Error("Failed to fetch staff");
+      const data = await res.json();
+      setStaffList(data.staff || []);
+    } catch (err) {
+      console.error("Fetch staff error:", err);
+    } finally {
+      setIsStaffLoading(false);
+    }
+  }, []);
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffFormError(null);
+
+    const cleanPhone = staffFormData.phone.trim();
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setStaffFormError("Phone must be a valid 10-digit Indian number starting with 6-9.");
+      return;
+    }
+    if (!/^\d{4}$/.test(staffFormData.pin.trim())) {
+      setStaffFormError("Staff PIN must be exactly 4 numeric digits.");
+      return;
+    }
+    if (staffFormData.name.trim().length < 2) {
+      setStaffFormError("Full name must be at least 2 characters.");
+      return;
+    }
+
+    try {
+      setStaffFormSubmitting(true);
+      const res = await fetch("/api/owner/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: staffFormData.name.trim(),
+          phone: cleanPhone,
+          email: staffFormData.email.trim() || undefined,
+          role: staffFormData.role,
+          pin: staffFormData.pin.trim(),
+          vehicleDetails: staffFormData.vehicleDetails.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create staff member");
+      }
+
+      // Success
+      setIsAddStaffOpen(false);
+      setStaffFormData({
+        name: "",
+        phone: "",
+        email: "",
+        role: "PACKER",
+        pin: "",
+        vehicleDetails: "",
+      });
+      fetchStaff();
+    } catch (err: any) {
+      setStaffFormError(err.message || "Failed to create staff member");
+    } finally {
+      setStaffFormSubmitting(false);
+    }
+  };
+
+  const handleDeleteStaff = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to deactivate ${name}? They will lose shift access immediately.`)) {
+      return;
+    }
+
+    try {
+      setDeletingStaffId(id);
+      const res = await fetch(`/api/owner/staff?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to deactivate staff member");
+        return;
+      }
+      fetchStaff();
+    } catch (err) {
+      console.error("Delete staff error:", err);
+      alert("Network error deactivating staff member.");
+    } finally {
+      setDeletingStaffId(null);
+    }
+  };
+
+  const togglePinReveal = (staffId: string) => {
+    setRevealedPins((prev) => ({ ...prev, [staffId]: !prev[staffId] }));
+  };
+
   React.useEffect(() => {
     if (authStatus === "authenticated") {
       fetchOperationsData();
       fetchCurrentTheme();
+      fetchStaff();
       const interval = setInterval(() => {
         fetchOperationsData(true);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [authStatus, fetchOperationsData, fetchCurrentTheme]);
+  }, [authStatus, fetchOperationsData, fetchCurrentTheme, fetchStaff]);
 
   // Instant Stock Toggle Handler
   const handleToggleStock = async (productId: string, currentAvailable: boolean) => {
@@ -636,7 +787,323 @@ export default function OwnerControlPage() {
           </form>
         </section>
 
-        {/* SECTION 3: INVENTORY REPLENISHMENT & CATALOG OVERRIDE TABLE */}
+        {/* SECTION 3: DARK-STORE STAFF & SHIFT MANAGEMENT HUB */}
+        <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-black text-surface-dark tracking-tight">
+                  Staff &amp; Shift Management Hub
+                </h2>
+                <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
+                  Zero-SMS PIN Clock-In
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Assign 4-digit PINs for instant shift clock-in without SMS delays. Manage Managers, Order Packers, and Delivery Riders.
+              </p>
+            </div>
+
+            {/* Add Staff CTA */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  setStaffFormError(null);
+                  setIsAddStaffOpen(true);
+                }}
+                className="h-9 px-4 rounded-xl text-xs font-black gap-1.5 shadow-sm bg-primary hover:bg-primary/90 text-white shrink-0"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ Add Staff Member</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Stat Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">Total Staff</span>
+              <span className="text-base font-black text-surface-dark">{staffList.length}</span>
+            </div>
+            <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-700">Managers</span>
+              <span className="text-base font-black text-purple-800">
+                {staffList.filter((s) => s.role === "MANAGER").length}
+              </span>
+            </div>
+            <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-700">Packers</span>
+              <span className="text-base font-black text-blue-800">
+                {staffList.filter((s) => s.role === "PACKER").length}
+              </span>
+            </div>
+            <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-700">Delivery Riders</span>
+              <span className="text-base font-black text-emerald-800">
+                {staffList.filter((s) => s.role === "RIDER").length}
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile Staff Touch Cards (< md) */}
+          <div className="block md:hidden space-y-3">
+            {isStaffLoading ? (
+              <div className="py-8 text-center text-slate-500 font-medium">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary mb-2" />
+                Loading staff records...
+              </div>
+            ) : staffList.length === 0 ? (
+              <div className="py-8 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                No staff members registered. Click &quot;+ Add Staff Member&quot; to begin.
+              </div>
+            ) : (
+              staffList.map((staff) => {
+                const isOwnerAccount = staff.role === "OWNER" || staff.phone === "9109066668";
+                const isRevealed = Boolean(revealedPins[staff.id]);
+
+                return (
+                  <div
+                    key={staff.id}
+                    className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 font-black text-slate-700 flex items-center justify-center text-sm shadow-xs">
+                          {staff.name ? staff.name.charAt(0).toUpperCase() : "U"}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black text-surface-dark">{staff.name || "Unnamed"}</span>
+                            {isOwnerAccount && (
+                              <Badge className="bg-amber-500 text-white font-black text-[9px] px-1 py-0">
+                                OWNER
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="font-mono text-xs text-slate-600 font-semibold block">
+                            +91 {staff.phone}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Badge
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 ${
+                          staff.role === "OWNER"
+                            ? "bg-amber-500 text-white"
+                            : staff.role === "MANAGER"
+                            ? "bg-purple-600 text-white"
+                            : staff.role === "PACKER"
+                            ? "bg-blue-600 text-white"
+                            : "bg-emerald-600 text-white"
+                        }`}
+                      >
+                        {staff.role}
+                      </Badge>
+                    </div>
+
+                    {staff.email && (
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                        <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{staff.email}</span>
+                      </div>
+                    )}
+
+                    {staff.riderProfile?.vehicleDetails && (
+                      <div className="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200 flex items-center gap-1.5">
+                        <Bike className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="truncate">{staff.riderProfile.vehicleDetails}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 font-medium">Shift PIN:</span>
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                          <span className="font-mono font-bold text-xs tracking-wider text-surface-dark">
+                            {isRevealed ? (staff.pin || "None") : "••••"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePinReveal(staff.id)}
+                            className="text-slate-400 hover:text-slate-600 ml-0.5"
+                            title={isRevealed ? "Hide PIN" : "Reveal PIN"}
+                          >
+                            {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {!isOwnerAccount && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deletingStaffId === staff.id}
+                          onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
+                          className="h-8 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-xl"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Deactivate</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Staff Table (>= md) */}
+          <div className="hidden md:block border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Staff Member</th>
+                  <th className="py-3 px-4">Mobile &amp; Email</th>
+                  <th className="py-3 px-4">Shift Role</th>
+                  <th className="py-3 px-4">Shift Clock-In PIN</th>
+                  <th className="py-3 px-4">Vehicle / Details</th>
+                  <th className="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isStaffLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
+                      <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary mb-2" />
+                      Loading staff records...
+                    </td>
+                  </tr>
+                ) : staffList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
+                      No staff members registered. Click &quot;+ Add Staff Member&quot; to begin.
+                    </td>
+                  </tr>
+                ) : (
+                  staffList.map((staff) => {
+                    const isOwnerAccount = staff.role === "OWNER" || staff.phone === "9109066668";
+                    const isRevealed = Boolean(revealedPins[staff.id]);
+
+                    return (
+                      <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Name & Avatar */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 font-black text-slate-700 flex items-center justify-center text-xs shrink-0">
+                              {staff.name ? staff.name.charAt(0).toUpperCase() : "U"}
+                            </div>
+                            <div>
+                              <div className="font-bold text-surface-dark flex items-center gap-1.5">
+                                <span>{staff.name || "Unnamed"}</span>
+                                {isOwnerAccount && (
+                                  <Badge className="bg-amber-500 text-white font-black text-[9px] px-1 py-0">
+                                    OWNER
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-slate-400">
+                                Added {new Date(staff.createdAt).toLocaleDateString("en-IN")}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Phone & Email */}
+                        <td className="py-3 px-4">
+                          <div className="font-mono font-bold text-slate-800">
+                            +91 {staff.phone}
+                          </div>
+                          {staff.email ? (
+                            <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                              {staff.email}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">No email linked</span>
+                          )}
+                        </td>
+
+                        {/* Role Badge */}
+                        <td className="py-3 px-4">
+                          <Badge
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 ${
+                              staff.role === "OWNER"
+                                ? "bg-amber-500 text-white"
+                                : staff.role === "MANAGER"
+                                ? "bg-purple-600 text-white"
+                                : staff.role === "PACKER"
+                                ? "bg-blue-600 text-white"
+                                : "bg-emerald-600 text-white"
+                            }`}
+                          >
+                            {staff.role}
+                          </Badge>
+                        </td>
+
+                        {/* Shift PIN */}
+                        <td className="py-3 px-4">
+                          <div className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                            <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="font-mono font-black text-xs tracking-wider text-surface-dark">
+                              {isRevealed ? (staff.pin || "None") : "••••"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePinReveal(staff.id)}
+                              className="text-slate-400 hover:text-slate-600 ml-1"
+                              title={isRevealed ? "Hide PIN" : "Reveal PIN"}
+                            >
+                              {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Vehicle / Station */}
+                        <td className="py-3 px-4 text-slate-600">
+                          {staff.riderProfile?.vehicleDetails ? (
+                            <div className="flex items-center gap-1.5 font-medium max-w-[160px] truncate">
+                              <Bike className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="truncate">{staff.riderProfile.vehicleDetails}</span>
+                            </div>
+                          ) : staff.role === "PACKER" ? (
+                            <span className="text-slate-500">Dark-Store Packing Line</span>
+                          ) : staff.role === "MANAGER" ? (
+                            <span className="text-slate-500">Operations Console</span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          {isOwnerAccount ? (
+                            <span className="text-[11px] font-bold text-amber-600">Protected</span>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={deletingStaffId === staff.id}
+                              onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
+                              className="h-8 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-lg"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Deactivate</span>
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* SECTION 4: INVENTORY REPLENISHMENT & CATALOG OVERRIDE TABLE */}
         <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
             <div>
@@ -899,6 +1366,158 @@ export default function OwnerControlPage() {
             </table>
           </div>
         </section>
+
+        {/* ADD STAFF DIALOG MODAL */}
+        <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
+          <DialogContent className="sm:max-w-md p-6">
+            <DialogHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-black text-surface-dark">
+                    Add Dark-Store Staff
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Assign a 4-digit shift PIN for instant, zero-SMS portal access.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            {staffFormError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{staffFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateStaff} className="space-y-4 py-2">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  Full Name <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  value={staffFormData.name}
+                  onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
+                  placeholder="e.g. Ramesh Kumar"
+                  className="h-10 text-xs rounded-xl"
+                  required
+                />
+              </div>
+
+              {/* Mobile & Role Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-primary" /> Mobile Number <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-10 px-2.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center text-xs font-bold text-slate-600 select-none">
+                      +91
+                    </span>
+                    <Input
+                      type="tel"
+                      maxLength={10}
+                      value={staffFormData.phone}
+                      onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value.replace(/\D/g, "") })}
+                      placeholder="9876543210"
+                      className="h-10 text-xs font-mono font-semibold rounded-xl"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-primary" /> Shift Role <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={staffFormData.role}
+                    onChange={(e) => setStaffFormData({ ...staffFormData, role: e.target.value as any })}
+                    className="w-full h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="PACKER">📦 Express Order Packer</option>
+                    <option value="RIDER">🛵 Delivery Rider</option>
+                    <option value="MANAGER">👔 Store Manager</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Gmail & 4-Digit PIN Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-primary" /> Gmail Address
+                  </label>
+                  <Input
+                    type="email"
+                    value={staffFormData.email}
+                    onChange={(e) => setStaffFormData({ ...staffFormData, email: e.target.value })}
+                    placeholder="staff@gmail.com"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-primary" /> 4-Digit Shift PIN <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={staffFormData.pin}
+                    onChange={(e) => setStaffFormData({ ...staffFormData, pin: e.target.value.replace(/\D/g, "") })}
+                    placeholder="1234"
+                    className="h-10 text-center text-base font-black font-mono tracking-widest rounded-xl"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Rider vehicle details (conditional) */}
+              {staffFormData.role === "RIDER" && (
+                <div className="space-y-1.5 animate-in fade-in">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Bike className="w-3.5 h-3.5 text-primary" /> Vehicle Type &amp; Reg Number
+                  </label>
+                  <Input
+                    value={staffFormData.vehicleDetails}
+                    onChange={(e) => setStaffFormData({ ...staffFormData, vehicleDetails: e.target.value })}
+                    placeholder="e.g. Hero Optima EV - CG 15 AB 1234"
+                    className="h-10 text-xs rounded-xl"
+                  />
+                </div>
+              )}
+
+              <DialogFooter className="pt-3 gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddStaffOpen(false)}
+                  className="h-10 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={staffFormSubmitting}
+                  className="h-10 rounded-xl text-xs font-black bg-primary hover:bg-primary/90 text-white gap-2 shadow-sm"
+                >
+                  {staffFormSubmitting ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Save &amp; Activate Staff</span>
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

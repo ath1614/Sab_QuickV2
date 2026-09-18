@@ -24,7 +24,40 @@ export async function POST(req: NextRequest) {
 
     const { phone } = parseResult.data;
 
-    // 1. Enforce strict 60-second rate-limiting cooldown per phone number via Redis
+    // 1. Check if phone belongs to Owner or internal Staff
+    const existingUser = await prisma.user.findUnique({
+      where: { phone },
+      select: { id: true, name: true, role: true, email: true, pin: true },
+    });
+
+    const isOwner = phone === "9109066668" || existingUser?.role === "OWNER";
+    const isStaff = Boolean(existingUser && existingUser.role !== "CUSTOMER");
+
+    // A. Store Owner authentication via Passcode (Zero SMS consumed)
+    if (isOwner) {
+      return NextResponse.json({
+        success: true,
+        requirePin: true,
+        isOwner: true,
+        role: "OWNER",
+        pinLength: 6,
+        message: "Store Owner detected. Enter your 6-digit Owner Passcode.",
+      });
+    }
+
+    // B. Internal Staff authentication via Staff PIN (Zero SMS consumed)
+    if (isStaff && existingUser) {
+      return NextResponse.json({
+        success: true,
+        requirePin: true,
+        isStaff: true,
+        role: existingUser.role,
+        pinLength: 4,
+        message: `Staff account [${existingUser.role}] detected. Enter your 4-digit Staff PIN.`,
+      });
+    }
+
+    // 2. Enforce strict 60-second rate-limiting cooldown per phone number via Redis
     const cooldownKey = `otp:cooldown:${phone}`;
     const inCooldown = await redis.get(cooldownKey);
     if (inCooldown) {
@@ -37,23 +70,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Generate secure 4-digit OTP
+    // 3. Generate secure 4-digit OTP for Customer
     const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // 3. Store OTP in Redis with 300-second (5 minutes) TTL
+    // 4. Store OTP in Redis with 300-second (5 minutes) TTL
     const otpKey = `otp:phone:${phone}`;
     await redis.set(otpKey, otpCode, "EX", 300);
 
-    // 4. Set 60-second cooldown in Redis
+    // 5. Set 60-second cooldown in Redis
     await redis.set(cooldownKey, "1", "EX", 60);
 
-    // 5. Query whether customer already exists to advise onboarding form
-    const existingUser = await prisma.user.findUnique({
-      where: { phone },
-      select: { id: true, name: true, role: true, email: true },
-    });
     const isNewUser = !existingUser || !existingUser.name;
-    const isElevatedRole = existingUser?.role === "OWNER" || existingUser?.role === "MANAGER";
 
     // 6. SMS Dispatch Gateway Integration
     if (process.env.SMS_GATEWAY_API_KEY && process.env.NODE_ENV === "production") {
@@ -71,8 +98,8 @@ export async function POST(req: NextRequest) {
       console.log(`======================================================\n`);
     }
 
-    // Security: Never leak freeOtp in client response for Owner or Manager accounts
-    const shouldExposeDevOtp = !process.env.SMS_GATEWAY_API_KEY && !isElevatedRole;
+    // Security: Only expose dev OTP for customers if live SMS gateway is not configured
+    const shouldExposeDevOtp = !process.env.SMS_GATEWAY_API_KEY;
 
     return NextResponse.json({
       success: true,
