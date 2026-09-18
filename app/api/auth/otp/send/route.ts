@@ -100,10 +100,12 @@ export async function POST(req: NextRequest) {
 
     // Security: Only expose dev OTP for customers if live SMS gateway is not configured
     const shouldExposeDevOtp = !process.env.SMS_GATEWAY_API_KEY;
+    const hasFirebase = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.FIREBASE_PROJECT_ID);
 
     return NextResponse.json({
       success: true,
-      message: "OTP sent successfully",
+      useFirebase: hasFirebase,
+      message: hasFirebase ? "Ready for Firebase Phone Authentication" : "OTP sent successfully",
       expiresIn: 300,
       cooldown: 60,
       isNewUser,

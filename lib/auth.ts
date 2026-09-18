@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { Role } from "@prisma/client";
+import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
@@ -27,6 +28,7 @@ export const authOptions: NextAuthOptions = {
         otp: { label: "OTP", type: "text" },
         pin: { label: "PIN", type: "password" },
         name: { label: "Name", type: "text" },
+        idToken: { label: "Firebase ID Token", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.phone) {
@@ -36,6 +38,7 @@ export const authOptions: NextAuthOptions = {
         const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();
         const otp = credentials.otp?.trim();
+        const idToken = credentials.idToken?.trim();
 
         if (!/^[6-9]\d{9}$/.test(phone)) {
           throw new Error("Must be a valid 10-digit Indian mobile number.");
@@ -95,9 +98,57 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // 2. Customer OTP Verification
+        // 2. Firebase ID Token Verification (10,000 Free Phone SMS/Month)
+        if (idToken) {
+          try {
+            const decodedToken = await verifyFirebaseIdToken(idToken);
+            const rawPhone = decodedToken.phone_number || "";
+            const verifiedPhone = rawPhone.replace("+91", "").trim();
+
+            if (!verifiedPhone || verifiedPhone !== phone) {
+              throw new Error("Verified mobile number does not match submitted phone.");
+            }
+
+            let dbUser = await prisma.user.findUnique({
+              where: { phone },
+            });
+
+            if (!dbUser) {
+              dbUser = await prisma.user.create({
+                data: {
+                  phone,
+                  name: credentials.name?.trim() || "Customer",
+                  role: Role.CUSTOMER,
+                  phoneVerified: true,
+                },
+              });
+            } else {
+              dbUser = await prisma.user.update({
+                where: { id: dbUser.id },
+                data: {
+                  phoneVerified: true,
+                  ...(credentials.name && !dbUser.name ? { name: credentials.name.trim() } : {}),
+                },
+              });
+            }
+
+            return {
+              id: dbUser.id,
+              name: dbUser.name,
+              email: dbUser.email,
+              role: dbUser.role,
+              phone: dbUser.phone,
+              phoneVerified: dbUser.phoneVerified,
+            };
+          } catch (fbErr: any) {
+            console.error("[Firebase Token Verification Failed]:", fbErr);
+            throw new Error(fbErr.message || "Failed to verify Firebase authentication code.");
+          }
+        }
+
+        // 3. Customer OTP Verification (Fallback for Dev/Staging/CI tests)
         if (!otp) {
-          throw new Error("Verification code or PIN required.");
+          throw new Error("Verification code, PIN, or Firebase token required.");
         }
 
         if (!/^\d{4}$/.test(otp)) {
