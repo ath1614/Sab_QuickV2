@@ -3,6 +3,7 @@ import Redis from "ioredis";
 const redisClientSingleton = () => {
   const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
   const client = new Redis(redisUrl, {
+    lazyConnect: true,
     maxRetriesPerRequest: 3,
     retryStrategy(times) {
       const delay = Math.min(times * 50, 2000);
@@ -11,6 +12,8 @@ const redisClientSingleton = () => {
   });
 
   client.on("error", (err) => {
+    // Silence build-time connection attempts when compiling standalone Next.js bundles
+    if (process.env.NEXT_PHASE === "phase-production-build") return;
     console.error("[SabQuick Redis Error]:", err);
   });
 
