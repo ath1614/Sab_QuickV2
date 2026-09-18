@@ -42,7 +42,34 @@ export function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 300ms debounced live search
+  // Fetch preview suggestions from API
+  const fetchSuggestions = React.useCallback(async (searchTerm: string) => {
+    if (searchTerm.trim().length < 2) {
+      setResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setIsOpen(true);
+
+    try {
+      const res = await fetch(
+        `/api/products?search=${encodeURIComponent(searchTerm.trim())}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setResults((data.products || []).slice(0, 5));
+        setIsOpen(true);
+      }
+    } catch (err) {
+      console.warn("Search preview error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 200ms debounced live search
   const handleInputChange = (val: string) => {
     setQuery(val);
 
@@ -58,22 +85,11 @@ export function SearchBar({
     }
 
     setIsLoading(true);
-    debounceTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/products?search=${encodeURIComponent(val.trim())}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setResults((data.products || []).slice(0, 5));
-          setIsOpen(true);
-        }
-      } catch (err) {
-        console.warn("Search preview error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300);
+    setIsOpen(true);
+
+    debounceTimerRef.current = setTimeout(() => {
+      fetchSuggestions(val);
+    }, 200);
   };
 
   // Sync query when initialQuery prop changes
@@ -131,8 +147,11 @@ export function SearchBar({
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            if (results.length > 0 && query.trim().length >= 2) {
+            if (query.trim().length >= 2) {
               setIsOpen(true);
+              if (results.length === 0 && !isLoading) {
+                fetchSuggestions(query);
+              }
             }
           }}
           placeholder={placeholder}
@@ -158,7 +177,7 @@ export function SearchBar({
             <button
               type="button"
               onClick={() => handleExecuteSearch(query)}
-              className="px-2.5 py-1 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-all active:scale-95"
+              className="px-2.5 py-1 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-all active:scale-95 shadow-xs"
             >
               Go
             </button>
@@ -167,75 +186,89 @@ export function SearchBar({
       </div>
 
       {/* Live Dropdown Overlay (Top 5 Matches) */}
-      {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl bg-white border border-border-subtle shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-          <div className="p-2 divide-y divide-slate-100">
-            {results.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-                onClick={() => {
-                  handleExecuteSearch(product.title);
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-lg bg-slate-100 border border-border-subtle flex items-center justify-center shrink-0 font-bold text-xs text-primary">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="w-full h-full object-contain p-1 rounded-lg"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      product.title.slice(0, 2).toUpperCase()
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-surface-dark line-clamp-1 group-hover:text-primary transition-colors">
-                      {product.title}
+      {isOpen && query.trim().length >= 2 && (
+        <div className="absolute top-full left-0 right-0 mt-2 z-[70] rounded-2xl bg-white text-slate-900 border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+          {isLoading && results.length === 0 ? (
+            <div className="p-4 flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              <span>Searching dark store catalog...</span>
+            </div>
+          ) : results.length > 0 ? (
+            <>
+              <div className="p-2 divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
+                {results.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                    onClick={() => {
+                      handleExecuteSearch(product.title);
+                    }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                      <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 font-bold text-xs text-primary overflow-hidden">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.title}
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          product.title.slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
+                          {product.title}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          {product.unitQuantity} •{" "}
+                          <span className="font-bold text-slate-900">
+                            ₹{product.salePrice}
+                          </span>
+                          {product.mrp > product.salePrice && (
+                            <span className="line-through ml-1 text-slate-400">
+                              ₹{product.mrp}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-muted-foreground font-mono">
-                      {product.unitQuantity} •{" "}
-                      <span className="font-bold text-surface-dark">
-                        ₹{product.salePrice}
-                      </span>
-                      {product.mrp > product.salePrice && (
-                        <span className="line-through ml-1 text-slate-400">
-                          ₹{product.mrp}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToCart?.(product);
-                  }}
-                  className="h-8 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs rounded-lg transition-colors shrink-0 gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> ADD
-                </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToCart?.(product);
+                      }}
+                      className="h-8 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs rounded-lg transition-colors shrink-0 gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> ADD
+                    </Button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* View All Matches Footer */}
-          <button
-            type="button"
-            onClick={() => handleExecuteSearch(query)}
-            className="w-full bg-slate-50 hover:bg-slate-100/80 px-4 py-2.5 text-xs font-bold text-primary flex items-center justify-center gap-1 border-t border-slate-100 transition-colors"
-          >
-            <span>View all matching results for &ldquo;{query}&rdquo;</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+              {/* View All Matches Footer */}
+              <button
+                type="button"
+                onClick={() => handleExecuteSearch(query)}
+                className="w-full bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-xs font-bold text-primary flex items-center justify-center gap-1 border-t border-slate-100 transition-colors"
+              >
+                <span>View all matching results for &ldquo;{query}&rdquo;</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : !isLoading ? (
+            <div className="p-4 text-center text-xs text-slate-500">
+              <p className="font-semibold text-slate-800">No direct matches for &ldquo;{query}&rdquo;</p>
+              <p className="text-[11px] text-slate-400 mt-1">Press Enter or Go to search full inventory</p>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

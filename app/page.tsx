@@ -223,7 +223,13 @@ function StorefrontContent() {
         )}
 
         {/* Dynamic Seasonal Marketing Hero Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-white/10">
+        <section className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-white/10">
+          {/* Background Ambient Circles (Clipped within card bounds) */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-accent/20 rounded-full blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
+          </div>
+
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-xl">
               <div className="flex items-center gap-2.5">
@@ -256,10 +262,6 @@ function StorefrontContent() {
               />
             </div>
           </div>
-
-          {/* Background Ambient Circles */}
-          <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-accent/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         </section>
 
         {/* Active Search / Category Filter Header */}
