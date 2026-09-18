@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest) {
     { prefix: "/owner", allowedRoles: ["OWNER"] },
     { prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"] },
     { prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
-    { prefix: "/rider", allowedRoles: ["RIDER", "OWNER"] },
+    { prefix: "/rider", allowedRoles: ["RIDER"] },
     { prefix: "/api/owner", allowedRoles: ["OWNER"] },
   ];
 
