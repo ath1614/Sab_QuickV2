@@ -143,13 +143,19 @@ export default function PackerStationPage() {
 
       // Auto-select first active order if none is selected
       setSelectedOrderId((currentId) => {
-        if (currentId && orderList.some((o) => o.id === currentId)) {
-          return currentId;
-        }
         const activeOrders = orderList.filter(
           (o) => o.status === "PENDING" || o.status === "PACKING"
         );
-        return activeOrders.length > 0 ? activeOrders[0].id : orderList[0]?.id || null;
+        // If current selection is still an active order, retain it
+        if (currentId && activeOrders.some((o) => o.id === currentId)) {
+          return currentId;
+        }
+        // If packer explicitly clicked a READY_FOR_PICKUP order to view/print slip, retain it
+        if (currentId && orderList.some((o) => o.id === currentId && o.status === "READY_FOR_PICKUP")) {
+          return currentId;
+        }
+        // Otherwise, select the first ACTIVE order, or null if no active orders in queue!
+        return activeOrders.length > 0 ? activeOrders[0].id : null;
       });
     } catch (err) {
       console.error("Ops orders fetch error:", err);
@@ -256,7 +262,8 @@ export default function PackerStationPage() {
   }
 
   const role = session?.user?.role;
-  const isAuthorized = role && ["PACKER", "MANAGER", "OWNER"].includes(role);
+  const userRoles = session?.user?.roles || (role ? [role] : []);
+  const isAuthorized = userRoles.some((r) => ["PACKER", "MANAGER", "OWNER"].includes(r));
 
   if (!isAuthorized) {
     return (
@@ -765,11 +772,17 @@ export default function PackerStationPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <PackageCheck className="w-16 h-16 text-slate-300 mb-3" />
-              <h3 className="text-lg font-bold text-slate-700">No Order Selected</h3>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-3 text-emerald-600 shadow-xs">
+                <PackageCheck className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-black text-surface-dark">
+                {queueOrders.length === 0 ? "Packing Queue is Clear!" : "No Order Selected"}
+              </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                Select an order from the left queue to begin dark-store aisle picking.
+                {queueOrders.length === 0
+                  ? "All received orders have been picked and packed. New incoming orders will appear here automatically."
+                  : "Select an active order from the queue on the left to begin dark-store aisle picking."}
               </p>
             </div>
           )}

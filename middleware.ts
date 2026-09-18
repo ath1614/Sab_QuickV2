@@ -7,10 +7,11 @@ export async function middleware(req: NextRequest) {
 
   // Role requirement definitions for internal staff portals and administrative endpoints
   const protectedRoutes = [
+    { prefix: "/owner/catalog", allowedRoles: ["OWNER", "MANAGER"] },
     { prefix: "/owner", allowedRoles: ["OWNER"] },
     { prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"] },
     { prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
-    { prefix: "/rider", allowedRoles: ["RIDER"] },
+    { prefix: "/rider", allowedRoles: ["RIDER", "OWNER"] },
     { prefix: "/api/owner", allowedRoles: ["OWNER"] },
   ];
 
@@ -39,8 +40,13 @@ export async function middleware(req: NextRequest) {
     }
 
     const userRole = (token.role as string) || "CUSTOMER";
+    const userRoles: string[] = Array.isArray(token.roles) && token.roles.length > 0
+      ? (token.roles as string[])
+      : [userRole];
 
-    if (!matchedRule.allowedRoles.includes(userRole)) {
+    const hasAllowedRole = userRoles.some((r) => matchedRule.allowedRoles.includes(r));
+
+    if (!hasAllowedRole) {
       if (isApi) {
         return NextResponse.json(
           { error: "Forbidden: Unauthorized role." },

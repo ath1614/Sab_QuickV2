@@ -8,13 +8,15 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const staffPayloadSchema = z.object({
+  id: z.string().optional(),
   name: z.string().trim().min(2, "Name must be at least 2 characters"),
   phone: z
     .string()
     .trim()
     .regex(/^[6-9]\d{9}$/, "Must be a valid 10-digit Indian mobile number starting with 6-9"),
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
-  role: z.enum(["MANAGER", "PACKER", "RIDER"]),
+  roles: z.array(z.enum(["MANAGER", "PACKER", "RIDER"])).min(1, "Select at least one role").optional(),
+  role: z.enum(["MANAGER", "PACKER", "RIDER"]).optional(),
   pin: z.string().trim().regex(/^\d{4}$/, "Staff PIN must be exactly 4 digits"),
   vehicleDetails: z.string().trim().optional(),
 });
@@ -32,9 +34,10 @@ export async function GET(req: NextRequest) {
 
     const staffMembers = await prisma.user.findMany({
       where: {
-        role: {
-          in: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER],
-        },
+        OR: [
+          { role: { in: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER] } },
+          { roles: { hasSome: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER] } },
+        ],
       },
       select: {
         id: true,
@@ -42,6 +45,7 @@ export async function GET(req: NextRequest) {
         phone: true,
         email: true,
         role: true,
+        roles: true,
         pin: true,
         phoneVerified: true,
         createdAt: true,
@@ -55,7 +59,13 @@ export async function GET(req: NextRequest) {
       orderBy: [{ role: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ staff: staffMembers });
+    // Ensure each staff member has a populated roles array
+    const normalizedStaff = staffMembers.map((s) => ({
+      ...s,
+      roles: s.roles && s.roles.length > 0 ? s.roles : [s.role],
+    }));
+
+    return NextResponse.json({ staff: normalizedStaff });
   } catch (error: any) {
     console.error("[GET /api/owner/staff error]:", error);
     return NextResponse.json(
@@ -86,7 +96,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, email, role, pin, vehicleDetails } = parseResult.data;
+    const { id, name, phone, email, roles, role, pin, vehicleDetails } = parseResult.data;
 
     // Disallow overriding the main Owner account via this endpoint
     if (phone === "9109066668") {
@@ -96,36 +106,71 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upsert staff user record
-    const staffUser = await prisma.user.upsert({
-      where: { phone },
-      update: {
-        name,
-        email: email || null,
-        role: role as Role,
-        pin,
-        phoneVerified: true,
-      },
-      create: {
-        phone,
-        name,
-        email: email || null,
-        role: role as Role,
-        pin,
-        phoneVerified: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        role: true,
-        pin: true,
-      },
-    });
+    // Determine effective roles
+    const assignedRoles: Role[] = roles && roles.length > 0
+      ? (roles as Role[])
+      : [((role as Role) || Role.PACKER)];
+    const primaryRole = assignedRoles[0];
 
-    // If Rider, upsert RiderProfile
-    if (role === "RIDER") {
+    // If ID provided, update existing record
+    let staffUser;
+    if (id) {
+      staffUser = await prisma.user.update({
+        where: { id },
+        data: {
+          name,
+          phone,
+          email: email || null,
+          role: primaryRole,
+          roles: assignedRoles,
+          pin,
+          phoneVerified: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          role: true,
+          roles: true,
+          pin: true,
+        },
+      });
+    } else {
+      // Upsert by phone
+      staffUser = await prisma.user.upsert({
+        where: { phone },
+        update: {
+          name,
+          email: email || null,
+          role: primaryRole,
+          roles: assignedRoles,
+          pin,
+          phoneVerified: true,
+        },
+        create: {
+          phone,
+          name,
+          email: email || null,
+          role: primaryRole,
+          roles: assignedRoles,
+          pin,
+          phoneVerified: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          role: true,
+          roles: true,
+          pin: true,
+        },
+      });
+    }
+
+    // If RIDER is one of the assigned roles, upsert RiderProfile
+    if (assignedRoles.includes(Role.RIDER)) {
       await prisma.riderProfile.upsert({
         where: { userId: staffUser.id },
         update: {
@@ -140,11 +185,19 @@ export async function POST(req: NextRequest) {
           currentLng: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "83.190082"),
         },
       });
+    } else {
+      // If RIDER was removed from this staff member, set rider profile offline
+      try {
+        await prisma.riderProfile.updateMany({
+          where: { userId: staffUser.id },
+          data: { isOnline: false },
+        });
+      } catch {}
     }
 
     return NextResponse.json({
       success: true,
-      message: `Staff member ${staffUser.name} [${staffUser.role}] saved successfully with PIN ${pin}.`,
+      message: `Staff member ${staffUser.name} [${assignedRoles.join(", ")}] saved successfully with PIN ${pin}.`,
       staff: staffUser,
     });
   } catch (error: any) {

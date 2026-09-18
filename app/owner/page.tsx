@@ -57,6 +57,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Logo } from "@/components/brand/Logo";
+import { OwnerOrdersTab } from "@/components/owner/OwnerOrdersTab";
+import { OwnerCustomersTab } from "@/components/owner/OwnerCustomersTab";
 
 interface ProductItem {
   id: string;
@@ -79,6 +81,7 @@ interface StaffMember {
   phone: string | null;
   email: string | null;
   role: "OWNER" | "MANAGER" | "PACKER" | "RIDER";
+  roles?: ("OWNER" | "MANAGER" | "PACKER" | "RIDER")[];
   pin: string | null;
   phoneVerified: Date | null;
   createdAt: string;
@@ -153,14 +156,22 @@ export default function OwnerControlPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
+  // Active Tab State (Overview, Live Orders, Customers CRM, Staff Directory, Coupons, Theme)
+  const [activeOwnerTab, setActiveOwnerTab] = React.useState<
+    "overview" | "orders" | "customers" | "staff" | "coupons" | "theme"
+  >("overview");
+
   // Staff Hub State
   const [staffList, setStaffList] = React.useState<StaffMember[]>([]);
   const [isStaffLoading, setIsStaffLoading] = React.useState(true);
   const [isAddStaffOpen, setIsAddStaffOpen] = React.useState(false);
+  const [isEditingStaff, setIsEditingStaff] = React.useState(false);
   const [staffFormData, setStaffFormData] = React.useState({
+    id: "",
     name: "",
     phone: "",
     email: "",
+    roles: ["PACKER"] as ("MANAGER" | "PACKER" | "RIDER")[],
     role: "PACKER" as "MANAGER" | "PACKER" | "RIDER",
     pin: "",
     vehicleDetails: "",
@@ -257,6 +268,26 @@ export default function OwnerControlPage() {
     }
   }, []);
 
+  const handleOpenEditStaff = (staff: StaffMember) => {
+    const assignedRoles = (staff.roles && staff.roles.length > 0 ? staff.roles : [staff.role]).filter(
+      (r) => r !== "OWNER"
+    ) as ("MANAGER" | "PACKER" | "RIDER")[];
+
+    setStaffFormData({
+      id: staff.id,
+      name: staff.name || "",
+      phone: staff.phone || "",
+      email: staff.email || "",
+      roles: assignedRoles.length > 0 ? assignedRoles : ["PACKER"],
+      role: assignedRoles[0] || "PACKER",
+      pin: staff.pin || "",
+      vehicleDetails: staff.riderProfile?.vehicleDetails || "",
+    });
+    setIsEditingStaff(true);
+    setStaffFormError(null);
+    setIsAddStaffOpen(true);
+  };
+
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     setStaffFormError(null);
@@ -274,6 +305,10 @@ export default function OwnerControlPage() {
       setStaffFormError("Full name must be at least 2 characters.");
       return;
     }
+    if (staffFormData.roles.length === 0) {
+      setStaffFormError("Please select at least one shift role for this staff member.");
+      return;
+    }
 
     try {
       setStaffFormSubmitting(true);
@@ -281,10 +316,12 @@ export default function OwnerControlPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: staffFormData.id || undefined,
           name: staffFormData.name.trim(),
           phone: cleanPhone,
           email: staffFormData.email.trim() || undefined,
-          role: staffFormData.role,
+          roles: staffFormData.roles,
+          role: staffFormData.roles[0] || "PACKER",
           pin: staffFormData.pin.trim(),
           vehicleDetails: staffFormData.vehicleDetails.trim() || undefined,
         }),
@@ -292,22 +329,25 @@ export default function OwnerControlPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create staff member");
+        throw new Error(data.error || "Failed to save staff member");
       }
 
       // Success
       setIsAddStaffOpen(false);
+      setIsEditingStaff(false);
       setStaffFormData({
+        id: "",
         name: "",
         phone: "",
         email: "",
+        roles: ["PACKER"],
         role: "PACKER",
         pin: "",
         vehicleDetails: "",
       });
       fetchStaff();
     } catch (err: any) {
-      setStaffFormError(err.message || "Failed to create staff member");
+      setStaffFormError(err.message || "Failed to save staff member");
     } finally {
       setStaffFormSubmitting(false);
     }
@@ -717,12 +757,16 @@ export default function OwnerControlPage() {
               </Button>
             </Link>
 
-            <a href="#coupons-section" className="shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveOwnerTab("coupons")}
+              className="shrink-0"
+            >
               <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-amber-600 hover:border-amber-300">
                 <Ticket className="w-3.5 h-3.5 text-amber-600" />
                 <span>Coupons</span>
               </Button>
-            </a>
+            </button>
 
             <Link href="/manager" className="shrink-0">
               <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
@@ -764,10 +808,111 @@ export default function OwnerControlPage() {
         </div>
       </header>
 
+      {/* Subheader Navigation Tabs */}
+      <div className="bg-white border-b border-border-subtle sticky top-[57px] z-20 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2.5">
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("overview")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "overview"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Overview &amp; Stock</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("orders")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "orders"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <PackageCheck className="w-4 h-4" />
+            <span>Orders Hub</span>
+            {analytics && analytics.activeOrders > 0 && (
+              <Badge className="bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0">
+                {analytics.activeOrders}
+              </Badge>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("customers")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "customers"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Customers CRM</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("staff")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "staff"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <Shield className="w-4 h-4" />
+            <span>Staff Directory</span>
+            <Badge className="bg-slate-200 text-slate-800 font-bold text-[9px] px-1.5 py-0">
+              {staffList.length}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("coupons")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "coupons"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <Ticket className="w-4 h-4" />
+            <span>Coupons</span>
+            <Badge className="bg-slate-200 text-slate-800 font-bold text-[9px] px-1.5 py-0">
+              {couponsList.length}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveOwnerTab("theme")}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 ${
+              activeOwnerTab === "theme"
+                ? "bg-primary text-white shadow-sm"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>Theme &amp; Branding</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* ORDERS HUB TAB */}
+        {activeOwnerTab === "orders" && <OwnerOrdersTab />}
+
+        {/* CUSTOMERS CRM TAB */}
+        {activeOwnerTab === "customers" && <OwnerCustomersTab />}
+
         {/* SECTION 1: FINANCIAL & SLA KPI METRIC CARDS */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {activeOwnerTab === "overview" && (
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in">
           {/* GMV Card */}
           <div className="bg-white rounded-2xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between relative overflow-hidden">
             <div className="flex items-center justify-between mb-3">
@@ -848,8 +993,10 @@ export default function OwnerControlPage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* SECTION 2: DYNAMIC SEASONAL THEME CUSTOMIZER */}
+        {activeOwnerTab === "theme" && (
         <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
@@ -1028,8 +1175,10 @@ export default function OwnerControlPage() {
             </div>
           </form>
         </section>
+        )}
 
         {/* SECTION 3: DARK-STORE STAFF & SHIFT MANAGEMENT HUB */}
+        {activeOwnerTab === "staff" && (
         <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
@@ -1131,19 +1280,24 @@ export default function OwnerControlPage() {
                         </div>
                       </div>
 
-                      <Badge
-                        className={`text-[10px] font-black uppercase px-2 py-0.5 ${
-                          staff.role === "OWNER"
-                            ? "bg-amber-500 text-white"
-                            : staff.role === "MANAGER"
-                            ? "bg-purple-600 text-white"
-                            : staff.role === "PACKER"
-                            ? "bg-blue-600 text-white"
-                            : "bg-emerald-600 text-white"
-                        }`}
-                      >
-                        {staff.role}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {(staff.roles && staff.roles.length > 0 ? staff.roles : [staff.role]).map((r) => (
+                          <Badge
+                            key={r}
+                            className={`text-[9px] font-black uppercase px-1.5 py-0.5 ${
+                              r === "OWNER"
+                                ? "bg-amber-500 text-white"
+                                : r === "MANAGER"
+                                ? "bg-purple-600 text-white"
+                                : r === "PACKER"
+                                ? "bg-blue-600 text-white"
+                                : "bg-emerald-600 text-white"
+                            }`}
+                          >
+                            {r}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
 
                     {staff.email && (
@@ -1180,16 +1334,27 @@ export default function OwnerControlPage() {
                       </div>
 
                       {!isOwnerAccount && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deletingStaffId === staff.id}
-                          onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
-                          className="h-8 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-xl"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Deactivate</span>
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEditStaff(staff)}
+                            className="h-8 px-2 text-slate-700 hover:text-primary hover:bg-slate-100 text-xs font-bold gap-1 rounded-xl"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-primary" />
+                            <span>Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingStaffId === staff.id}
+                            onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
+                            className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-xl"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Deactivate</span>
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1205,7 +1370,7 @@ export default function OwnerControlPage() {
                 <tr>
                   <th className="py-3 px-4">Staff Member</th>
                   <th className="py-3 px-4">Mobile &amp; Email</th>
-                  <th className="py-3 px-4">Shift Role</th>
+                  <th className="py-3 px-4">Shift Roles</th>
                   <th className="py-3 px-4">Shift Clock-In PIN</th>
                   <th className="py-3 px-4">Vehicle / Details</th>
                   <th className="py-3 px-4 text-right">Action</th>
@@ -1268,21 +1433,26 @@ export default function OwnerControlPage() {
                           )}
                         </td>
 
-                        {/* Role Badge */}
+                        {/* Role Badges */}
                         <td className="py-3 px-4">
-                          <Badge
-                            className={`text-[10px] font-black uppercase px-2 py-0.5 ${
-                              staff.role === "OWNER"
-                                ? "bg-amber-500 text-white"
-                                : staff.role === "MANAGER"
-                                ? "bg-purple-600 text-white"
-                                : staff.role === "PACKER"
-                                ? "bg-blue-600 text-white"
-                                : "bg-emerald-600 text-white"
-                            }`}
-                          >
-                            {staff.role}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {(staff.roles && staff.roles.length > 0 ? staff.roles : [staff.role]).map((r) => (
+                              <Badge
+                                key={r}
+                                className={`text-[9px] font-black uppercase px-1.5 py-0.5 ${
+                                  r === "OWNER"
+                                    ? "bg-amber-500 text-white"
+                                    : r === "MANAGER"
+                                    ? "bg-purple-600 text-white"
+                                    : r === "PACKER"
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-emerald-600 text-white"
+                                }`}
+                              >
+                                {r}
+                              </Badge>
+                            ))}
+                          </div>
                         </td>
 
                         {/* Shift PIN */}
@@ -1310,9 +1480,9 @@ export default function OwnerControlPage() {
                               <Bike className="w-3.5 h-3.5 text-primary shrink-0" />
                               <span className="truncate">{staff.riderProfile.vehicleDetails}</span>
                             </div>
-                          ) : staff.role === "PACKER" ? (
+                          ) : staff.roles?.includes("PACKER") || staff.role === "PACKER" ? (
                             <span className="text-slate-500">Dark-Store Packing Line</span>
-                          ) : staff.role === "MANAGER" ? (
+                          ) : staff.roles?.includes("MANAGER") || staff.role === "MANAGER" ? (
                             <span className="text-slate-500">Operations Console</span>
                           ) : (
                             <span className="text-slate-400">-</span>
@@ -1324,16 +1494,27 @@ export default function OwnerControlPage() {
                           {isOwnerAccount ? (
                             <span className="text-[11px] font-bold text-amber-600">Protected</span>
                           ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={deletingStaffId === staff.id}
-                              onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
-                              className="h-8 px-2.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-lg"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Deactivate</span>
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEditStaff(staff)}
+                                className="h-8 px-2 text-slate-700 hover:text-primary hover:bg-slate-100 text-xs font-bold gap-1 rounded-xl"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-primary" />
+                                <span>Edit</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={deletingStaffId === staff.id}
+                                onClick={() => handleDeleteStaff(staff.id, staff.name || "Staff")}
+                                className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-xl"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Deactivate</span>
+                              </Button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1344,8 +1525,10 @@ export default function OwnerControlPage() {
             </table>
           </div>
         </section>
+        )}
 
         {/* SECTION 4: PROMOTIONS & DISCOUNT COUPONS HUB */}
+        {activeOwnerTab === "coupons" && (
         <section id="coupons-section" className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-6 scroll-mt-24">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
@@ -1673,8 +1856,10 @@ export default function OwnerControlPage() {
             </table>
           </div>
         </section>
+        )}
 
         {/* SECTION 5: INVENTORY REPLENISHMENT & CATALOG OVERRIDE TABLE */}
+        {activeOwnerTab === "overview" && (
         <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
             <div>
@@ -1937,21 +2122,24 @@ export default function OwnerControlPage() {
             </table>
           </div>
         </section>
+        )}
 
-        {/* ADD STAFF DIALOG MODAL */}
+          {/* ADD / EDIT STAFF DIALOG MODAL */}
         <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
           <DialogContent className="sm:max-w-md p-6">
             <DialogHeader>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <UserPlus className="w-5 h-5" />
+                  {isEditingStaff ? <Edit2 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
                 </div>
                 <div>
                   <DialogTitle className="text-lg font-black text-surface-dark">
-                    Add Dark-Store Staff
+                    {isEditingStaff ? "Edit Dark-Store Staff" : "Add Dark-Store Staff"}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    Assign a 4-digit shift PIN for instant, zero-SMS portal access.
+                    {isEditingStaff
+                      ? "Update staff roles, shift PIN, and details."
+                      : "Assign a 4-digit shift PIN for instant, zero-SMS portal access."}
                   </DialogDescription>
                 </div>
               </div>
@@ -1979,7 +2167,7 @@ export default function OwnerControlPage() {
                 />
               </div>
 
-              {/* Mobile & Role Grid */}
+              {/* Mobile & Email Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -2003,24 +2191,6 @@ export default function OwnerControlPage() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-primary" /> Shift Role <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={staffFormData.role}
-                    onChange={(e) => setStaffFormData({ ...staffFormData, role: e.target.value as any })}
-                    className="w-full h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="PACKER">📦 Express Order Packer</option>
-                    <option value="RIDER">🛵 Delivery Rider</option>
-                    <option value="MANAGER">👔 Store Manager</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Gmail & 4-Digit PIN Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-primary" /> Gmail Address
                   </label>
                   <Input
@@ -2031,26 +2201,86 @@ export default function OwnerControlPage() {
                     className="h-10 text-xs rounded-xl"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-primary" /> 4-Digit Shift PIN <span className="text-rose-500">*</span>
-                  </label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={staffFormData.pin}
-                    onChange={(e) => setStaffFormData({ ...staffFormData, pin: e.target.value.replace(/\D/g, "") })}
-                    placeholder="1234"
-                    className="h-10 text-center text-base font-black font-mono tracking-widest rounded-xl"
-                    required
-                  />
+              {/* MULTI-ROLE SELECTION */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-primary" /> Shift Roles <span className="text-rose-500">*</span>
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-normal">Select all that apply</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { role: "MANAGER" as const, label: "Manager", desc: "Catalog & Pricing", emoji: "👔" },
+                    { role: "PACKER" as const, label: "Packer", desc: "Order Packing Station", emoji: "📦" },
+                    { role: "RIDER" as const, label: "Rider", desc: "Delivery Fleet", emoji: "🛵" },
+                  ].map((item) => {
+                    const isSelected = staffFormData.roles.includes(item.role);
+                    return (
+                      <button
+                        type="button"
+                        key={item.role}
+                        onClick={() => {
+                          let newRoles = [...staffFormData.roles];
+                          if (isSelected) {
+                            if (newRoles.length > 1) {
+                              newRoles = newRoles.filter((r) => r !== item.role);
+                            }
+                          } else {
+                            newRoles.push(item.role);
+                          }
+                          setStaffFormData({
+                            ...staffFormData,
+                            roles: newRoles,
+                            role: newRoles[0],
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                          isSelected
+                            ? "border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-2 ring-emerald-500/20"
+                            : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-xs font-black flex items-center gap-1">
+                            <span>{item.emoji}</span>
+                            <span>{item.label}</span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            readOnly
+                            className="accent-emerald-600 pointer-events-none"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500 mt-1">{item.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* 4-Digit Shift PIN */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-primary" /> 4-Digit Shift PIN <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={staffFormData.pin}
+                  onChange={(e) => setStaffFormData({ ...staffFormData, pin: e.target.value.replace(/\D/g, "") })}
+                  placeholder="1234"
+                  className="h-10 text-center text-base font-black font-mono tracking-widest rounded-xl"
+                  required
+                />
+              </div>
+
               {/* Rider vehicle details (conditional) */}
-              {staffFormData.role === "RIDER" && (
+              {staffFormData.roles.includes("RIDER") && (
                 <div className="space-y-1.5 animate-in fade-in">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                     <Bike className="w-3.5 h-3.5 text-primary" /> Vehicle Type &amp; Reg Number
@@ -2083,7 +2313,7 @@ export default function OwnerControlPage() {
                   ) : (
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   )}
-                  <span>Save &amp; Activate Staff</span>
+                  <span>{isEditingStaff ? "Save Staff Changes" : "Register Staff Member"}</span>
                 </Button>
               </DialogFooter>
             </form>

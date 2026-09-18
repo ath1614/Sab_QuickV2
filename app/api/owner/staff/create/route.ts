@@ -14,7 +14,8 @@ const createStaffSchema = z.object({
     .trim()
     .regex(/^[6-9]\d{9}$/, "Must be a valid 10-digit Indian mobile number starting with 6-9"),
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
-  role: z.enum(["RIDER", "PACKER", "MANAGER"]),
+  roles: z.array(z.enum(["RIDER", "PACKER", "MANAGER"])).min(1, "Select at least one role").optional(),
+  role: z.enum(["RIDER", "PACKER", "MANAGER"]).optional(),
   pin: z.string().trim().regex(/^\d{4}$/, "Staff PIN must be 4 digits").optional(),
   vehicleDetails: z.string().trim().optional(),
 });
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, phone, email, role, pin, vehicleDetails } = parseResult.data;
+    const { name, phone, email, roles, role, pin, vehicleDetails } = parseResult.data;
 
     // Disallow overriding the main Owner account
     if (phone === "9109066668") {
@@ -59,13 +60,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const assignedRoles: Role[] = roles && roles.length > 0
+      ? (roles as Role[])
+      : [((role as Role) || Role.PACKER)];
+    const primaryRole = assignedRoles[0];
+
     // 3. Upsert user record with safe nullable email and PIN
     const staffUser = await prisma.user.upsert({
       where: { phone },
       update: {
         name,
         email: email || null,
-        role: role as Role,
+        role: primaryRole,
+        roles: assignedRoles,
         phoneVerified: true,
         ...(pin ? { pin } : {}),
       },
@@ -73,7 +80,8 @@ export async function POST(req: NextRequest) {
         phone,
         name,
         email: email || null,
-        role: role as Role,
+        role: primaryRole,
+        roles: assignedRoles,
         phoneVerified: true,
         pin: pin || "1234",
       },
@@ -84,12 +92,13 @@ export async function POST(req: NextRequest) {
         phone: true,
         phoneVerified: true,
         role: true,
+        roles: true,
         pin: true,
       },
     });
 
-    // 4. If RIDER role, upsert RiderProfile
-    if (role === "RIDER") {
+    // 4. If RIDER in assigned roles, upsert RiderProfile
+    if (assignedRoles.includes(Role.RIDER)) {
       await prisma.riderProfile.upsert({
         where: { userId: staffUser.id },
         update: {
@@ -108,7 +117,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Staff account successfully provisioned for ${staffUser.name} as [${staffUser.role}].`,
+      message: `Staff account successfully provisioned for ${staffUser.name} as [${assignedRoles.join(", ")}].`,
       user: staffUser,
     });
   } catch (error: unknown) {

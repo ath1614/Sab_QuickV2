@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensureDatabaseSchema } from "@/lib/db-self-heal";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,57 @@ export async function PUT(
     console.error("[PUT /api/ops/products/[id] error]:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update product." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!["OWNER", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: Owner or Manager role required." },
+        { status: 403 }
+      );
+    }
+
+    const { id } = params;
+
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found." }, { status: 404 });
+    }
+
+    await ensureDatabaseSchema();
+
+    // Clean up order items referencing this product first to prevent FK constraint violation
+    await prisma.orderItem.deleteMany({
+      where: { productId: id },
+    });
+
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Product "${existingProduct.title}" deleted successfully.`,
+    });
+  } catch (error: any) {
+    console.error("[DELETE /api/ops/products/[id] error]:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to delete product." },
       { status: 500 }
     );
   }

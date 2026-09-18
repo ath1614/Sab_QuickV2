@@ -487,70 +487,53 @@ export default function OwnerCatalogPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
       {/* 1. TOP APP BAR */}
-      <header className="sticky top-0 z-40 bg-surface-dark/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-8 py-2.5 sm:py-3.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 px-3 sm:px-8 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] shadow-lg">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Top Title & Navigation */}
+          <div className="flex items-center justify-between w-full md:w-auto">
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href={session.user.role === "OWNER" ? "/owner" : "/manager"}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors shadow-xs shrink-0"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 border-2 border-slate-700 text-xs font-bold text-white hover:bg-slate-700 transition-colors shadow-xs shrink-0"
                 title="Back to Hub"
               >
-                <ArrowLeft className="w-4 h-4 text-primary-accent" />
-                <span>Back to Hub</span>
+                <ArrowLeft className="w-4 h-4 text-emerald-400" />
+                <span>Back</span>
               </Link>
-              <div className="h-4 w-px bg-slate-800" />
+              <div className="h-4 w-px bg-slate-700" />
               <Logo variant="compact" theme="dark" size={24} />
               <div>
                 <h1 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
                   <span>Catalog &amp; Pricing</span>
-                  <Badge variant="accent" className="text-[9px] sm:text-[10px] font-black uppercase py-0 px-1.5">
+                  <Badge variant="accent" className="text-[9px] sm:text-[10px] font-black uppercase py-0 px-1.5 bg-emerald-500 text-slate-950">
                     {session.user.role}
                   </Badge>
                 </h1>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 hidden sm:block">
-                  Two-tier Category &bull; Subcategory Tree &bull; Dual MRP / Sale Price Engine
+                <p className="text-[10px] sm:text-[11px] text-slate-300 hidden sm:block">
+                  Categories &bull; Subcategories &bull; Dual MRP / Sale Price Engine
                 </p>
               </div>
             </div>
-
-            {/* Mobile Fast Action: Add Product */}
-            <Button
-              size="sm"
-              onClick={() => {
-                if (allSubcategories.length > 0 && !prodCategoryId) {
-                  setProdCategoryId(allSubcategories[0].id);
-                }
-                setProductModalOpen(true);
-              }}
-              variant="accent"
-              className="sm:hidden h-8 px-2.5 text-xs font-black shadow-md shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Product
-            </Button>
           </div>
 
-          {/* Action Controls */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Action Controls: 3 high-contrast buttons visible on ALL mobile screens without horizontal scroll */}
+          <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:flex md:items-center">
             <Button
               size="sm"
               onClick={() => setParentModalOpen(true)}
-              variant="outline"
-              className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200 shrink-0 px-2.5 sm:px-3"
+              className="h-10 text-xs font-black bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-emerald-500 text-white rounded-xl shadow-sm px-2 sm:px-3.5 flex items-center justify-center gap-1.5 transition-all"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Parent Cat
+              <Plus className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">+ Category</span>
             </Button>
 
             <Button
               size="sm"
               onClick={() => setSubModalOpen(true)}
-              variant="outline"
-              className="h-8 text-xs font-bold border-slate-700 hover:bg-slate-800 text-slate-200 shrink-0 px-2.5 sm:px-3"
+              className="h-10 text-xs font-black bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-emerald-500 text-white rounded-xl shadow-sm px-2 sm:px-3.5 flex items-center justify-center gap-1.5 transition-all"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Subcategory
+              <Plus className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">+ Sub-Cat</span>
             </Button>
 
             <Button
@@ -561,11 +544,10 @@ export default function OwnerCatalogPage() {
                 }
                 setProductModalOpen(true);
               }}
-              variant="accent"
-              className="hidden sm:inline-flex h-8 text-xs font-black shadow-md shrink-0 px-3"
+              className="h-10 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-emerald-400 rounded-xl shadow-lg px-2 sm:px-4 flex items-center justify-center gap-1.5 transition-all"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Add Product
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="truncate font-black">+ Product</span>
             </Button>
           </div>
         </div>
@@ -575,10 +557,10 @@ export default function OwnerCatalogPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6">
         {/* Toast / Alert Banners */}
         {errorMsg && (
-          <div className="p-4 bg-red-950/60 border border-red-500/50 rounded-2xl flex items-center justify-between text-xs text-red-200 animate-in fade-in">
+          <div className="p-4 bg-red-950/80 border-2 border-red-500/60 rounded-2xl flex items-center justify-between text-xs text-red-200 animate-in fade-in shadow-lg">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{errorMsg}</span>
+              <span className="font-semibold">{errorMsg}</span>
             </div>
             <button
               onClick={() => setErrorMsg(null)}
@@ -590,10 +572,10 @@ export default function OwnerCatalogPage() {
         )}
 
         {successMsg && (
-          <div className="p-4 bg-emerald-950/60 border border-emerald-500/50 rounded-2xl flex items-center justify-between text-xs text-emerald-200 animate-in fade-in">
+          <div className="p-4 bg-emerald-950/80 border-2 border-emerald-500/60 rounded-2xl flex items-center justify-between text-xs text-emerald-200 animate-in fade-in shadow-lg">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-primary-accent shrink-0" />
-              <span>{successMsg}</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-semibold">{successMsg}</span>
             </div>
             <button
               onClick={() => setSuccessMsg(null)}
@@ -607,26 +589,26 @@ export default function OwnerCatalogPage() {
         {/* Search & Quick Metrics */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               type="text"
-              placeholder="Search parent categories, subcategories, or products..."
+              placeholder="Search categories, subcategories, or products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 bg-surface-dark border-slate-800 text-xs text-white rounded-xl focus:border-primary-accent"
+              className="pl-9 h-11 bg-slate-900 border-2 border-slate-700 text-xs text-white rounded-xl focus:border-emerald-400 font-medium"
             />
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="bg-surface-dark px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
-              <strong className="text-white font-bold">{categories.length}</strong> Parent Categories
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <span className="bg-slate-900 px-3.5 py-2 rounded-xl border-2 border-slate-700 font-mono">
+              <strong className="text-white font-bold">{categories.length}</strong> Categories
             </span>
-            <span className="bg-surface-dark px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
+            <span className="bg-slate-900 px-3.5 py-2 rounded-xl border-2 border-slate-700 font-mono">
               <strong className="text-white font-bold">{allSubcategories.length}</strong> Subcategories
             </span>
             <button
               onClick={fetchCatalogData}
-              className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-400 hover:text-white"
+              className="p-2.5 bg-slate-900 border-2 border-slate-700 hover:bg-slate-800 rounded-xl transition-colors text-slate-300 hover:text-white"
               title="Refresh Catalog"
             >
               <RefreshCw className="w-4 h-4" />
@@ -636,24 +618,25 @@ export default function OwnerCatalogPage() {
 
         {/* 3. TWO-TIER HIERARCHICAL TREE VIEW */}
         {isLoading ? (
-          <div className="p-12 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-3">
-            <RefreshCw className="w-6 h-6 animate-spin text-primary-accent" />
-            <span>Loading hierarchical catalog structure...</span>
+          <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
+            <span className="font-semibold">Loading catalog structure...</span>
           </div>
         ) : categories.length === 0 ? (
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl p-12 text-center space-y-4">
-            <FolderTree className="w-12 h-12 text-slate-600 mx-auto" />
-            <h3 className="text-sm font-bold text-white">No Categories Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl p-12 text-center space-y-4 shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center mx-auto text-emerald-400">
+              <FolderTree className="w-8 h-8" />
+            </div>
+            <h3 className="text-base font-black text-white">No Categories Found</h3>
+            <p className="text-xs text-slate-300 max-w-sm mx-auto font-medium">
               Start by creating your first Parent Category (e.g., &quot;Dairy &amp; Breakfast&quot;) and subcategories under it.
             </p>
             <Button
               size="sm"
-              variant="accent"
               onClick={() => setParentModalOpen(true)}
-              className="text-xs font-bold"
+              className="h-11 px-6 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg border-2 border-emerald-400"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />
+              <Plus className="w-4 h-4 mr-1.5" />
               Create First Category
             </Button>
           </div>
@@ -669,17 +652,17 @@ export default function OwnerCatalogPage() {
               return (
                 <div
                   key={parent.id}
-                  className="bg-surface-dark border border-slate-800/80 rounded-3xl overflow-hidden shadow-xl"
+                  className="bg-slate-900 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-xl"
                 >
                   {/* PARENT CATEGORY HEADER BAR */}
                   <div
                     onClick={() => toggleParentExpand(parent.id)}
-                    className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-800/50 transition-colors select-none"
+                    className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-800/60 transition-colors select-none"
                   >
                     <div className="flex items-center gap-3">
-                      <button className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 transition-colors">
+                      <button className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-primary-accent" />
+                          <ChevronDown className="w-4 h-4 text-emerald-400" />
                         ) : (
                           <ChevronRight className="w-4 h-4" />
                         )}
@@ -689,10 +672,10 @@ export default function OwnerCatalogPage() {
                         <img
                           src={parent.imageUrl}
                           alt={parent.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-700 shrink-0"
+                          className="w-10 h-10 rounded-xl object-cover border-2 border-slate-700 shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-xl bg-primary-accent/10 border border-primary-accent/20 flex items-center justify-center text-primary-accent font-black text-xs shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black text-xs shrink-0">
                           {parent.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -700,11 +683,11 @@ export default function OwnerCatalogPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h2 className="text-sm font-black text-white">{parent.name}</h2>
-                          <Badge variant="outline" className="text-[10px] font-mono text-slate-400 border-slate-700">
+                          <Badge variant="outline" className="text-[10px] font-mono text-slate-300 border-slate-600 bg-slate-950">
                             /{parent.slug}
                           </Badge>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-slate-300 mt-0.5 font-medium">
                           {parent.subCategories.length} Subcategories &bull; {totalParentSkus} SKUs
                         </p>
                       </div>
@@ -715,8 +698,8 @@ export default function OwnerCatalogPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleOpenEditCategory(parent, true)}
-                        className="h-8 px-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1"
-                        title="Edit Aisle"
+                        className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700"
+                        title="Edit Category"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                         <span className="hidden md:inline">Edit</span>
@@ -725,34 +708,50 @@ export default function OwnerCatalogPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleOpenDeleteCategory(parent, true, totalParentSkus)}
-                        className="h-8 px-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl text-xs gap-1"
-                        title="Delete Aisle"
+                        className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30"
+                        title="Delete Category"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                        <span className="hidden md:inline text-rose-400">Delete</span>
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span className="hidden md:inline">Delete</span>
                       </Button>
                       <Button
                         size="sm"
-                        variant="ghost"
                         onClick={() => {
                           setSubParentId(parent.id);
                           setSubModalOpen(true);
                         }}
-                        className="h-8 text-xs font-bold text-primary-accent hover:bg-primary-accent/10"
+                        className="h-8 px-3 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-md gap-1"
                       >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        <span className="hidden sm:inline">Add Subcategory</span>
-                        <span className="sm:hidden">Sub</span>
+                        <Plus className="w-3.5 h-3.5 shrink-0" />
+                        <span className="hidden sm:inline">+ Subcategory</span>
+                        <span className="sm:hidden">+ Sub</span>
                       </Button>
                     </div>
                   </div>
 
                   {/* EXPANDED SUBCATEGORIES TREE SECTION */}
                   {isExpanded && (
-                    <div className="p-4 sm:p-6 pt-0 border-t border-slate-800/60 bg-slate-950/40 space-y-6">
+                    <div className="p-4 sm:p-6 pt-2 border-t-2 border-slate-800 bg-slate-950 space-y-5">
                       {parent.subCategories.length === 0 ? (
-                        <div className="py-6 text-center text-xs text-slate-500">
-                          No subcategories under {parent.name} yet.
+                        <div className="p-6 text-center rounded-2xl border-2 border-dashed border-slate-700 bg-slate-900/80 flex flex-col items-center justify-center gap-3">
+                          <Layers className="w-8 h-8 text-emerald-400" />
+                          <div>
+                            <p className="text-sm font-bold text-white">No subcategories under {parent.name}</p>
+                            <p className="text-xs text-slate-300 mt-0.5">
+                              Add subcategories like Milk, Bread, Cheese to organize your products.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSubParentId(parent.id);
+                              setSubModalOpen(true);
+                            }}
+                            className="h-9 px-4 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-md gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>+ Add First Subcategory</span>
+                          </Button>
                         </div>
                       ) : (
                         parent.subCategories.map((sub) => {
@@ -769,62 +768,76 @@ export default function OwnerCatalogPage() {
                           return (
                             <div
                               key={sub.id}
-                              className="border border-slate-800 rounded-2xl p-4 bg-surface-dark/50 space-y-4"
+                              className="border-2 border-slate-800 rounded-2xl p-4 sm:p-5 bg-slate-900/90 space-y-4 shadow-sm"
                             >
                               {/* Subcategory Bar */}
-                              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
+                              <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b-2 border-slate-800">
                                 <div className="flex items-center gap-2">
                                   <Layers className="w-4 h-4 text-emerald-400" />
-                                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                                  <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
                                     {sub.name}
                                   </h3>
-                                  <Badge variant="secondary" className="text-[10px] font-mono text-slate-300">
+                                  <Badge variant="secondary" className="text-[10px] font-mono text-slate-200 bg-slate-800 border border-slate-700">
                                     /{sub.slug}
                                   </Badge>
-                                  <span className="text-[11px] text-slate-400 font-mono">
+                                  <span className="text-[11px] text-slate-300 font-mono font-bold">
                                     ({filteredProducts.length} items)
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleOpenEditCategory(sub, false)}
-                                    className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
-                                    title="Edit Sub-Aisle"
+                                    className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700"
+                                    title="Edit Subcategory"
                                   >
-                                    <Edit2 className="w-3 h-3" />
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Edit</span>
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleOpenDeleteCategory(sub, false, filteredProducts.length)}
-                                    className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
-                                    title="Delete Sub-Aisle"
+                                    className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30"
+                                    title="Delete Subcategory"
                                   >
-                                    <Trash2 className="w-3 h-3 text-rose-500" />
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                    <span className="hidden sm:inline">Delete</span>
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="ghost"
                                     onClick={() => {
                                       setProdCategoryId(sub.id);
                                       setProductModalOpen(true);
                                     }}
-                                    className="h-7 text-[11px] font-bold text-primary-accent hover:bg-primary-accent/10"
+                                    className="h-8 px-3 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm gap-1 flex items-center"
                                   >
-                                    <Plus className="w-3 h-3 mr-1" />
-                                    Add SKU
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>+ Add SKU</span>
                                   </Button>
                                 </div>
                               </div>
 
                               {/* Products Grid */}
                               {filteredProducts.length === 0 ? (
-                                <p className="text-xs text-slate-500 italic py-2">
-                                  No SKUs in this subcategory matching filter.
-                                </p>
+                                <div className="p-4 rounded-xl border border-dashed border-slate-700 bg-slate-950/60 flex items-center justify-between gap-3">
+                                  <p className="text-xs font-semibold text-slate-300">
+                                    No products in this subcategory matching your search.
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setProdCategoryId(sub.id);
+                                      setProductModalOpen(true);
+                                    }}
+                                    className="h-8 px-3 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 rounded-xl gap-1"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    + Add Product
+                                  </Button>
+                                </div>
                               ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                   {filteredProducts.map((prod) => {
@@ -836,9 +849,9 @@ export default function OwnerCatalogPage() {
                                     return (
                                       <div
                                         key={prod.id}
-                                        className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex items-start gap-3 hover:border-slate-700 transition-all group"
+                                        className="bg-slate-950 border-2 border-slate-800 rounded-2xl p-3 flex items-start gap-3 hover:border-slate-600 transition-all shadow-xs"
                                       >
-                                        <div className="relative w-16 h-16 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                                        <div className="relative w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center p-1">
                                           {prod.imageUrl ? (
                                             <img
                                               src={prod.imageUrl}
@@ -846,10 +859,10 @@ export default function OwnerCatalogPage() {
                                               className="w-full h-full object-contain"
                                             />
                                           ) : (
-                                            <Package className="w-6 h-6 text-slate-600" />
+                                            <Package className="w-6 h-6 text-slate-500" />
                                           )}
                                           {discount > 0 && (
-                                            <span className="absolute top-0.5 left-0.5 bg-primary-accent text-surface-dark text-[8px] font-black px-1 rounded">
+                                            <span className="absolute top-0.5 left-0.5 bg-emerald-500 text-slate-950 text-[8px] font-black px-1 rounded shadow-xs">
                                               {discount}%
                                             </span>
                                           )}
@@ -857,14 +870,14 @@ export default function OwnerCatalogPage() {
 
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-slate-400 font-mono">
+                                            <span className="text-[10px] text-slate-300 font-mono font-semibold">
                                               {prod.unitQuantity}
                                             </span>
                                             <span
-                                              className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                                                 prod.isAvailable && prod.stockCount > 0
-                                                  ? "bg-emerald-950 text-emerald-400"
-                                                  : "bg-red-950 text-red-400"
+                                                  ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40"
+                                                  : "bg-red-950 text-red-400 border border-red-500/40"
                                               }`}
                                             >
                                               {prod.isAvailable && prod.stockCount > 0
@@ -873,18 +886,18 @@ export default function OwnerCatalogPage() {
                                             </span>
                                           </div>
 
-                                          <h4 className="text-xs font-bold text-white truncate mt-0.5" title={prod.title}>
+                                          <h4 className="text-xs font-black text-white truncate mt-1" title={prod.title}>
                                             {prod.title}
                                           </h4>
 
                                           {/* Dual Pricing Display */}
-                                          <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-800">
+                                          <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800">
                                             <div className="flex items-center gap-1.5">
-                                              <span className="text-xs font-black text-primary-accent font-mono">
+                                              <span className="text-xs font-black text-emerald-400 font-mono">
                                                 ₹{prod.salePrice}
                                               </span>
                                               {prod.mrp > prod.salePrice && (
-                                                <span className="text-[10px] text-slate-500 line-through font-mono">
+                                                <span className="text-[10px] text-slate-400 line-through font-mono">
                                                   ₹{prod.mrp}
                                                 </span>
                                               )}
@@ -892,11 +905,10 @@ export default function OwnerCatalogPage() {
 
                                             <Button
                                               size="sm"
-                                              variant="ghost"
                                               onClick={() => openEditModal(prod)}
-                                              className="h-6 px-2 text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800"
+                                              className="h-7 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-slate-700"
                                             >
-                                              <Edit2 className="w-3 h-3 mr-1" />
+                                              <Edit2 className="w-3 h-3 mr-1 text-emerald-400" />
                                               Edit
                                             </Button>
                                           </div>
@@ -919,28 +931,26 @@ export default function OwnerCatalogPage() {
         )}
       </main>
 
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL 1: ADD PARENT CATEGORY                                  */}
-      {/* ------------------------------------------------------------- */}
+      {/* MODAL 1: ADD PARENT CATEGORY */}
       {parentModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black flex items-center gap-2">
-                <FolderTree className="w-4 h-4 text-primary-accent" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                <FolderTree className="w-4 h-4 text-emerald-400" />
                 Add Parent Category
               </h3>
               <button
                 onClick={() => setParentModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateParentCategory} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateParentCategory} className="space-y-4 text-xs">
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Category Name *
                 </label>
                 <Input
@@ -953,12 +963,12 @@ export default function OwnerCatalogPage() {
                       setParentSlug(slugify(e.target.value));
                     }
                   }}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   URL Slug *
                 </label>
                 <Input
@@ -966,32 +976,32 @@ export default function OwnerCatalogPage() {
                   placeholder="e.g. dairy-breakfast"
                   value={parentSlug}
                   onChange={(e) => setParentSlug(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Image URL (Optional)
                 </label>
                 <Input
-                  placeholder="https://..."
+                  placeholder="https://images.unsplash.com/..."
                   value={parentImage}
                   onChange={(e) => setParentImage(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setParentModalOpen(false)}
-                  className="h-9 text-xs"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="accent" className="h-9 text-xs font-bold">
+                <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
                   Save Category
                 </Button>
               </div>
@@ -1000,35 +1010,33 @@ export default function OwnerCatalogPage() {
         </div>
       )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL 2: ADD SUBCATEGORY                                      */}
-      {/* ------------------------------------------------------------- */}
+      {/* MODAL 2: ADD SUBCATEGORY */}
       {subModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black flex items-center gap-2">
-                <Layers className="w-4 h-4 text-primary-accent" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                <Layers className="w-4 h-4 text-emerald-400" />
                 Add Subcategory
               </h3>
               <button
                 onClick={() => setSubModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubcategory} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateSubcategory} className="space-y-4 text-xs">
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Parent Category *
                 </label>
                 <select
                   required
                   value={subParentId}
                   onChange={(e) => setSubParentId(e.target.value)}
-                  className="w-full h-9 rounded-md bg-slate-900 border border-slate-700 px-3 text-xs text-white focus:outline-none focus:border-primary-accent"
+                  className="w-full h-10 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-emerald-400"
                 >
                   <option value="">Select Parent Category</option>
                   {categories.map((c) => (
@@ -1040,7 +1048,7 @@ export default function OwnerCatalogPage() {
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Subcategory Name *
                 </label>
                 <Input
@@ -1053,12 +1061,12 @@ export default function OwnerCatalogPage() {
                       setSubSlug(slugify(e.target.value));
                     }
                   }}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   URL Slug *
                 </label>
                 <Input
@@ -1066,32 +1074,32 @@ export default function OwnerCatalogPage() {
                   placeholder="e.g. milk"
                   value={subSlug}
                   onChange={(e) => setSubSlug(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Image URL (Optional)
                 </label>
                 <Input
-                  placeholder="https://..."
+                  placeholder="https://images.unsplash.com/..."
                   value={subImage}
                   onChange={(e) => setSubImage(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setSubModalOpen(false)}
-                  className="h-9 text-xs"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="accent" className="h-9 text-xs font-bold">
+                <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
                   Save Subcategory
                 </Button>
               </div>
@@ -1100,25 +1108,23 @@ export default function OwnerCatalogPage() {
         </div>
       )}
 
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL 3: ADD PRODUCT WITH LIVE DUAL PRICING PREVIEW           */}
-      {/* ------------------------------------------------------------- */}
+      {/* MODAL 3: ADD PRODUCT WITH LIVE DUAL PRICING PREVIEW */}
       {productModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-3xl p-6 text-white space-y-6 shadow-2xl my-8 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-3xl p-6 text-white space-y-6 shadow-2xl my-8 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
               <div>
-                <h3 className="text-sm font-black flex items-center gap-2">
-                  <Package className="w-4 h-4 text-primary-accent" />
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <Package className="w-4 h-4 text-emerald-400" />
                   Add New Product &bull; Dual Pricing Engine
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-xs text-slate-300">
                   Fill in product details and view live storefront card preview on the right.
                 </p>
               </div>
               <button
                 onClick={() => setProductModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
@@ -1126,16 +1132,16 @@ export default function OwnerCatalogPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               {/* Form Controls (3 cols) */}
-              <form onSubmit={handleCreateProduct} className="md:col-span-3 space-y-3 text-xs">
+              <form onSubmit={handleCreateProduct} className="md:col-span-3 space-y-3.5 text-xs">
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Assign Subcategory *
                   </label>
                   <select
                     required
                     value={prodCategoryId}
                     onChange={(e) => setProdCategoryId(e.target.value)}
-                    className="w-full h-9 rounded-md bg-slate-900 border border-slate-700 px-3 text-xs text-white focus:outline-none focus:border-primary-accent"
+                    className="w-full h-10 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-emerald-400"
                   >
                     <option value="">Select Subcategory</option>
                     {allSubcategories.map((s) => (
@@ -1147,7 +1153,7 @@ export default function OwnerCatalogPage() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Product Title *
                   </label>
                   <Input
@@ -1160,13 +1166,13 @@ export default function OwnerCatalogPage() {
                         setProdSlug(slugify(e.target.value));
                       }
                     }}
-                    className="h-9 bg-slate-900 border-slate-700 text-white font-bold"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-bold"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
                       URL Slug *
                     </label>
                     <Input
@@ -1174,11 +1180,11 @@ export default function OwnerCatalogPage() {
                       placeholder="e.g. amul-taaza-toned-milk"
                       value={prodSlug}
                       onChange={(e) => setProdSlug(e.target.value)}
-                      className="h-9 bg-slate-900 border-slate-700 text-white font-mono text-[11px]"
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
                       Unit Pack Size *
                     </label>
                     <Input
@@ -1186,29 +1192,29 @@ export default function OwnerCatalogPage() {
                       placeholder="e.g. 500 ml, 1 kg, 6 pcs"
                       value={prodUnitQuantity}
                       onChange={(e) => setProdUnitQuantity(e.target.value)}
-                      className="h-9 bg-slate-900 border-slate-700 text-white"
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-semibold"
                     />
                   </div>
                 </div>
 
                 {/* PRICING FIELDS (MRP & SALE PRICE) */}
-                <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
+                <div className="p-3.5 bg-slate-950 border-2 border-slate-700 rounded-2xl space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-primary-accent uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1">
                       <DollarSign className="w-3.5 h-3.5" />
-                      Dual Pricing (₹)
+                      Dual Pricing Engine (₹)
                     </span>
                     {liveAddDiscountPercent > 0 && (
-                      <span className="bg-primary-accent text-surface-dark text-[10px] font-black px-2 py-0.5 rounded">
+                      <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
                         {liveAddDiscountPercent}% OFF
                       </span>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-0.5">
-                        MRP (Max Retail Price) *
+                      <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                        MRP (Maximum Retail) *
                       </label>
                       <Input
                         required
@@ -1218,13 +1224,13 @@ export default function OwnerCatalogPage() {
                         placeholder="e.g. 60"
                         value={prodMrp}
                         onChange={(e) => setProdMrp(e.target.value)}
-                        className="h-9 bg-slate-950 border-slate-700 text-white font-mono font-bold"
+                        className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-black"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-400 font-bold block mb-0.5">
-                        Selling Price (Discounted) *
+                      <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                        Sale Price (Discounted) *
                       </label>
                       <Input
                         required
@@ -1234,22 +1240,22 @@ export default function OwnerCatalogPage() {
                         placeholder="e.g. 48"
                         value={prodSalePrice}
                         onChange={(e) => setProdSalePrice(e.target.value)}
-                        className="h-9 bg-slate-950 border-slate-700 text-white font-mono font-bold text-primary-accent"
+                        className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
                       />
                     </div>
                   </div>
 
                   {liveAddSalePrice > liveAddMrp && liveAddMrp > 0 && (
-                    <p className="text-[10px] text-red-400 font-bold flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Selling price cannot be higher than MRP!
+                    <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1 pt-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Sale price (₹{liveAddSalePrice}) cannot exceed MRP (₹{liveAddMrp})!
                     </p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
                       Initial Stock Count
                     </label>
                     <Input
@@ -1257,24 +1263,24 @@ export default function OwnerCatalogPage() {
                       min="0"
                       value={prodStock}
                       onChange={(e) => setProdStock(e.target.value)}
-                      className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
                       Tags (Comma separated)
                     </label>
                     <Input
                       placeholder="dairy, milk, breakfast"
                       value={prodTags}
                       onChange={(e) => setProdTags(e.target.value)}
-                      className="h-9 bg-slate-900 border-slate-700 text-white"
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Image URL *
                   </label>
                   <Input
@@ -1282,24 +1288,23 @@ export default function OwnerCatalogPage() {
                     placeholder="https://images.unsplash.com/..."
                     value={prodImage}
                     onChange={(e) => setProdImage(e.target.value)}
-                    className="h-9 bg-slate-900 border-slate-700 text-white"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-3">
+                <div className="flex items-center justify-end gap-2.5 pt-3">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setProductModalOpen(false)}
-                    className="h-9 text-xs"
+                    className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    variant="accent"
                     disabled={liveAddSalePrice > liveAddMrp && liveAddMrp > 0}
-                    className="h-9 text-xs font-black"
+                    className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
                   >
                     Create &amp; Publish Product
                   </Button>
@@ -1387,37 +1392,37 @@ export default function OwnerCatalogPage() {
       {/* MODAL 4: EDIT PRODUCT PRICE & STOCK                          */}
       {/* ------------------------------------------------------------- */}
       {editProductModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-primary-accent" />
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                <Edit2 className="w-4 h-4 text-emerald-400" />
                 Edit Product &bull; Dual Pricing &amp; Stock
               </h3>
               <button
                 onClick={() => setEditProductModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUpdateProduct} className="space-y-3 text-xs">
+            <form onSubmit={handleUpdateProduct} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
-                  Product Title
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Product Title *
                 </label>
                 <Input
                   required
                   value={editProdTitle}
                   onChange={(e) => setEditProdTitle(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white font-bold"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-bold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     MRP (₹) *
                   </label>
                   <Input
@@ -1427,11 +1432,11 @@ export default function OwnerCatalogPage() {
                     min="1"
                     value={editProdMrp}
                     onChange={(e) => setEditProdMrp(e.target.value)}
-                    className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Selling Price (₹) *
                   </label>
                   <Input
@@ -1441,14 +1446,14 @@ export default function OwnerCatalogPage() {
                     min="1"
                     value={editProdSalePrice}
                     onChange={(e) => setEditProdSalePrice(e.target.value)}
-                    className="h-9 bg-slate-900 border-slate-700 text-white font-mono text-primary-accent font-bold"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Stock Count
                   </label>
                   <Input
@@ -1456,42 +1461,42 @@ export default function OwnerCatalogPage() {
                     min="0"
                     value={editProdStock}
                     onChange={(e) => setEditProdStock(e.target.value)}
-                    className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                  <label className="text-xs font-black text-slate-200 block mb-1.5">
                     Unit Quantity
                   </label>
                   <Input
                     value={editProdUnitQty}
                     onChange={(e) => setEditProdUnitQty(e.target.value)}
-                    className="h-9 bg-slate-900 border-slate-700 text-white"
+                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Image URL
                 </label>
                 <Input
                   value={editProdImage}
                   onChange={(e) => setEditProdImage(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setEditProductModalOpen(false)}
-                  className="h-9 text-xs"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="accent" className="h-9 text-xs font-bold">
+                <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
                   Save Changes
                 </Button>
               </div>
@@ -1504,24 +1509,24 @@ export default function OwnerCatalogPage() {
       {/* MODAL 5: EDIT AISLE / SUB-AISLE                               */}
       {/* ------------------------------------------------------------- */}
       {editCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-black flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-primary-accent" />
-                Edit {editCatIsParent ? "Aisle (Parent Category)" : "Sub-Aisle"}
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                <Edit2 className="w-4 h-4 text-emerald-400" />
+                Edit {editCatIsParent ? "Category (Aisle)" : "Subcategory"}
               </h3>
               <button
                 onClick={() => setEditCategoryModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUpdateCategory} className="space-y-3 text-xs">
+            <form onSubmit={handleUpdateCategory} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Name *
                 </label>
                 <Input
@@ -1533,44 +1538,44 @@ export default function OwnerCatalogPage() {
                       setEditCatSlug(slugify(e.target.value));
                     }
                   }}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-bold"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   URL Slug *
                 </label>
                 <Input
                   required
                   value={editCatSlug}
                   onChange={(e) => setEditCatSlug(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white font-mono"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Image URL (Optional)
                 </label>
                 <Input
                   placeholder="https://..."
                   value={editCatImage}
                   onChange={(e) => setEditCatImage(e.target.value)}
-                  className="h-9 bg-slate-900 border-slate-700 text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setEditCategoryModalOpen(false)}
-                  className="h-9 text-xs"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="accent" className="h-9 text-xs font-bold">
+                <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
                   Save Changes
                 </Button>
               </div>
@@ -1583,52 +1588,52 @@ export default function OwnerCatalogPage() {
       {/* MODAL 6: DELETE AISLE / SUB-AISLE CONFIRMATION               */}
       {/* ------------------------------------------------------------- */}
       {deleteCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-dark border border-slate-800 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
               <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
                 <Trash2 className="w-4 h-4 text-rose-500" />
-                Delete {deleteCatIsParent ? "Aisle" : "Sub-Aisle"}
+                Delete {deleteCatIsParent ? "Category" : "Subcategory"}
               </h3>
               <button
                 onClick={() => setDeleteCategoryModalOpen(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <p className="text-slate-300">
+            <div className="space-y-4 text-xs">
+              <p className="text-slate-200 text-sm">
                 Are you sure you want to permanently delete{" "}
-                <strong className="text-white">&quot;{deleteCatName}&quot;</strong>?
+                <strong className="text-white font-black">&quot;{deleteCatName}&quot;</strong>?
               </p>
 
               {deleteCatSkuCount > 0 ? (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-rose-200">
+                <div className="p-3.5 rounded-2xl bg-rose-950/80 border-2 border-rose-500/50 text-rose-200 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-black text-rose-200 text-xs">
                     <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                     <span>Active SKUs Warning</span>
                   </div>
-                  <p className="text-[11px] leading-relaxed">
-                    This {deleteCatIsParent ? "aisle" : "sub-aisle"} currently contains{" "}
-                    <strong>{deleteCatSkuCount} active product SKU(s)</strong>.
-                    Deleting it will permanently remove these products and any child subcategories from the store!
+                  <p className="text-xs leading-relaxed text-rose-200">
+                    This {deleteCatIsParent ? "category" : "subcategory"} currently contains{" "}
+                    <strong className="text-white font-bold">{deleteCatSkuCount} active product SKU(s)</strong>.
+                    Deleting it will permanently remove these products and their order items safely from the catalog!
                   </p>
                 </div>
               ) : (
-                <p className="text-slate-400 text-[11px]">
-                  This {deleteCatIsParent ? "aisle" : "sub-aisle"} has 0 active SKUs and can be deleted safely.
-                </p>
+                <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 text-xs">
+                  This {deleteCatIsParent ? "category" : "subcategory"} has 0 active SKUs and can be deleted safely.
+                </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-700">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setDeleteCategoryModalOpen(false)}
                   disabled={isDeletingCategory}
-                  className="h-9 text-xs"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
                 >
                   Cancel
                 </Button>
@@ -1636,12 +1641,12 @@ export default function OwnerCatalogPage() {
                   type="button"
                   onClick={handleConfirmDeleteCategory}
                   disabled={isDeletingCategory}
-                  className="h-9 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1.5 shadow-md"
+                  className="h-10 px-5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white gap-2 shadow-lg"
                 >
                   {isDeletingCategory ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   )}
                   <span>Delete Permanently</span>
                 </Button>

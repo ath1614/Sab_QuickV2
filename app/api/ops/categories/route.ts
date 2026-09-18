@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ensureDatabaseSchema } from "@/lib/db-self-heal";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -200,12 +201,24 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // If force is confirmed, clean up child products and subcategories
-    if (productCount > 0) {
-      // First delete any order items associated or cascade
-      // Note: OrderItem has cascade or restrict. Let's delete products
+    // Ensure foreign key cascade is active in database
+    await ensureDatabaseSchema();
+
+    // Clean up all child products and their order items safely
+    const childProducts = await prisma.product.findMany({
+      where: { categoryId: { in: categoryIdsToCheck } },
+      select: { id: true },
+    });
+    const prodIds = childProducts.map((p) => p.id);
+
+    if (prodIds.length > 0) {
+      // Explicitly clear order items referencing these products to avoid FK constraint error
+      await prisma.orderItem.deleteMany({
+        where: { productId: { in: prodIds } },
+      });
+
       await prisma.product.deleteMany({
-        where: { categoryId: { in: categoryIdsToCheck } },
+        where: { id: { in: prodIds } },
       });
     }
 

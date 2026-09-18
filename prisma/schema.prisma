@@ -53,6 +53,7 @@ model User {
   phone         String?        @unique
   phoneVerified Boolean        @default(false)
   role          Role           @default(CUSTOMER)
+  roles         Role[]         @default([])
   pin           String?
   addresses     Address[]
   orders        Order[]        @relation("CustomerOrders")
@@ -105,7 +106,7 @@ model Product {
   slug         String      @unique
   description  String?
   categoryId   String
-  category     Category    @relation(fields: [categoryId], references: [id])
+  category     Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   mrp          Float
   salePrice    Float
   unitQuantity String
@@ -185,7 +186,7 @@ model OrderItem {
   orderId   String
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
   price     Float
 

@@ -136,7 +136,12 @@ export async function GET(req: NextRequest) {
 
     // 3. Query all riders with profiles for assignment dropdown
     const riders = await prisma.user.findMany({
-      where: { role: Role.RIDER },
+      where: {
+        OR: [
+          { role: Role.RIDER },
+          { roles: { has: Role.RIDER } },
+        ],
+      },
       select: {
         id: true,
         name: true,

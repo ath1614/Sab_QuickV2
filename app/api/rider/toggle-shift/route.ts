@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (session.user.role !== "RIDER") {
+    const userRoles = session.user.roles || [session.user.role];
+    if (!userRoles.includes("RIDER") && session.user.role !== "OWNER") {
       return NextResponse.json(
         { error: "Forbidden: Rider role required." },
         { status: 403 }
