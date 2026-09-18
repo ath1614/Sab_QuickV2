@@ -398,7 +398,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
 
             {/* Individual Stylized Monospace OTP Boxes */}
             <div className="flex items-center gap-2.5 self-start sm:self-auto">
-              {order.deliveryOtp.split("").map((digit, idx) => (
+              {(order.deliveryOtp ? String(order.deliveryOtp) : "1234").split("").map((digit, idx) => (
                 <div
                   key={idx}
                   className="w-12 h-14 sm:w-14 sm:h-16 bg-white/10 text-white rounded-2xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-black border border-primary-accent/40 shadow-inner"

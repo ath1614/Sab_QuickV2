@@ -83,11 +83,11 @@ export async function GET(req: NextRequest) {
         customer: order.customer,
         rider: order.rider,
         address: order.address,
-        items: order.items.map((item) => {
+        items: (order.items || []).map((item) => {
           // Resolve Aisle name (Parent Category or Category)
           const aisleName =
-            item.product.category?.parent?.name ||
-            item.product.category?.name ||
+            item.product?.category?.parent?.name ||
+            item.product?.category?.name ||
             "General Groceries";
 
           return {
@@ -99,17 +99,17 @@ export async function GET(req: NextRequest) {
             totalPrice: item.price * item.quantity,
             aisle: aisleName,
             product: {
-              id: item.product.id,
-              title: item.product.title,
-              name: item.product.title,
-              unitQuantity: item.product.unitQuantity,
-              packSize: item.product.unitQuantity,
-              imageUrl: item.product.imageUrl,
-              stockCount: item.product.stockCount,
-              stockQuantity: item.product.stockCount,
-              isAvailable: item.product.isAvailable,
+              id: item.product?.id || item.productId,
+              title: item.product?.title || "Product",
+              name: item.product?.title || "Product",
+              unitQuantity: item.product?.unitQuantity || "1 pc",
+              packSize: item.product?.unitQuantity || "1 pc",
+              imageUrl: item.product?.imageUrl || "/images/placeholder.png",
+              stockCount: item.product?.stockCount || 0,
+              stockQuantity: item.product?.stockCount || 0,
+              isAvailable: item.product ? item.product.isAvailable : false,
               aisle: aisleName,
-              categoryName: item.product.category?.name || "Grocery",
+              categoryName: item.product?.category?.name || "Grocery",
             },
           };
         }),

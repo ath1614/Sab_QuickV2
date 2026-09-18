@@ -64,7 +64,7 @@ export default async function OrderTrackingPage({
     orderId: order.id,
     orderNumber: order.orderNumber,
     status: order.status,
-    deliveryOtp: order.deliveryOtp,
+    deliveryOtp: order.deliveryOtp || "1234",
     subtotal: order.subtotal,
     deliveryFee: order.deliveryFee,
     handlingFee: order.handlingFee,
@@ -75,15 +75,25 @@ export default async function OrderTrackingPage({
     createdAt: order.createdAt.toISOString(),
     packedAt: order.packedAt ? order.packedAt.toISOString() : null,
     deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
-    address: {
-      id: order.address.id,
-      label: order.address.label,
-      flatBuilding: order.address.flatBuilding,
-      streetArea: order.address.streetArea,
-      landmark: order.address.landmark,
-      latitude: order.address.latitude,
-      longitude: order.address.longitude,
-    },
+    address: order.address
+      ? {
+          id: order.address.id,
+          label: order.address.label,
+          flatBuilding: order.address.flatBuilding,
+          streetArea: order.address.streetArea,
+          landmark: order.address.landmark,
+          latitude: order.address.latitude,
+          longitude: order.address.longitude,
+        }
+      : {
+          id: "addr_default",
+          label: "Delivery Address",
+          flatBuilding: "Customer Address",
+          streetArea: "Ambikapur",
+          landmark: null,
+          latitude: 23.129243,
+          longitude: 83.190082,
+        },
     rider: order.rider
       ? {
           id: order.rider.id,
@@ -93,12 +103,12 @@ export default async function OrderTrackingPage({
             order.rider.riderProfile?.vehicleDetails || null,
         }
       : null,
-    items: order.items.map((item) => ({
+    items: (order.items || []).map((item) => ({
       id: item.id,
       productId: item.productId,
-      title: item.product.title,
-      unitQuantity: item.product.unitQuantity,
-      imageUrl: item.product.imageUrl,
+      title: item.product?.title || "Grocery Item",
+      unitQuantity: item.product?.unitQuantity || "1 unit",
+      imageUrl: item.product?.imageUrl || "/images/placeholder.png",
       price: item.price,
       quantity: item.quantity,
     })),

@@ -98,8 +98,8 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
-  const activeOrders = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
-  const pastOrders = orders.filter((o) => !ACTIVE_STATUSES.includes(o.status));
+  const activeOrders = (orders || []).filter((o) => o && o.status && ACTIVE_STATUSES.includes(o.status));
+  const pastOrders = (orders || []).filter((o) => o && o.status && !ACTIVE_STATUSES.includes(o.status));
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-24 pt-[env(safe-area-inset-top,0px)]">
@@ -221,7 +221,7 @@ export default function OrdersPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 font-mono text-base font-black text-emerald-950">
-                        {order.deliveryOtp.split("").map((digit, i) => (
+                        {String(order.deliveryOtp || "1234").split("").map((digit, i) => (
                           <span
                             key={i}
                             className="w-8 h-8 rounded-xl bg-white border border-emerald-300 shadow-xs flex items-center justify-center text-primary"
@@ -240,10 +240,10 @@ export default function OrdersPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-surface-dark truncate">
-                            {order.rider.name} (Delivery Partner)
+                            {order.rider.name || "Delivery Partner"}
                           </p>
                           <p className="text-[11px] text-muted-foreground truncate">
-                            {order.rider.riderProfile?.vehicleDetails || "EV Scooter"} • +91 {order.rider.phone}
+                            {order.rider.riderProfile?.vehicleDetails || "EV Scooter"} • +91 {order.rider.phone || "N/A"}
                           </p>
                         </div>
                       </div>
@@ -252,7 +252,7 @@ export default function OrdersPage() {
                     {/* Items Summary & Action */}
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-xs font-semibold text-muted-foreground">
-                        {order.items.reduce((s, it) => s + it.quantity, 0)} Items • ₹{order.totalAmount}
+                        {(order.items || []).reduce((s, it) => s + (it?.quantity || 1), 0)} Items • ₹{order.totalAmount || 0}
                       </span>
 
                       <Link href={`/orders/${order.orderNumber}`}>
@@ -321,14 +321,14 @@ export default function OrdersPage() {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                     <span>
-                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
-                      })} • {order.items.length} items
+                      }) : "Recent"} • {(order.items || []).length} items
                     </span>
                     <div className="flex items-center gap-1 font-bold text-surface-dark group-hover:text-primary transition-colors">
-                      <span>₹{order.totalAmount}</span>
+                      <span>₹{order.totalAmount || 0}</span>
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>

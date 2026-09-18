@@ -142,14 +142,15 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
 
   // Filter orders
   const filteredOrders = React.useMemo(() => {
-    return orders.filter((o) => {
+    return (orders || []).filter((o) => {
+      if (!o) return false;
       const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
-        o.orderNumber.toLowerCase().includes(q) ||
-        (o.customer.name && o.customer.name.toLowerCase().includes(q)) ||
-        (o.customer.phone && o.customer.phone.includes(q)) ||
+        o.orderNumber?.toLowerCase().includes(q) ||
+        (o.customer?.name && o.customer.name.toLowerCase().includes(q)) ||
+        (o.customer?.phone && String(o.customer.phone).includes(q)) ||
         (o.rider?.name && o.rider.name.toLowerCase().includes(q));
 
       return matchesStatus && matchesSearch;
@@ -244,8 +245,8 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
           {STATUS_FILTERS.map((f) => {
             const count =
               f.value === "ALL"
-                ? orders.length
-                : orders.filter((o) => o.status === f.value).length;
+                ? (orders || []).length
+                : (orders || []).filter((o) => o?.status === f.value).length;
 
             return (
               <button
@@ -318,7 +319,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredOrders.map((order) => {
-                  const totalUnits = order.items.reduce((sum, it) => sum + it.quantity, 0);
+                  const totalUnits = (order.items || []).reduce((sum, it) => sum + (it?.quantity || 1), 0);
 
                   return (
                     <tr key={order.id} className="hover:bg-slate-50/60 transition-colors">
@@ -333,17 +334,17 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                           </Badge>
                         </div>
                         <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
-                          {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} &bull; {new Date(order.createdAt).toLocaleDateString()}
+                          {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""} &bull; {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
                         </span>
                       </td>
 
                       {/* Customer Info */}
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-slate-800">
-                          {order.customer.name || "Customer"}
+                          {order.customer?.name || "Customer"}
                         </div>
                         <span className="text-[11px] text-slate-500 font-mono">
-                          +91 {order.customer.phone || "N/A"}
+                          +91 {order.customer?.phone || "N/A"}
                         </span>
                         {order.address && (
                           <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5">
@@ -355,10 +356,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                       {/* Items & Total */}
                       <td className="px-4 py-3.5">
                         <div className="font-black text-slate-900">
-                          ₹{order.totalAmount}
+                          ₹{order.totalAmount || 0}
                         </div>
                         <span className="text-[11px] text-slate-500 font-medium">
-                          {order.items.length} SKUs ({totalUnits} pcs)
+                          {(order.items || []).length} SKUs ({totalUnits} pcs)
                         </span>
                       </td>
 
@@ -394,15 +395,15 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                             className="text-[11px] font-bold h-7 rounded-lg border border-slate-300 bg-white px-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer max-w-[150px] truncate"
                           >
                             <option value="">-- Unassigned --</option>
-                            {riders.map((r) => (
+                            {(riders || []).map((r) => (
                               <option key={r.id} value={r.id}>
-                                🛵 {r.name || "Rider"} ({r.phone?.slice(-4)})
+                                🛵 {r.name || "Rider"} ({r.phone ? String(r.phone).slice(-4) : "...."})
                               </option>
                             ))}
                           </select>
                           {order.rider && (
                             <span className="text-[10px] text-emerald-700 font-bold block">
-                              Assigned: {order.rider.name}
+                              Assigned: {order.rider.name || "Rider"}
                             </span>
                           )}
                         </div>
@@ -438,7 +439,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
           {/* Mobile Order Cards (< lg) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:hidden">
             {filteredOrders.map((order) => {
-              const totalUnits = order.items.reduce((sum, it) => sum + it.quantity, 0);
+              const totalUnits = (order.items || []).reduce((sum, it) => sum + (it?.quantity || 1), 0);
 
               return (
                 <div
@@ -460,18 +461,18 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
                     <div>
                       <span className="font-bold text-slate-800 block">
-                        {order.customer.name || "Customer"}
+                        {order.customer?.name || "Customer"}
                       </span>
                       <span className="text-slate-500 font-mono text-[11px]">
-                        +91 {order.customer.phone || "N/A"}
+                        +91 {order.customer?.phone || "N/A"}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-black text-slate-900 text-sm block">
-                        ₹{order.totalAmount}
+                        ₹{order.totalAmount || 0}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        {order.items.length} SKUs ({totalUnits} pcs)
+                        {(order.items || []).length} SKUs ({totalUnits} pcs)
                       </span>
                     </div>
                   </div>
@@ -574,10 +575,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
                 <div className="font-bold text-slate-800 flex items-center justify-between">
                   <span>Customer Information</span>
-                  <span className="text-[11px] font-mono text-slate-500">+91 {selectedOrder.customer.phone}</span>
+                  <span className="text-[11px] font-mono text-slate-500">+91 {selectedOrder.customer?.phone || "N/A"}</span>
                 </div>
                 <div className="text-slate-600 font-medium">
-                  {selectedOrder.customer.name || "Customer"}
+                  {selectedOrder.customer?.name || "Customer"}
                 </div>
                 {selectedOrder.address && (
                   <div className="text-slate-500 text-[11px] pt-1 border-t border-slate-200">
@@ -591,10 +592,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
               {/* Items Manifest */}
               <div className="space-y-1.5">
                 <span className="font-bold text-slate-700 block text-xs">
-                  Ordered Items ({selectedOrder.items.length} SKUs):
+                  Ordered Items ({(selectedOrder.items || []).length} SKUs):
                 </span>
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
-                  {selectedOrder.items.map((it) => (
+                  {(selectedOrder.items || []).map((it) => (
                     <div key={it.id} className="p-2.5 flex items-center justify-between bg-white text-xs">
                       <div>
                         <span className="font-bold text-slate-800 block">
@@ -678,10 +679,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between font-bold">
                   <span>ORDER: {printModalOrder.orderNumber}</span>
-                  <span>{new Date(printModalOrder.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>{printModalOrder.createdAt ? new Date(printModalOrder.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
                 </div>
-                <div>CUSTOMER: {printModalOrder.customer.name || "Customer"}</div>
-                <div>PHONE: {printModalOrder.customer.phone || "N/A"}</div>
+                <div>CUSTOMER: {printModalOrder.customer?.name || "Customer"}</div>
+                <div>PHONE: {printModalOrder.customer?.phone || "N/A"}</div>
                 {printModalOrder.address && (
                   <div className="text-[10px] text-slate-600 truncate">
                     ADDR: {printModalOrder.address.flatBuilding}, {printModalOrder.address.streetArea}
@@ -691,10 +692,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
 
               <div className="pt-2 border-t border-dashed border-slate-300">
                 <div className="font-bold text-[10px] uppercase text-slate-500 mb-1">
-                  ITEMS ({printModalOrder.items.length} SKUs):
+                  ITEMS ({(printModalOrder.items || []).length} SKUs):
                 </div>
                 <div className="space-y-1 max-h-36 overflow-y-auto">
-                  {printModalOrder.items.map((it) => (
+                  {(printModalOrder.items || []).map((it) => (
                     <div key={it.id} className="flex justify-between text-[10px]">
                       <span className="truncate max-w-[180px]">{it.product?.title || "Product"}</span>
                       <span className="font-bold">x{it.quantity}</span>
