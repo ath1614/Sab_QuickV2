@@ -688,11 +688,16 @@ export default function OwnerControlPage() {
   );
 
   const filteredInventory = allProducts.filter((p) => {
+    const q = inventorySearch.toLowerCase().trim();
     const matchesSearch =
-      p.title.toLowerCase().includes(inventorySearch.toLowerCase()) ||
-      p.category.name.toLowerCase().includes(inventorySearch.toLowerCase());
+      !q ||
+      p.title.toLowerCase().includes(q) ||
+      (p.category?.name && p.category.name.toLowerCase().includes(q)) ||
+      ((p as any).category?.parent?.name && (p as any).category.parent.name.toLowerCase().includes(q)) ||
+      ((p as any).slug && (p as any).slug.toLowerCase().includes(q)) ||
+      ((p as any).unitQuantity && (p as any).unitQuantity.toLowerCase().includes(q));
     const matchesCategory =
-      categoryFilter === "ALL" || p.category.name === categoryFilter;
+      categoryFilter === "ALL" || (p.category && p.category.name === categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
@@ -903,7 +908,7 @@ export default function OwnerControlPage() {
       </div>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-32 sm:pb-36 md:pb-12 space-y-8">
         {/* ORDERS HUB TAB */}
         {activeOwnerTab === "orders" && <OwnerOrdersTab />}
 

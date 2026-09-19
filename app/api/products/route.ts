@@ -40,13 +40,61 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Filter by search term
+    // Filter by comprehensive search term (searches titles, descriptions, categories, parent aisles, tags, and pack sizes)
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { tags: { has: search.toLowerCase() } },
+      const trimmedSearch = search.trim();
+      const tokens = trimmedSearch
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 1);
+
+      const orConditions: Prisma.ProductWhereInput[] = [
+        { title: { contains: trimmedSearch, mode: "insensitive" } },
+        { description: { contains: trimmedSearch, mode: "insensitive" } },
+        { slug: { contains: trimmedSearch, mode: "insensitive" } },
+        { unitQuantity: { contains: trimmedSearch, mode: "insensitive" } },
+        {
+          category: {
+            OR: [
+              { name: { contains: trimmedSearch, mode: "insensitive" } },
+              { slug: { contains: trimmedSearch, mode: "insensitive" } },
+              {
+                parent: {
+                  OR: [
+                    { name: { contains: trimmedSearch, mode: "insensitive" } },
+                    { slug: { contains: trimmedSearch, mode: "insensitive" } },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        { tags: { has: trimmedSearch.toLowerCase() } },
       ];
+
+      if (tokens.length > 0) {
+        orConditions.push({ tags: { hasSome: tokens } });
+        // If multi-word query, match any token against title or category
+        tokens.forEach((token) => {
+          orConditions.push(
+            { title: { contains: token, mode: "insensitive" } },
+            {
+              category: {
+                OR: [
+                  { name: { contains: token, mode: "insensitive" } },
+                  {
+                    parent: {
+                      name: { contains: token, mode: "insensitive" },
+                    },
+                  },
+                ],
+              },
+            }
+          );
+        });
+      }
+
+      where.OR = orConditions;
     }
 
     // Filter by stock availability

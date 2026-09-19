@@ -82,7 +82,7 @@ export default function RootLayout({
         <AuthProvider>
           <PwaProvider>
             <ThemeSync />
-            <div className="pb-16 md:pb-0 min-h-screen">
+            <div className="pb-28 sm:pb-32 md:pb-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
               {children}
             </div>
             <ActiveOrderFloatingBar />

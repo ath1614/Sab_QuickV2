@@ -554,7 +554,7 @@ export default function OwnerCatalogPage() {
       </header>
 
       {/* 2. MAIN WORKSPACE */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 pb-32 sm:pb-36 md:pb-12 space-y-6">
         {/* Toast / Alert Banners */}
         {errorMsg && (
           <div className="p-4 bg-red-950/80 border-2 border-red-500/60 rounded-2xl flex items-center justify-between text-xs text-red-200 animate-in fade-in shadow-lg">
@@ -642,8 +642,30 @@ export default function OwnerCatalogPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {categories.map((parent) => {
-              const isExpanded = !!expandedParents[parent.id];
+            {categories
+              .filter((parent) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase().trim();
+                const parentMatch =
+                  parent.name.toLowerCase().includes(q) ||
+                  parent.slug.toLowerCase().includes(q);
+                const subMatch = parent.subCategories.some(
+                  (s) =>
+                    s.name.toLowerCase().includes(q) ||
+                    s.slug.toLowerCase().includes(q) ||
+                    (s.products || []).some(
+                      (p) =>
+                        p.title.toLowerCase().includes(q) ||
+                        p.slug.toLowerCase().includes(q) ||
+                        (p.description && p.description.toLowerCase().includes(q)) ||
+                        p.unitQuantity.toLowerCase().includes(q) ||
+                        p.tags.some((t) => t.toLowerCase().includes(q))
+                    )
+                );
+                return parentMatch || subMatch;
+              })
+              .map((parent) => {
+              const isExpanded = !!expandedParents[parent.id] || Boolean(searchQuery.trim());
               const totalParentSkus = parent.subCategories.reduce(
                 (sum, s) => sum + (s.products?.length || 0),
                 0
@@ -657,10 +679,10 @@ export default function OwnerCatalogPage() {
                   {/* PARENT CATEGORY HEADER BAR */}
                   <div
                     onClick={() => toggleParentExpand(parent.id)}
-                    className="p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-800/60 transition-colors select-none"
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-slate-800/60 transition-colors select-none"
                   >
-                    <div className="flex items-center gap-3">
-                      <button className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <button className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors shrink-0">
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-emerald-400" />
                         ) : (
@@ -680,8 +702,8 @@ export default function OwnerCatalogPage() {
                         </div>
                       )}
 
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h2 className="text-sm font-black text-white">{parent.name}</h2>
                           <Badge variant="outline" className="text-[10px] font-mono text-slate-300 border-slate-600 bg-slate-950">
                             /{parent.slug}
@@ -693,26 +715,29 @@ export default function OwnerCatalogPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap self-end sm:self-auto pl-8 sm:pl-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleOpenEditCategory(parent, true)}
-                        className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700"
+                        className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700 bg-slate-900"
                         title="Edit Category"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">Edit</span>
+                        <span>Edit</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleOpenDeleteCategory(parent, true, totalParentSkus)}
-                        className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30"
+                        className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30 bg-slate-900"
                         title="Delete Category"
                       >
                         <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        <span className="hidden md:inline">Delete</span>
+                        <span>Delete</span>
                       </Button>
                       <Button
                         size="sm"
@@ -720,11 +745,25 @@ export default function OwnerCatalogPage() {
                           setSubParentId(parent.id);
                           setSubModalOpen(true);
                         }}
+                        className="h-8 px-3 text-xs font-black bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 rounded-xl transition-all shadow-sm gap-1"
+                        title="Add Subcategory under this aisle"
+                      >
+                        <Plus className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                        <span>+ Subcategory</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          if (parent.subCategories.length > 0) {
+                            setProdCategoryId(parent.subCategories[0].id);
+                          }
+                          setProductModalOpen(true);
+                        }}
                         className="h-8 px-3 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-md gap-1"
+                        title="Add product directly"
                       >
                         <Plus className="w-3.5 h-3.5 shrink-0" />
-                        <span className="hidden sm:inline">+ Subcategory</span>
-                        <span className="sm:hidden">+ Sub</span>
+                        <span>+ Product</span>
                       </Button>
                     </div>
                   </div>
@@ -756,12 +795,18 @@ export default function OwnerCatalogPage() {
                       ) : (
                         parent.subCategories.map((sub) => {
                           const filteredProducts = (sub.products || []).filter((p) => {
-                            if (!searchQuery) return true;
-                            const q = searchQuery.toLowerCase();
+                            if (!searchQuery.trim()) return true;
+                            const q = searchQuery.toLowerCase().trim();
                             return (
                               p.title.toLowerCase().includes(q) ||
                               p.slug.toLowerCase().includes(q) ||
-                              p.tags.some((t) => t.toLowerCase().includes(q))
+                              (p.description && p.description.toLowerCase().includes(q)) ||
+                              p.unitQuantity.toLowerCase().includes(q) ||
+                              p.tags.some((t) => t.toLowerCase().includes(q)) ||
+                              sub.name.toLowerCase().includes(q) ||
+                              sub.slug.toLowerCase().includes(q) ||
+                              parent.name.toLowerCase().includes(q) ||
+                              parent.slug.toLowerCase().includes(q)
                             );
                           });
 
@@ -771,9 +816,9 @@ export default function OwnerCatalogPage() {
                               className="border-2 border-slate-800 rounded-2xl p-4 sm:p-5 bg-slate-900/90 space-y-4 shadow-sm"
                             >
                               {/* Subcategory Bar */}
-                              <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b-2 border-slate-800">
-                                <div className="flex items-center gap-2">
-                                  <Layers className="w-4 h-4 text-emerald-400" />
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b-2 border-slate-800">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <Layers className="w-4 h-4 text-emerald-400 shrink-0" />
                                   <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
                                     {sub.name}
                                   </h3>
@@ -785,26 +830,26 @@ export default function OwnerCatalogPage() {
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap self-end sm:self-auto">
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleOpenEditCategory(sub, false)}
-                                    className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700"
+                                    className="h-8 px-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-xs gap-1 border border-slate-700 bg-slate-950"
                                     title="Edit Subcategory"
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Edit</span>
+                                    <span>Edit</span>
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => handleOpenDeleteCategory(sub, false, filteredProducts.length)}
-                                    className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30"
+                                    className="h-8 px-2.5 text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 rounded-xl text-xs gap-1 border border-rose-500/30 bg-slate-950"
                                     title="Delete Subcategory"
                                   >
                                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                                    <span className="hidden sm:inline">Delete</span>
+                                    <span>Delete</span>
                                   </Button>
                                   <Button
                                     size="sm"
@@ -815,7 +860,7 @@ export default function OwnerCatalogPage() {
                                     className="h-8 px-3 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm gap-1 flex items-center"
                                   >
                                     <Plus className="w-3.5 h-3.5" />
-                                    <span>+ Add SKU</span>
+                                    <span>+ Add Product</span>
                                   </Button>
                                 </div>
                               </div>
@@ -933,13 +978,25 @@ export default function OwnerCatalogPage() {
 
       {/* MODAL 1: ADD PARENT CATEGORY */}
       {parentModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <h3 className="text-sm font-black flex items-center gap-2 text-white">
-                <FolderTree className="w-4 h-4 text-emerald-400" />
-                Add Parent Category
-              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setParentModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Back</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <FolderTree className="w-4 h-4 text-emerald-400" />
+                  Add Category
+                </h3>
+              </div>
               <button
                 onClick={() => setParentModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
@@ -997,8 +1054,9 @@ export default function OwnerCatalogPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setParentModalOpen(false)}
-                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                 >
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   Cancel
                 </Button>
                 <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
@@ -1012,13 +1070,25 @@ export default function OwnerCatalogPage() {
 
       {/* MODAL 2: ADD SUBCATEGORY */}
       {subModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-5 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <h3 className="text-sm font-black flex items-center gap-2 text-white">
-                <Layers className="w-4 h-4 text-emerald-400" />
-                Add Subcategory
-              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSubModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Back</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+                  Add Subcategory
+                </h3>
+              </div>
               <button
                 onClick={() => setSubModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
@@ -1095,8 +1165,9 @@ export default function OwnerCatalogPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setSubModalOpen(false)}
-                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                 >
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   Cancel
                 </Button>
                 <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
@@ -1110,276 +1181,295 @@ export default function OwnerCatalogPage() {
 
       {/* MODAL 3: ADD PRODUCT WITH LIVE DUAL PRICING PREVIEW */}
       {productModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-3xl p-6 text-white space-y-6 shadow-2xl my-8 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <div>
-                <h3 className="text-sm font-black flex items-center gap-2 text-white">
-                  <Package className="w-4 h-4 text-emerald-400" />
-                  Add New Product &bull; Dual Pricing Engine
-                </h3>
-                <p className="text-xs text-slate-300">
-                  Fill in product details and view live storefront card preview on the right.
-                </p>
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-3xl text-white shadow-2xl my-4 sm:my-8 animate-in zoom-in-95 max-h-[92vh] flex flex-col overflow-hidden">
+            {/* STICKY HEADER WITH PROMINENT BACK BUTTON */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b-2 border-slate-800 bg-slate-950/95 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setProductModalOpen(false)}
+                  className="h-9 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs gap-1.5 border border-slate-700 shadow-xs"
+                >
+                  <ArrowLeft className="w-4 h-4 text-emerald-400" />
+                  <span>Back to Catalog</span>
+                </Button>
+                <div className="h-5 w-px bg-slate-700 hidden sm:block" />
+                <div>
+                  <h3 className="text-sm sm:text-base font-black flex items-center gap-2 text-white">
+                    <Package className="w-4 h-4 text-emerald-400" />
+                    Add New Product
+                  </h3>
+                  <p className="text-[11px] text-slate-300 hidden sm:block">
+                    Dual Pricing Engine &bull; Live Preview
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setProductModalOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
+                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm border border-slate-700"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-              {/* Form Controls (3 cols) */}
-              <form onSubmit={handleCreateProduct} className="md:col-span-3 space-y-3.5 text-xs">
-                <div>
-                  <label className="text-xs font-black text-slate-200 block mb-1.5">
-                    Assign Subcategory *
-                  </label>
-                  <select
-                    required
-                    value={prodCategoryId}
-                    onChange={(e) => setProdCategoryId(e.target.value)}
-                    className="w-full h-10 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-emerald-400"
-                  >
-                    <option value="">Select Subcategory</option>
-                    {allSubcategories.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.parentName} &gt; {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-black text-slate-200 block mb-1.5">
-                    Product Title *
-                  </label>
-                  <Input
-                    required
-                    placeholder="e.g. Amul Taaza Toned Milk"
-                    value={prodTitle}
-                    onChange={(e) => {
-                      setProdTitle(e.target.value);
-                      if (!prodSlug || prodSlug === slugify(prodTitle)) {
-                        setProdSlug(slugify(e.target.value));
-                      }
-                    }}
-                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-bold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
+            {/* SCROLLABLE FORM BODY */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {/* Form Controls (3 cols) */}
+                <form onSubmit={handleCreateProduct} className="md:col-span-3 space-y-3.5 text-xs">
                   <div>
                     <label className="text-xs font-black text-slate-200 block mb-1.5">
-                      URL Slug *
+                      Assign Subcategory *
+                    </label>
+                    <select
+                      required
+                      value={prodCategoryId}
+                      onChange={(e) => setProdCategoryId(e.target.value)}
+                      className="w-full h-10 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-emerald-400"
+                    >
+                      <option value="">Select Subcategory</option>
+                      {allSubcategories.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.parentName} &gt; {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
+                      Product Title *
                     </label>
                     <Input
                       required
-                      placeholder="e.g. amul-taaza-toned-milk"
-                      value={prodSlug}
-                      onChange={(e) => setProdSlug(e.target.value)}
-                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
+                      placeholder="e.g. Amul Taaza Toned Milk"
+                      value={prodTitle}
+                      onChange={(e) => {
+                        setProdTitle(e.target.value);
+                        if (!prodSlug || prodSlug === slugify(prodTitle)) {
+                          setProdSlug(slugify(e.target.value));
+                        }
+                      }}
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-bold"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-black text-slate-200 block mb-1.5">
-                      Unit Pack Size *
-                    </label>
-                    <Input
-                      required
-                      placeholder="e.g. 500 ml, 1 kg, 6 pcs"
-                      value={prodUnitQuantity}
-                      onChange={(e) => setProdUnitQuantity(e.target.value)}
-                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-semibold"
-                    />
-                  </div>
-                </div>
 
-                {/* PRICING FIELDS (MRP & SALE PRICE) */}
-                <div className="p-3.5 bg-slate-950 border-2 border-slate-700 rounded-2xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                      <DollarSign className="w-3.5 h-3.5" />
-                      Dual Pricing Engine (₹)
-                    </span>
-                    {liveAddDiscountPercent > 0 && (
-                      <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
-                        {liveAddDiscountPercent}% OFF
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-xs font-black text-slate-200 block mb-1.5">
+                        URL Slug *
+                      </label>
+                      <Input
+                        required
+                        placeholder="e.g. amul-taaza-toned-milk"
+                        value={prodSlug}
+                        onChange={(e) => setProdSlug(e.target.value)}
+                        className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black text-slate-200 block mb-1.5">
+                        Unit Pack Size *
+                      </label>
+                      <Input
+                        required
+                        placeholder="e.g. 500 ml, 1 kg, 6 pcs"
+                        value={prodUnitQuantity}
+                        onChange={(e) => setProdUnitQuantity(e.target.value)}
+                        className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* PRICING FIELDS (MRP & SALE PRICE) */}
+                  <div className="p-3.5 bg-slate-950 border-2 border-slate-700 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        Dual Pricing Engine (₹)
                       </span>
+                      {liveAddDiscountPercent > 0 && (
+                        <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
+                          {liveAddDiscountPercent}% OFF
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                          MRP (Maximum Retail) *
+                        </label>
+                        <Input
+                          required
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          placeholder="e.g. 60"
+                          value={prodMrp}
+                          onChange={(e) => setProdMrp(e.target.value)}
+                          className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-black"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                          Sale Price (Discounted) *
+                        </label>
+                        <Input
+                          required
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          placeholder="e.g. 48"
+                          value={prodSalePrice}
+                          onChange={(e) => setProdSalePrice(e.target.value)}
+                          className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
+                        />
+                      </div>
+                    </div>
+
+                    {liveAddSalePrice > liveAddMrp && liveAddMrp > 0 && (
+                      <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1 pt-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        Sale price (₹{liveAddSalePrice}) cannot exceed MRP (₹{liveAddMrp})!
+                      </p>
                     )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="text-[11px] text-slate-300 font-bold block mb-1">
-                        MRP (Maximum Retail) *
+                      <label className="text-xs font-black text-slate-200 block mb-1.5">
+                        Initial Stock Count
                       </label>
                       <Input
-                        required
                         type="number"
-                        step="0.01"
-                        min="1"
-                        placeholder="e.g. 60"
-                        value={prodMrp}
-                        onChange={(e) => setProdMrp(e.target.value)}
-                        className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-black"
+                        min="0"
+                        value={prodStock}
+                        onChange={(e) => setProdStock(e.target.value)}
+                        className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
                       />
                     </div>
-
                     <div>
-                      <label className="text-[11px] text-slate-300 font-bold block mb-1">
-                        Sale Price (Discounted) *
+                      <label className="text-xs font-black text-slate-200 block mb-1.5">
+                        Tags (Comma separated)
                       </label>
                       <Input
-                        required
-                        type="number"
-                        step="0.01"
-                        min="1"
-                        placeholder="e.g. 48"
-                        value={prodSalePrice}
-                        onChange={(e) => setProdSalePrice(e.target.value)}
-                        className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
+                        placeholder="dairy, milk, breakfast"
+                        value={prodTags}
+                        onChange={(e) => setProdTags(e.target.value)}
+                        className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                       />
                     </div>
                   </div>
 
-                  {liveAddSalePrice > liveAddMrp && liveAddMrp > 0 && (
-                    <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1 pt-1">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      Sale price (₹{liveAddSalePrice}) cannot exceed MRP (₹{liveAddMrp})!
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-xs font-black text-slate-200 block mb-1.5">
-                      Initial Stock Count
+                      Image URL *
                     </label>
                     <Input
-                      type="number"
-                      min="0"
-                      value={prodStock}
-                      onChange={(e) => setProdStock(e.target.value)}
-                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-black text-slate-200 block mb-1.5">
-                      Tags (Comma separated)
-                    </label>
-                    <Input
-                      placeholder="dairy, milk, breakfast"
-                      value={prodTags}
-                      onChange={(e) => setProdTags(e.target.value)}
+                      required
+                      placeholder="https://images.unsplash.com/..."
+                      value={prodImage}
+                      onChange={(e) => setProdImage(e.target.value)}
                       className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-xs font-black text-slate-200 block mb-1.5">
-                    Image URL *
-                  </label>
-                  <Input
-                    required
-                    placeholder="https://images.unsplash.com/..."
-                    value={prodImage}
-                    onChange={(e) => setProdImage(e.target.value)}
-                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setProductModalOpen(false)}
-                    className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={liveAddSalePrice > liveAddMrp && liveAddMrp > 0}
-                    className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
-                  >
-                    Create &amp; Publish Product
-                  </Button>
-                </div>
-              </form>
-
-              {/* LIVE VISUAL PREVIEW CARD (2 cols) */}
-              <div className="md:col-span-2 flex flex-col justify-center items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-primary-accent" />
-                  Live Storefront Preview
-                </span>
-
-                {/* Mimic ProductCard Component */}
-                <div className="w-56 bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xl text-slate-900 space-y-2">
-                  <div className="relative w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center">
-                    {liveAddDiscountPercent > 0 && (
-                      <div className="absolute top-2 left-2 z-10">
-                        <span className="bg-primary-accent text-surface-dark text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
-                          {liveAddDiscountPercent}% OFF
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute top-2 right-2 z-10">
-                      <Badge variant="accent" className="text-[9px] py-0 px-1.5 gap-0.5 font-bold shadow-2xs">
-                        <Zap className="w-2.5 h-2.5 fill-surface-dark" /> 10 MINS
-                      </Badge>
-                    </div>
-
-                    {prodImage ? (
-                      <img
-                        src={prodImage}
-                        alt="Preview"
-                        className="w-full h-full object-contain p-2"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
-                        {prodTitle ? prodTitle.slice(0, 2).toUpperCase() : "SQ"}
-                      </div>
-                    )}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setProductModalOpen(false)}
+                      className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      Back / Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={liveAddSalePrice > liveAddMrp && liveAddMrp > 0}
+                      className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md"
+                    >
+                      Create &amp; Publish Product
+                    </Button>
                   </div>
+                </form>
 
-                  <div>
-                    <span className="inline-block text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-                      {prodUnitQuantity || "Unit Pack"}
-                    </span>
-                    <h4 className="text-xs font-bold text-surface-dark line-clamp-1 mt-1">
-                      {prodTitle || "Product Title Preview"}
-                    </h4>
-                  </div>
+                {/* LIVE VISUAL PREVIEW CARD (2 cols) */}
+                <div className="md:col-span-2 flex flex-col justify-center items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-primary-accent" />
+                    Live Storefront Preview
+                  </span>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black text-surface-dark font-mono">
-                        ₹{liveAddSalePrice > 0 ? liveAddSalePrice : "--"}
-                      </span>
-                      {liveAddMrp > liveAddSalePrice && liveAddSalePrice > 0 && (
-                        <span className="text-[10px] text-muted-foreground line-through font-mono">
-                          ₹{liveAddMrp}
-                        </span>
+                  {/* Mimic ProductCard Component */}
+                  <div className="w-56 bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xl text-slate-900 space-y-2">
+                    <div className="relative w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center">
+                      {liveAddDiscountPercent > 0 && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <span className="bg-primary-accent text-surface-dark text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
+                            {liveAddDiscountPercent}% OFF
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="absolute top-2 right-2 z-10">
+                        <Badge variant="accent" className="text-[9px] py-0 px-1.5 gap-0.5 font-bold shadow-2xs">
+                          <Zap className="w-2.5 h-2.5 fill-surface-dark" /> 10 MINS
+                        </Badge>
+                      </div>
+
+                      {prodImage ? (
+                        <img
+                          src={prodImage}
+                          alt="Preview"
+                          className="w-full h-full object-contain p-2"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
+                          {prodTitle ? prodTitle.slice(0, 2).toUpperCase() : "SQ"}
+                        </div>
                       )}
                     </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled
-                      className="h-7 px-3 text-[10px] font-bold text-primary border-primary/40"
-                    >
-                      ADD
-                    </Button>
+                    <div>
+                      <span className="inline-block text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                        {prodUnitQuantity || "Unit Pack"}
+                      </span>
+                      <h4 className="text-xs font-bold text-surface-dark line-clamp-1 mt-1">
+                        {prodTitle || "Product Title Preview"}
+                      </h4>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-surface-dark font-mono">
+                          ₹{liveAddSalePrice > 0 ? liveAddSalePrice : "--"}
+                        </span>
+                        {liveAddMrp > liveAddSalePrice && liveAddSalePrice > 0 && (
+                          <span className="text-[10px] text-muted-foreground line-through font-mono">
+                            ₹{liveAddMrp}
+                          </span>
+                        )}
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        className="h-7 px-3 text-[10px] font-bold text-primary border-primary/40"
+                      >
+                        ADD
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1392,13 +1482,25 @@ export default function OwnerCatalogPage() {
       {/* MODAL 4: EDIT PRODUCT PRICE & STOCK                          */}
       {/* ------------------------------------------------------------- */}
       {editProductModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <h3 className="text-sm font-black flex items-center gap-2 text-white">
-                <Edit2 className="w-4 h-4 text-emerald-400" />
-                Edit Product &bull; Dual Pricing &amp; Stock
-              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditProductModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Back</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <Edit2 className="w-4 h-4 text-emerald-400" />
+                  Edit Product
+                </h3>
+              </div>
               <button
                 onClick={() => setEditProductModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
@@ -1492,8 +1594,9 @@ export default function OwnerCatalogPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setEditProductModalOpen(false)}
-                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                 >
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   Cancel
                 </Button>
                 <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
@@ -1509,13 +1612,25 @@ export default function OwnerCatalogPage() {
       {/* MODAL 5: EDIT AISLE / SUB-AISLE                               */}
       {/* ------------------------------------------------------------- */}
       {editCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <h3 className="text-sm font-black flex items-center gap-2 text-white">
-                <Edit2 className="w-4 h-4 text-emerald-400" />
-                Edit {editCatIsParent ? "Category (Aisle)" : "Subcategory"}
-              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditCategoryModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Back</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <Edit2 className="w-4 h-4 text-emerald-400" />
+                  Edit {editCatIsParent ? "Category" : "Subcategory"}
+                </h3>
+              </div>
               <button
                 onClick={() => setEditCategoryModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
@@ -1571,8 +1686,9 @@ export default function OwnerCatalogPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setEditCategoryModalOpen(false)}
-                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                 >
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   Cancel
                 </Button>
                 <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
@@ -1588,13 +1704,25 @@ export default function OwnerCatalogPage() {
       {/* MODAL 6: DELETE AISLE / SUB-AISLE CONFIRMATION               */}
       {/* ------------------------------------------------------------- */}
       {deleteCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
-                <Trash2 className="w-4 h-4 text-rose-500" />
-                Delete {deleteCatIsParent ? "Category" : "Subcategory"}
-              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setDeleteCategoryModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Back</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  Delete {deleteCatIsParent ? "Category" : "Subcategory"}
+                </h3>
+              </div>
               <button
                 onClick={() => setDeleteCategoryModalOpen(false)}
                 className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
@@ -1633,8 +1761,9 @@ export default function OwnerCatalogPage() {
                   variant="outline"
                   onClick={() => setDeleteCategoryModalOpen(false)}
                   disabled={isDeletingCategory}
-                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600"
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                 >
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   Cancel
                 </Button>
                 <Button

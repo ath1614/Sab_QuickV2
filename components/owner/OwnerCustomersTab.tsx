@@ -95,8 +95,37 @@ export function OwnerCustomersTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load customers.");
 
-      setCustomers(data.customers || []);
-      if (data.kpis) setKpis(data.kpis);
+      const rawList = Array.isArray(data.customers) ? data.customers : [];
+      const normalizedCustomers: CustomerItem[] = rawList.map((c: any) => ({
+        id: c.id,
+        name: c.name || "Anonymous Shopper",
+        phone: c.phone || null,
+        email: c.email || null,
+        phoneVerified: Boolean(c.phoneVerified),
+        createdAt: c.createdAt || new Date().toISOString(),
+        ordersCount: Number(c.ordersCount ?? c.orderCount ?? 0),
+        lifetimeSpend: Number(c.lifetimeSpend ?? c.totalSpent ?? 0),
+        recentOrders: Array.isArray(c.recentOrders)
+          ? c.recentOrders.map((o: any) => ({
+              id: o.id,
+              orderNumber: o.orderNumber || "ORDER",
+              status: o.status || "PENDING",
+              totalAmount: Number(o.totalAmount || 0),
+              createdAt: o.createdAt || new Date().toISOString(),
+              itemsCount: Number(o.itemsCount || 1),
+            }))
+          : [],
+        addresses: Array.isArray(c.addresses) ? c.addresses : [],
+      }));
+      setCustomers(normalizedCustomers);
+
+      const kpisSrc = data.kpis || data.stats || {};
+      setKpis({
+        totalCustomers: Number(kpisSrc.totalCustomers || 0),
+        verifiedCustomers: Number(kpisSrc.verifiedCustomers || 0),
+        repeatCustomers: Number(kpisSrc.repeatCustomers || 0),
+        totalLifetimeRevenue: Number(kpisSrc.totalLifetimeRevenue ?? kpisSrc.totalRevenue ?? 0),
+      });
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to load customers.");
     } finally {
@@ -235,7 +264,7 @@ export function OwnerCustomersTab() {
           <div>
             <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Customer GMV</p>
             <h3 className="text-xl sm:text-2xl font-black text-white">
-              ₹{kpis.totalLifetimeRevenue.toLocaleString("en-IN")}
+              ₹{(Number(kpis?.totalLifetimeRevenue || 0)).toLocaleString("en-IN")}
             </h3>
           </div>
         </div>
@@ -373,12 +402,12 @@ export function OwnerCustomersTab() {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className="font-black text-sm text-white bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-700">
-                        {cust.ordersCount}
+                        {Number(cust.ordersCount || 0)}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <span className="font-black text-sm text-emerald-400 font-mono">
-                        ₹{cust.lifetimeSpend.toLocaleString("en-IN")}
+                        ₹{(Number(cust.lifetimeSpend || 0)).toLocaleString("en-IN")}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -440,12 +469,12 @@ export function OwnerCustomersTab() {
                 <div className="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-2xl border border-slate-800 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold block uppercase">Orders Placed</span>
-                    <strong className="text-white text-sm font-black">{cust.ordersCount}</strong>
+                    <strong className="text-white text-sm font-black">{Number(cust.ordersCount || 0)}</strong>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold block uppercase">Lifetime Spend</span>
                     <strong className="text-emerald-400 text-sm font-black font-mono">
-                      ₹{cust.lifetimeSpend.toLocaleString("en-IN")}
+                      ₹{(Number(cust.lifetimeSpend || 0)).toLocaleString("en-IN")}
                     </strong>
                   </div>
                 </div>
@@ -554,13 +583,13 @@ export function OwnerCustomersTab() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                          &bull; {ord.itemsCount} SKU(s)
+                          &bull; {Number(ord.itemsCount || 1)} SKU(s)
                         </p>
                       </div>
 
                       <div className="text-right">
                         <span className="font-black text-base text-emerald-400 font-mono block">
-                          ₹{ord.totalAmount.toFixed(2)}
+                          ₹{(Number(ord.totalAmount || 0)).toFixed(2)}
                         </span>
                       </div>
                     </div>

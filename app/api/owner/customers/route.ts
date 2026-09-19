@@ -93,8 +93,10 @@ export async function GET(req: NextRequest) {
         phoneVerified: c.phoneVerified,
         createdAt: c.createdAt.toISOString(),
         orderCount: c._count.orders,
+        ordersCount: c._count.orders,
         addressCount: c._count.addresses,
         totalSpent: Math.round(totalSpent * 100) / 100,
+        lifetimeSpend: Math.round(totalSpent * 100) / 100,
         lastOrder: lastOrder
           ? {
               orderNumber: lastOrder.orderNumber,
@@ -127,21 +129,31 @@ export async function GET(req: NextRequest) {
       _sum: { totalAmount: true },
     });
 
+    const totalLifetimeRevenue = Math.round((totalRevenueAgg._sum.totalAmount || 0) * 100) / 100;
+    const repeatBuyersCount = customers.filter((c) => c.ordersCount >= 2).length;
+
+    const kpisData = {
+      totalCustomers,
+      verifiedCustomers,
+      repeatCustomers: repeatBuyersCount,
+      totalLifetimeRevenue,
+    };
+
     return NextResponse.json({
       success: true,
       customers,
       stats: {
-        totalCustomers,
-        verifiedCustomers,
-        totalRevenue: Math.round((totalRevenueAgg._sum.totalAmount || 0) * 100) / 100,
+        ...kpisData,
+        totalRevenue: totalLifetimeRevenue,
         averageOrderValue:
           customers.length > 0
             ? Math.round(
-                (totalRevenueAgg._sum.totalAmount || 0) /
+                totalLifetimeRevenue /
                   Math.max(1, customers.reduce((sum, c) => sum + c.orderCount, 0))
               )
             : 0,
       },
+      kpis: kpisData,
     });
   } catch (error: any) {
     console.error("[GET /api/owner/customers error]:", error);
