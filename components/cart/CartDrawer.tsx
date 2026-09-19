@@ -366,9 +366,28 @@ export function CartDrawer() {
         setIsCashfreeActive(true);
         setupCashfreeModalAdjuster();
 
+        const isMobileDevice =
+          typeof window !== "undefined" &&
+          (window.innerWidth < 768 ||
+            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+              navigator.userAgent
+            ));
+
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
         });
+
+        // On mobile devices: Use redirectTarget: "_self" so Cashfree renders its native mobile payment page
+        // with 1-tap UPI Intent buttons (PhonePe, Google Pay, Paytm) opening apps directly without desktop QR code.
+        // On desktop: Use redirectTarget: "_modal" for a centered popup with QR code scanning.
+        if (isMobileDevice) {
+          clearCart();
+          cashfreeInstance.checkout({
+            paymentSessionId: cfData.paymentSessionId,
+            redirectTarget: "_self",
+          });
+          return;
+        }
 
         cashfreeInstance
           .checkout({

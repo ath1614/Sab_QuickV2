@@ -331,11 +331,11 @@ export function Navbar({
               </Button>
             )}
 
-            {/* Quick Cart Trigger */}
+            {/* Quick Cart Trigger (Desktop & Tablet only; mobile uses bottom nav) */}
             <Button
               variant="default"
               onClick={handleOpenCart}
-              className="relative gap-1.5 rounded-xl h-8 sm:h-11 px-2.5 sm:px-4 shadow-sm hover:shadow-md"
+              className="hidden sm:inline-flex relative gap-1.5 rounded-xl h-8 sm:h-11 px-2.5 sm:px-4 shadow-sm hover:shadow-md"
             >
               <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="font-semibold hidden sm:inline">Cart</span>

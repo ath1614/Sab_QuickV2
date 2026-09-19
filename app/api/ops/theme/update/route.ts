@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (session.user.role !== "OWNER") {
+    if (!["OWNER", "MANAGER"].includes(session.user.role)) {
       return NextResponse.json(
-        { error: "Forbidden: Only store owners can update seasonal themes." },
+        { error: "Forbidden: Store Owner or Manager role required to update seasonal themes." },
         { status: 403 }
       );
     }

@@ -54,7 +54,9 @@ jobs:
       - name: Apply Database Migrations (CI)
         env:
           DATABASE_URL: "postgresql://sabquick_admin:sabquick_ci_password@localhost:5432/sabquick_ci_db?schema=public"
-        run: npx prisma migrate deploy
+        run: |
+          npx prisma migrate deploy
+          npx prisma db push --skip-generate
 
       - name: Seed Database (CI)
         env:

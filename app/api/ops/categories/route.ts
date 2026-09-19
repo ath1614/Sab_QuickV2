@@ -12,6 +12,7 @@ const createCategorySchema = z.object({
   slug: z.string().trim().min(1, "Slug is required"),
   parentId: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
+  displayRank: z.number().int().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, slug, parentId, imageUrl } = parseResult.data;
+    const { name, slug, parentId, imageUrl, displayRank } = parseResult.data;
 
     // Normalize slug
     const cleanSlug = slug
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
         slug: cleanSlug,
         parentId: parentId || null,
         imageUrl: imageUrl || null,
+        ...(displayRank !== undefined ? { displayRank } : {}),
       },
     });
 

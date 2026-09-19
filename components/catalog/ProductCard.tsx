@@ -31,6 +31,7 @@ interface ProductCardProps {
   onAddToCart?: (product: ProductData) => void;
   onIncrement?: (product: ProductData) => void;
   onDecrement?: (product: ProductData) => void;
+  onProductClick?: (product: ProductData) => void;
 }
 
 export function ProductCard({
@@ -39,6 +40,7 @@ export function ProductCard({
   onAddToCart,
   onIncrement,
   onDecrement,
+  onProductClick,
 }: ProductCardProps) {
   const [imageError, setImageError] = React.useState<boolean>(false);
 
@@ -49,10 +51,26 @@ export function ProductCard({
 
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
 
+  const handleCardClick = () => {
+    onProductClick?.(product);
+  };
+
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl border border-border-subtle bg-white p-3.5 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all">
-      {/* Top Media & Speed Badges */}
-      <div>
+      {/* Top Media & Details - Click to open product modal */}
+      <div
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
+        className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl select-none"
+        aria-label={`View details for ${product.title}`}
+      >
         <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100 group-hover:bg-slate-100/50 transition-colors">
           {/* Discount Badge in Kinetic Green */}
           {discountPercent > 0 && (
@@ -63,7 +81,7 @@ export function ProductCard({
             </div>
           )}
 
-          {/* Speed Pill positioned at bottom-left of image (Blinkit style, zero badge collision) */}
+          {/* Speed Pill positioned at bottom-left of image */}
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
             <div className="inline-flex items-center gap-1 bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-200 text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs">
               <Zap className="w-2.5 h-2.5 fill-[#0B6E4F] text-[#0B6E4F]" />

@@ -15,6 +15,7 @@ const updateProductSchema = z.object({
   unitQuantity: z.string().trim().min(1).optional(),
   imageUrl: z.string().trim().min(1).optional(),
   isAvailable: z.boolean().optional(),
+  description: z.string().optional(),
 });
 
 export async function PUT(

@@ -28,11 +28,13 @@ import {
   FolderTree,
   Store,
   ArrowLeft,
+  Palette,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/brand/Logo";
+import { SeasonalThemeModal } from "@/components/theme/SeasonalThemeModal";
 
 interface OrderItem {
   id: string;
@@ -125,6 +127,7 @@ export default function ManagerDispatchPage() {
 
   // View Delivered orders drawer/modal
   const [showDeliveredTab, setShowDeliveredTab] = React.useState(false);
+  const [themeModalOpen, setThemeModalOpen] = React.useState(false);
   const [activeKanbanStage, setActiveKanbanStage] = React.useState<"PENDING" | "PACKING" | "READY" | "OUT">("PENDING");
 
   // 1. Fetch live orders & riders
@@ -373,6 +376,17 @@ export default function ManagerDispatchPage() {
                 </Button>
               </Link>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setThemeModalOpen(true)}
+              className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-primary shrink-0"
+              title="Seasonal Brand & Theme Customizer"
+            >
+              <Palette className="w-3.5 h-3.5 text-primary" />
+              <span>Theme</span>
+            </Button>
 
             <Link href="/" className="shrink-0">
               <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
@@ -869,6 +883,12 @@ export default function ManagerDispatchPage() {
           </div>
         </div>
       )}
+
+      {/* Seasonal Theme Customizer Modal */}
+      <SeasonalThemeModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+      />
     </div>
   );
 

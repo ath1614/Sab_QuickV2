@@ -9,6 +9,7 @@ import {
   Plus,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Layers,
   Package,
   Sparkles,
@@ -51,6 +52,7 @@ interface SubCategoryData {
   slug: string;
   imageUrl?: string | null;
   parentId: string | null;
+  displayRank?: number;
   products: ProductData[];
   _count?: {
     products: number;
@@ -63,6 +65,7 @@ interface ParentCategoryData {
   slug: string;
   imageUrl?: string | null;
   parentId: string | null;
+  displayRank?: number;
   subCategories: SubCategoryData[];
   products: ProductData[];
   _count?: {
@@ -94,12 +97,14 @@ export default function OwnerCatalogPage() {
   const [parentName, setParentName] = React.useState("");
   const [parentSlug, setParentSlug] = React.useState("");
   const [parentImage, setParentImage] = React.useState("");
+  const [parentDisplayRank, setParentDisplayRank] = React.useState<string>("0");
 
   // Add Subcategory Form
   const [subParentId, setSubParentId] = React.useState("");
   const [subName, setSubName] = React.useState("");
   const [subSlug, setSubSlug] = React.useState("");
   const [subImage, setSubImage] = React.useState("");
+  const [subDisplayRank, setSubDisplayRank] = React.useState<string>("0");
 
   // Edit Aisle / Sub-Aisle Form
   const [editCategoryModalOpen, setEditCategoryModalOpen] = React.useState<boolean>(false);
@@ -107,6 +112,7 @@ export default function OwnerCatalogPage() {
   const [editCatName, setEditCatName] = React.useState<string>("");
   const [editCatSlug, setEditCatSlug] = React.useState<string>("");
   const [editCatImage, setEditCatImage] = React.useState<string>("");
+  const [editCatDisplayRank, setEditCatDisplayRank] = React.useState<string>("0");
   const [editCatIsParent, setEditCatIsParent] = React.useState<boolean>(true);
 
   // Delete Aisle / Sub-Aisle Confirmation
@@ -137,6 +143,7 @@ export default function OwnerCatalogPage() {
   const [editProdStock, setEditProdStock] = React.useState<string>("");
   const [editProdUnitQty, setEditProdUnitQty] = React.useState("");
   const [editProdImage, setEditProdImage] = React.useState("");
+  const [editProdDesc, setEditProdDesc] = React.useState("");
 
   // Auto-slug generator helper
   const slugify = (text: string) => {
@@ -201,6 +208,7 @@ export default function OwnerCatalogPage() {
           slug: parentSlug.trim() || slugify(parentName),
           imageUrl: parentImage.trim() || null,
           parentId: null,
+          displayRank: parseInt(parentDisplayRank, 10) || 0,
         }),
       });
       const data = await res.json();
@@ -211,6 +219,7 @@ export default function OwnerCatalogPage() {
       setParentName("");
       setParentSlug("");
       setParentImage("");
+      setParentDisplayRank("0");
       fetchCatalogData();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -231,6 +240,7 @@ export default function OwnerCatalogPage() {
           name: subName.trim(),
           slug: subSlug.trim() || slugify(subName),
           imageUrl: subImage.trim() || null,
+          displayRank: parseInt(subDisplayRank, 10) || 0,
         }),
       });
       const data = await res.json();
@@ -241,6 +251,7 @@ export default function OwnerCatalogPage() {
       setSubName("");
       setSubSlug("");
       setSubImage("");
+      setSubDisplayRank("0");
       fetchCatalogData();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -249,13 +260,14 @@ export default function OwnerCatalogPage() {
 
   // 2b. Open Edit Category / Subcategory
   const handleOpenEditCategory = (
-    cat: { id: string; name: string; slug: string; imageUrl?: string | null },
+    cat: { id: string; name: string; slug: string; imageUrl?: string | null; displayRank?: number },
     isParent: boolean
   ) => {
     setEditCatId(cat.id);
     setEditCatName(cat.name);
     setEditCatSlug(cat.slug);
     setEditCatImage(cat.imageUrl || "");
+    setEditCatDisplayRank(cat.displayRank !== undefined ? cat.displayRank.toString() : "0");
     setEditCatIsParent(isParent);
     setEditCategoryModalOpen(true);
   };
@@ -263,6 +275,7 @@ export default function OwnerCatalogPage() {
   // 2c. Submit Update Category / Subcategory
   const handleUpdateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    const rankNum = parseInt(editCatDisplayRank, 10);
     try {
       const res = await fetch("/api/ops/categories", {
         method: "PATCH",
@@ -272,6 +285,7 @@ export default function OwnerCatalogPage() {
           name: editCatName.trim(),
           slug: editCatSlug.trim() || slugify(editCatName),
           imageUrl: editCatImage.trim() || null,
+          displayRank: isNaN(rankNum) ? 0 : rankNum,
         }),
       });
       const data = await res.json();
@@ -282,6 +296,21 @@ export default function OwnerCatalogPage() {
       fetchCatalogData();
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to update category.");
+    }
+  };
+
+  // 2c-alt. 1-Click Fast Reorder Helper
+  const handleReorderCategory = async (catId: string, currentRank: number, delta: number) => {
+    const newRank = Math.max(0, currentRank + delta);
+    try {
+      await fetch("/api/ops/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: catId, displayRank: newRank }),
+      });
+      fetchCatalogData();
+    } catch (err) {
+      console.error("Failed to reorder category:", err);
     }
   };
 
@@ -407,6 +436,7 @@ export default function OwnerCatalogPage() {
           stockCount: isNaN(numStock) ? undefined : numStock,
           unitQuantity: editProdUnitQty.trim(),
           imageUrl: editProdImage.trim(),
+          description: editProdDesc.trim() || null,
         }),
       });
 
@@ -415,6 +445,7 @@ export default function OwnerCatalogPage() {
 
       setSuccessMsg(`Product "${data.product.title}" updated!`);
       setEditProductModalOpen(false);
+      setEditProdDesc("");
       fetchCatalogData();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -430,6 +461,7 @@ export default function OwnerCatalogPage() {
     setEditProdStock(prod.stockCount.toString());
     setEditProdUnitQty(prod.unitQuantity);
     setEditProdImage(prod.imageUrl);
+    setEditProdDesc(prod.description || "");
     setEditProductModalOpen(true);
   };
 
@@ -708,6 +740,9 @@ export default function OwnerCatalogPage() {
                           <Badge variant="outline" className="text-[10px] font-mono text-slate-300 border-slate-600 bg-slate-950">
                             /{parent.slug}
                           </Badge>
+                          <Badge className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            Order #{parent.displayRank ?? 0}
+                          </Badge>
                         </div>
                         <p className="text-[11px] text-slate-300 mt-0.5 font-medium">
                           {parent.subCategories.length} Subcategories &bull; {totalParentSkus} SKUs
@@ -719,6 +754,30 @@ export default function OwnerCatalogPage() {
                       className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap self-end sm:self-auto pl-8 sm:pl-0"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {/* Fast Display Rank Precedence Stepper */}
+                      <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl overflow-hidden p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleReorderCategory(parent.id, parent.displayRank ?? 0, -1)}
+                          title="Move Priority Up (Lower Rank Number)"
+                          disabled={(parent.displayRank ?? 0) <= 0}
+                          className="p-1 hover:bg-slate-800 disabled:opacity-30 text-slate-300 hover:text-white transition-colors"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-1.5 text-[10px] font-mono font-bold text-amber-300" title="Storefront Display Order">
+                          #{parent.displayRank ?? 0}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleReorderCategory(parent.id, parent.displayRank ?? 0, 1)}
+                          title="Move Priority Down (Higher Rank Number)"
+                          className="p-1 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
                       <Button
                         size="sm"
                         variant="ghost"
@@ -825,12 +884,39 @@ export default function OwnerCatalogPage() {
                                   <Badge variant="secondary" className="text-[10px] font-mono text-slate-200 bg-slate-800 border border-slate-700">
                                     /{sub.slug}
                                   </Badge>
+                                  <Badge className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                    Order #{sub.displayRank ?? 0}
+                                  </Badge>
                                   <span className="text-[11px] text-slate-300 font-mono font-bold">
                                     ({filteredProducts.length} items)
                                   </span>
                                 </div>
 
                                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap self-end sm:self-auto">
+                                  {/* Fast Display Rank Stepper */}
+                                  <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl overflow-hidden p-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReorderCategory(sub.id, sub.displayRank ?? 0, -1)}
+                                      title="Move Priority Up"
+                                      disabled={(sub.displayRank ?? 0) <= 0}
+                                      className="p-1 hover:bg-slate-800 disabled:opacity-30 text-slate-300 hover:text-white transition-colors"
+                                    >
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="px-1 text-[10px] font-mono font-bold text-amber-300">
+                                      #{sub.displayRank ?? 0}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReorderCategory(sub.id, sub.displayRank ?? 0, 1)}
+                                      title="Move Priority Down"
+                                      className="p-1 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                                    >
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -1049,6 +1135,20 @@ export default function OwnerCatalogPage() {
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Display Order / Precedence (0 = Top/First)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={parentDisplayRank}
+                  onChange={(e) => setParentDisplayRank(e.target.value)}
+                  placeholder="0"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-2">
                 <Button
                   type="button"
@@ -1157,6 +1257,20 @@ export default function OwnerCatalogPage() {
                   value={subImage}
                   onChange={(e) => setSubImage(e.target.value)}
                   className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Display Order / Precedence (0 = Top/First)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={subDisplayRank}
+                  onChange={(e) => setSubDisplayRank(e.target.value)}
+                  placeholder="0"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
                 />
               </div>
 
@@ -1380,6 +1494,19 @@ export default function OwnerCatalogPage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="text-xs font-black text-slate-200 block mb-1.5">
+                      Product Description (Displayed in Customer Pop-up)
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Nutritional info, storage guidelines, fresh origin, or package details..."
+                      value={prodDesc}
+                      onChange={(e) => setProdDesc(e.target.value)}
+                      className="w-full bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white p-2.5 text-xs focus:outline-none resize-none"
+                    />
+                  </div>
+
                   <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
                     <Button
                       type="button"
@@ -1589,6 +1716,19 @@ export default function OwnerCatalogPage() {
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Product Description (Displayed in Customer Pop-up)
+                </label>
+                <textarea
+                  rows={3}
+                  value={editProdDesc}
+                  onChange={(e) => setEditProdDesc(e.target.value)}
+                  placeholder="Nutritional info, storage guidelines, fresh origin, or package details..."
+                  className="w-full bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white p-2.5 text-xs focus:outline-none resize-none"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
                 <Button
                   type="button"
@@ -1679,6 +1819,23 @@ export default function OwnerCatalogPage() {
                   onChange={(e) => setEditCatImage(e.target.value)}
                   className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Display Order / Precedence (0 = Top/First)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editCatDisplayRank}
+                  onChange={(e) => setEditCatDisplayRank(e.target.value)}
+                  placeholder="0"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Lower numbers appear first in the customer storefront.
+                </span>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">

@@ -21,6 +21,8 @@ import {
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoryNav, ParentCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
+import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
+import { AisleProductRow } from "@/components/catalog/AisleProductRow";
 import { SearchBar } from "@/components/catalog/SearchBar";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { useCartStore } from "@/store/useCartStore";
@@ -61,9 +63,86 @@ function StorefrontContent() {
   const [activeSearch, setActiveSearch] = React.useState<string>(initialSearch);
   const [isLoadingProducts, setIsLoadingProducts] = React.useState<boolean>(true);
 
+  // Product Detail Modal State
+  const [selectedProduct, setSelectedProduct] = React.useState<ProductData | null>(null);
+  const [productDetailModalOpen, setProductDetailModalOpen] = React.useState<boolean>(false);
+
+  const handleProductClick = (product: ProductData) => {
+    setSelectedProduct(product);
+    setProductDetailModalOpen(true);
+  };
+
   // Cart store
   const { items: cartItems, addItem, removeItem, openCart } = useCartStore();
   const [authError, setAuthError] = React.useState<string | null>(null);
+
+  // Cart Quantities Lookup
+  const cartQuantities = React.useMemo(() => {
+    const qMap: Record<string, number> = {};
+    cartItems.forEach((ci) => {
+      qMap[ci.product.id] = ci.quantity;
+    });
+    return qMap;
+  }, [cartItems]);
+
+  // Grouped Aisles for "All Fresh Dark Store Catalog"
+  const groupedAisles = React.useMemo(() => {
+    if (categoryParam !== "all" || activeSearch.trim() !== "") {
+      return [];
+    }
+
+    const map = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        slug: string;
+        imageUrl?: string | null;
+        products: ProductData[];
+      }
+    >();
+
+    // Seed map with categories in displayRank order
+    categories.forEach((cat) => {
+      map.set(cat.id, {
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        imageUrl: cat.imageUrl,
+        products: [],
+      });
+    });
+
+    products.forEach((prod) => {
+      const catId = prod.category?.id;
+      if (catId && map.has(catId)) {
+        map.get(catId)!.products.push(prod);
+      } else {
+        // Check if prod belongs to a subcategory whose parent is in map
+        let assigned = false;
+        for (const parent of categories) {
+          if (parent.subCategories?.some((s) => s.id === catId)) {
+            map.get(parent.id)?.products.push(prod);
+            assigned = true;
+            break;
+          }
+        }
+        if (!assigned && prod.category) {
+          if (!map.has(prod.category.id)) {
+            map.set(prod.category.id, {
+              id: prod.category.id,
+              name: prod.category.name,
+              slug: prod.category.slug,
+              products: [],
+            });
+          }
+          map.get(prod.category.id)!.products.push(prod);
+        }
+      }
+    });
+
+    return Array.from(map.values()).filter((g) => g.products.length > 0);
+  }, [categories, products, categoryParam, activeSearch]);
 
   // Cold-start splash screen runs only once per session
   const [showSplash, setShowSplash] = React.useState<boolean>(false);
@@ -343,6 +422,24 @@ function StorefrontContent() {
               View All 18 Catalog Items
             </Button>
           </div>
+        ) : groupedAisles.length > 0 ? (
+          <div className="space-y-10">
+            {groupedAisles.map((group) => (
+              <AisleProductRow
+                key={group.id}
+                categoryTitle={group.name}
+                categorySlug={group.slug}
+                categoryImageUrl={group.imageUrl}
+                products={group.products}
+                cartQuantities={cartQuantities}
+                onAddToCart={addItem}
+                onIncrement={addItem}
+                onDecrement={(p) => removeItem(p.id)}
+                onProductClick={handleProductClick}
+                onSeeAll={(slug) => handleSelectCategory(slug)}
+              />
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
             {products.map((product) => {
@@ -358,6 +455,7 @@ function StorefrontContent() {
                   onAddToCart={addItem}
                   onIncrement={addItem}
                   onDecrement={(p) => removeItem(p.id)}
+                  onProductClick={handleProductClick}
                 />
               );
             })}
@@ -367,6 +465,17 @@ function StorefrontContent() {
 
       {/* Slide-Over Quick Cart Drawer */}
       <CartDrawer />
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={productDetailModalOpen}
+        onClose={() => setProductDetailModalOpen(false)}
+        cartQuantity={selectedProduct ? cartQuantities[selectedProduct.id] || 0 : 0}
+        onAddToCart={addItem}
+        onIncrement={addItem}
+        onDecrement={(p) => removeItem(p.id)}
+      />
 
       {/* Footer (Desktop Only - hidden on mobile apps) */}
       <footer className="hidden md:block mt-20 border-t border-border-subtle bg-white py-8">
