@@ -232,11 +232,20 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         idToken = await userCredential.user.getIdToken();
       }
 
-      const res = await signIn("credentials", {
+      const signInPayload: Record<string, string> = {
         phone: phone.trim(),
-        otp: !idToken ? otpCode : undefined,
-        idToken: idToken || undefined,
-        name: fullName.trim() || undefined,
+      };
+      if (idToken) {
+        signInPayload.idToken = idToken;
+      } else {
+        signInPayload.otp = otpCode;
+      }
+      if (fullName.trim()) {
+        signInPayload.name = fullName.trim();
+      }
+
+      const res = await signIn("credentials", {
+        ...signInPayload,
         redirect: false,
       });
 
@@ -320,7 +329,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       <DialogContent className="sm:max-w-md p-6">
         <DialogHeader>
           <div className="flex items-center gap-2.5 mb-1">
-            <Logo variant="icon" size={32} className="rounded-lg shadow-sm shrink-0" />
+            <img
+              src="/brand/app-icon.png"
+              alt="SabQuick"
+              className="h-8 w-8 rounded-xl object-contain shadow-xs shrink-0"
+            />
             <DialogTitle className="text-xl font-black text-surface-dark">
               {step === "PHONE"
                 ? "Welcome to SabQuick"

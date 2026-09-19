@@ -93,7 +93,14 @@ export const authOptions: NextAuthOptions = {
         const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();
         const otp = credentials.otp?.trim();
-        const idToken = credentials.idToken?.trim();
+        const rawIdToken = credentials.idToken?.trim();
+        const idToken =
+          rawIdToken &&
+          rawIdToken !== "undefined" &&
+          rawIdToken !== "null" &&
+          rawIdToken.length > 20
+            ? rawIdToken
+            : undefined;
 
         if (!/^[6-9]\d{9}$/.test(phone)) {
           throw new Error("Must be a valid 10-digit Indian mobile number.");

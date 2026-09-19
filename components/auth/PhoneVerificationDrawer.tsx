@@ -212,10 +212,12 @@ export function PhoneVerificationDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="sm:max-w-md w-full flex flex-col justify-between">
         <SheetHeader>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-primary-accent/15 flex items-center justify-center text-primary">
-              <PhoneCall className="w-5 h-5" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/brand/app-icon.png"
+              alt="SabQuick"
+              className="h-9 w-9 rounded-xl object-contain shadow-xs shrink-0"
+            />
             <div>
               <SheetTitle className="text-lg">Mobile Number Verification</SheetTitle>
               <Badge variant="accent" className="text-[10px] mt-0.5">

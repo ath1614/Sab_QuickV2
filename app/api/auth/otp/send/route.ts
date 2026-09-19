@@ -98,9 +98,13 @@ export async function POST(req: NextRequest) {
       console.log(`======================================================\n`);
     }
 
-    // Security: Only expose dev OTP for customers if live SMS gateway is not configured
-    const shouldExposeDevOtp = !process.env.SMS_GATEWAY_API_KEY;
-    const hasFirebase = Boolean(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.FIREBASE_PROJECT_ID);
+    // Security: Never expose dev OTP for customers in production or when Firebase Phone Auth is enabled
+    const isProd = process.env.NODE_ENV === "production";
+    const hasFirebase = Boolean(
+      (process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBbGGhlWnPJm2BkwuGWXzpgqA0p233WrHE") &&
+      (process.env.FIREBASE_PROJECT_ID || "sabquick-17da6")
+    );
+    const shouldExposeDevOtp = !isProd && !hasFirebase && !process.env.SMS_GATEWAY_API_KEY;
 
     return NextResponse.json({
       success: true,
