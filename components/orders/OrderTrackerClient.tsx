@@ -10,6 +10,8 @@ import {
   Zap,
   Clock,
   CheckCircle2,
+  XCircle,
+  AlertTriangle,
   Package,
   Truck,
   Phone,
@@ -289,6 +291,34 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
 
   const currentStage = getStageIndex(order.status);
   const isDelivered = order.status === "DELIVERED";
+  const isCancelled = order.status === "CANCELLED" || order.paymentStatus === "FAILED";
+  const [isCancelling, setIsCancelling] = React.useState<boolean>(false);
+
+  const handleCancelPendingOrder = async () => {
+    if (!confirm("Are you sure you want to cancel this unpaid order?")) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.orderId,
+          reason: "Customer cancelled pending payment from order tracker",
+        }),
+      });
+      if (res.ok) {
+        setOrder((prev) => ({
+          ...prev,
+          status: "CANCELLED" as OrderStatus,
+          paymentStatus: "FAILED",
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const stages = [
     {
@@ -354,59 +384,110 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
         </div>
       </div>
 
-      {/* 1. HEADER CARD: Order Number & ETA Countdown */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Logo variant="compact" size={30} className="hidden sm:inline-block" />
-            <h1 className="text-xl sm:text-2xl font-black text-surface-dark tracking-tight">
-              Order #{order.orderNumber}
-            </h1>
-            <Badge variant="accent" className="font-bold text-xs">
-              {isDelivered ? "Delivered" : "Express 10-15 Min SLA"}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Placed on{" "}
-            {new Date(order.createdAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
+      {/* CANCELLED / ORDER NOT PLACED CUSTOM BANNER & CARD */}
+      {isCancelled ? (
+        <div className="bg-rose-50/95 border-2 border-rose-300 rounded-3xl p-6 sm:p-8 text-slate-900 shadow-sm space-y-4 animate-in fade-in-50">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 rounded-2xl bg-rose-100 text-rose-600 shrink-0 mt-0.5">
+                <XCircle className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="border-rose-400 text-rose-700 bg-rose-100 font-black text-xs">
+                    Order Not Placed • Cancelled
+                  </Badge>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    #{order.orderNumber}
+                  </span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                  Payment Unsuccessful • Order Not Placed
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
+                  The payment for this order was not completed or was cancelled. Your items have not been dispatched and no money was deducted.
+                </p>
+              </div>
+            </div>
 
-        {/* Dynamic Countdown Pill */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-            <Clock className="w-5 h-5" />
+            <Link
+              href="/"
+              className="w-full sm:w-auto h-11 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all hover:scale-[1.02] shrink-0"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>Back to Store</span>
+            </Link>
           </div>
+
+          <div className="p-4 rounded-2xl bg-white/80 border border-rose-200 text-xs text-slate-600 space-y-1.5">
+            <p className="font-bold text-slate-800 flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              Important Information:
+            </p>
+            <p>
+              • If money was temporarily debited by your bank or UPI app, it will be automatically refunded by your payment provider within 24–48 business hours.
+            </p>
+            <p>
+              • All items from this cart have been restored to warehouse inventory. You can start a fresh order anytime.
+            </p>
+          </div>
+        </div>
+      ) : (
+        /* 1. HEADER CARD: Order Number & ETA Countdown */
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-              Estimated Delivery
-            </span>
-            <div className="font-mono text-lg font-black text-surface-dark flex items-center gap-1.5">
-              {isDelivered ? (
-                <span className="text-primary">Delivered 🎉</span>
-              ) : (
-                <>
-                  <span>
-                    {remainingMins}:{remainingSecs < 10 ? `0${remainingSecs}` : remainingSecs}
-                  </span>
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Mins Left
-                  </span>
-                </>
-              )}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <Logo variant="compact" size={30} className="hidden sm:inline-block" />
+              <h1 className="text-xl sm:text-2xl font-black text-surface-dark tracking-tight">
+                Order #{order.orderNumber}
+              </h1>
+              <Badge variant="accent" className="font-bold text-xs">
+                {isDelivered ? "Delivered" : "Express 10-15 Min SLA"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Placed on{" "}
+              {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          </div>
+
+          {/* Dynamic Countdown Pill */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                Estimated Delivery
+              </span>
+              <div className="font-mono text-lg font-black text-surface-dark flex items-center gap-1.5">
+                {isDelivered ? (
+                  <span className="text-primary">Delivered 🎉</span>
+                ) : (
+                  <>
+                    <span>
+                      {remainingMins}:{remainingSecs < 10 ? `0${remainingSecs}` : remainingSecs}
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Mins Left
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* PENDING CASHFREE PAYMENT ACTION BANNER */}
-      {order.paymentStatus !== "PAID" &&
+      {!isCancelled &&
+        order.paymentStatus !== "PAID" &&
         (order.paymentMethod === "CASHFREE" || (order.paymentMethod as string) === "RAZORPAY") && (
           <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in-50">
             <div className="space-y-1.5">
@@ -434,208 +515,228 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               )}
             </div>
 
-            <Button
-              onClick={handlePayWithCashfree}
-              disabled={isPayingWithCashfree}
-              className="w-full sm:w-auto h-12 px-6 rounded-2xl bg-primary text-white font-black text-sm shadow-md hover:bg-primary/90 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
-            >
-              {isPayingWithCashfree ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Opening Payment...</span>
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4" />
-                  <span>Pay Online • ₹{order.totalAmount}</span>
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
-      {/* 2. 4-STAGE VISUAL STATUS STEPPER */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-surface-dark flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary fill-primary" />
-            Live Delivery Progression
-          </h2>
-          <span className="text-xs font-bold text-primary font-mono">
-            Stage {currentStage} of 4
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-2 relative">
-          {stages.map((stage) => {
-            const isCompleted = stage.index < currentStage || isDelivered;
-            const isCurrent = stage.index === currentStage && !isDelivered;
-            const StageIcon = stage.icon;
-
-            return (
-              <div
-                key={stage.index}
-                className={`relative p-3.5 rounded-2xl border transition-all flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2 ${
-                  isCurrent
-                    ? "bg-primary/5 border-primary shadow-xs ring-2 ring-primary/20"
-                    : isCompleted
-                    ? "bg-emerald-50/60 border-emerald-200"
-                    : "bg-slate-50/60 border-slate-200 opacity-60"
-                }`}
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto shrink-0">
+              <Button
+                onClick={handlePayWithCashfree}
+                disabled={isPayingWithCashfree || isCancelling}
+                className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-primary text-white font-black text-xs shadow-md hover:bg-primary/90 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
               >
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold transition-colors ${
-                    isCurrent
-                      ? "bg-primary text-white shadow-md animate-pulse"
-                      : isCompleted
-                      ? "bg-primary text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-5 h-5" />
-                  ) : (
-                    <StageIcon className="w-4 h-4" />
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-surface-dark truncate">
-                      {stage.name}
-                    </span>
-                    {isCurrent && (
-                      <span className="inline-block w-2 h-2 rounded-full bg-primary animate-ping" />
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
-                    {stage.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. HIGH-CONTRAST IN-APP DELIVERY OTP CARD */}
-      <div className="rounded-3xl bg-surface-dark border-2 border-primary-accent p-6 text-white shadow-xl relative overflow-hidden">
-        {/* Glow ambient background element */}
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary-accent/15 rounded-full blur-3xl pointer-events-none" />
-
-        {isDelivered ? (
-          <div className="py-4 flex flex-col items-center text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-primary-accent/20 text-primary-accent flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
-            <h3 className="text-xl font-black text-white">
-              Order Handed Over Successfully!
-            </h3>
-            <p className="text-xs text-slate-300 max-w-sm">
-              Your grocery items were delivered in record time. Thank you for
-              ordering with SabQuick!
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-            <div className="space-y-1.5 max-w-md">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary-accent" />
-                <span className="text-xs uppercase tracking-widest font-black text-primary-accent">
-                  Secure Delivery Verification OTP
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Share this OTP with rider upon delivery
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Give this 4-digit OTP to your delivery partner only after
-                receiving and verifying your grocery bag.
-              </p>
-            </div>
-
-            {/* Individual Stylized Monospace OTP Boxes */}
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
-              {(order.deliveryOtp ? String(order.deliveryOtp) : "1234").split("").map((digit, idx) => (
-                <div
-                  key={idx}
-                  className="w-12 h-14 sm:w-14 sm:h-16 bg-white/10 text-white rounded-2xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-black border border-primary-accent/40 shadow-inner"
-                >
-                  {digit}
-                </div>
-              ))}
+                {isPayingWithCashfree ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Opening Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pay Online • ₹{order.totalAmount}</span>
+                  </>
+                )}
+              </Button>
 
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopyOtp}
-                className="text-slate-300 hover:text-white hover:bg-white/10 h-14 px-2.5 rounded-xl border border-white/10"
-                title="Copy OTP"
+                variant="outline"
+                onClick={handleCancelPendingOrder}
+                disabled={isPayingWithCashfree || isCancelling}
+                className="w-full sm:w-auto h-11 px-4 rounded-2xl border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs shrink-0"
               >
-                <Copy className="w-4 h-4" />
-                <span className="text-[10px] hidden sm:inline ml-1 font-mono">
-                  {copiedOtp ? "Copied" : "Copy"}
-                </span>
+                {isCancelling ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <span>Cancel Order</span>
+                )}
               </Button>
             </div>
           </div>
         )}
-      </div>
 
-      {/* 4. DELIVERY PARTNER & VEHICLE CARD (When rider is assigned) */}
-      {order.rider && (
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg shrink-0">
-              {order.rider.name?.slice(0, 2).toUpperCase() || "RD"}
+      {/* ACTIVE TRACKING CONTENT (Hidden when order is cancelled) */}
+      {!isCancelled && (
+        <>
+          {/* 2. 4-STAGE VISUAL STATUS STEPPER */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-surface-dark flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary fill-primary" />
+                Live Delivery Progression
+              </h2>
+              <span className="text-xs font-bold text-primary font-mono">
+                Stage {currentStage} of 4
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black text-surface-dark">
-                  {order.rider.name || "Delivery Partner"}
-                </h3>
-                <Badge variant="accent" className="text-[10px] py-0 px-1.5 font-bold">
-                  Active Rider
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                {order.rider.vehicleDetails || "Electric Two-Wheeler (Zero-Emission)"}
-              </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-2 relative">
+              {stages.map((stage) => {
+                const isCompleted = stage.index < currentStage || isDelivered;
+                const isCurrent = stage.index === currentStage && !isDelivered;
+                const StageIcon = stage.icon;
+
+                return (
+                  <div
+                    key={stage.index}
+                    className={`relative p-3.5 rounded-2xl border transition-all flex sm:flex-col items-center sm:items-start gap-3 sm:gap-2 ${
+                      isCurrent
+                        ? "bg-primary/5 border-primary shadow-xs ring-2 ring-primary/20"
+                        : isCompleted
+                        ? "bg-emerald-50/60 border-emerald-200"
+                        : "bg-slate-50/60 border-slate-200 opacity-60"
+                    }`}
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold transition-colors ${
+                        isCurrent
+                          ? "bg-primary text-white shadow-md animate-pulse"
+                          : isCompleted
+                          ? "bg-primary text-white"
+                          : "bg-slate-200 text-slate-500"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-white" />
+                      ) : (
+                        <StageIcon className="w-4 h-4" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-surface-dark truncate">
+                          {stage.name}
+                        </span>
+                        {isCurrent && (
+                          <span className="inline-block w-2 h-2 rounded-full bg-primary animate-ping" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                        {stage.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Native Dialing Button */}
-          {order.rider.phone && (
-            <a
-              href={`tel:${order.rider.phone}`}
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-primary text-white font-bold text-xs shadow-sm hover:bg-primary/90 transition-all shrink-0"
-            >
-              <Phone className="w-4 h-4" />
-              <span>Call Delivery Partner ({order.rider.phone})</span>
-            </a>
+          {/* 3. HIGH-CONTRAST IN-APP DELIVERY OTP CARD */}
+          <div className="rounded-3xl bg-surface-dark border-2 border-primary-accent p-6 text-white shadow-xl relative overflow-hidden">
+            {/* Glow ambient background element */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary-accent/15 rounded-full blur-3xl pointer-events-none" />
+
+            {isDelivered ? (
+              <div className="py-4 flex flex-col items-center text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-primary-accent/20 text-primary-accent flex items-center justify-center font-bold">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-black text-white">
+                  Order Handed Over Successfully!
+                </h3>
+                <p className="text-xs text-slate-300 max-w-sm">
+                  Your grocery items were delivered in record time. Thank you for
+                  ordering with SabQuick!
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div className="space-y-1.5 max-w-md">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-primary-accent" />
+                    <span className="text-xs uppercase tracking-widest font-black text-primary-accent">
+                      Secure Delivery Verification OTP
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">
+                    Share this OTP with rider upon delivery
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Give this 4-digit OTP to your delivery partner only after
+                    receiving and verifying your grocery bag.
+                  </p>
+                </div>
+
+                {/* Individual Stylized Monospace OTP Boxes */}
+                <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                  {(order.deliveryOtp ? String(order.deliveryOtp) : "1234").split("").map((digit, idx) => (
+                    <div
+                      key={idx}
+                      className="w-12 h-14 sm:w-14 sm:h-16 bg-white/10 text-white rounded-2xl flex items-center justify-center font-mono text-2xl sm:text-3xl font-black border border-primary-accent/40 shadow-inner"
+                    >
+                      {digit}
+                    </div>
+                  ))}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyOtp}
+                    className="text-slate-300 hover:text-white hover:bg-white/10 h-14 px-2.5 rounded-xl border border-white/10"
+                    title="Copy OTP"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span className="text-[10px] hidden sm:inline ml-1 font-mono">
+                      {copiedOtp ? "Copied" : "Copy"}
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. DELIVERY PARTNER & VEHICLE CARD (When rider is assigned) */}
+          {order.rider && (
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg shrink-0">
+                  {order.rider.name?.slice(0, 2).toUpperCase() || "RD"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-surface-dark">
+                      {order.rider.name || "Delivery Partner"}
+                    </h3>
+                    <Badge variant="accent" className="text-[10px] py-0 px-1.5 font-bold">
+                      Active Rider
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    {order.rider.vehicleDetails || "Electric Two-Wheeler (Zero-Emission)"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Native Dialing Button */}
+              {order.rider.phone && (
+                <a
+                  href={`tel:${order.rider.phone}`}
+                  className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-primary text-white font-bold text-xs shadow-sm hover:bg-primary/90 transition-all shrink-0"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Call Delivery Partner ({order.rider.phone})</span>
+                </a>
+              )}
+            </div>
           )}
-        </div>
+
+          {/* 5. ZERO-COST ROUTE VISUALIZATION MAP */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-surface-dark flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                Live Transit Path
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                Delivering to: {order.address.flatBuilding}, {order.address.streetArea}
+              </span>
+            </div>
+
+            <DynamicOrderRouteMap
+              customerLat={order.address.latitude}
+              customerLng={order.address.longitude}
+              customerAddressLabel={order.address.label}
+              orderStatus={order.status}
+            />
+          </div>
+        </>
       )}
-
-      {/* 5. ZERO-COST ROUTE VISUALIZATION MAP */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-surface-dark flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary" />
-            Live Transit Path
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            Delivering to: {order.address.flatBuilding}, {order.address.streetArea}
-          </span>
-        </div>
-
-        <DynamicOrderRouteMap
-          customerLat={order.address.latitude}
-          customerLng={order.address.longitude}
-          customerAddressLabel={order.address.label}
-          orderStatus={order.status}
-        />
-      </div>
 
       {/* 6. ITEMIZED ORDER SUMMARY ACCORDION */}
       <div className="bg-white rounded-3xl border border-border-subtle shadow-sm overflow-hidden">
@@ -653,7 +754,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                 Order Items & Bill Breakdown
               </h3>
               <p className="text-xs text-muted-foreground">
-                {order.items.reduce((acc, i) => acc + i.quantity, 0)} items &bull; Total Paid: ₹{order.totalAmount}
+                {order.items.reduce((acc, i) => acc + i.quantity, 0)} items &bull; {order.paymentStatus === "PAID" ? "Total Paid: ₹" : "Total: ₹"}{order.totalAmount}
               </p>
             </div>
           </div>

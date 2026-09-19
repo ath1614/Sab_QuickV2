@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { OrderStatus, Role } from "@prisma/client";
+import { OrderStatus, Role, PaymentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +25,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 1. Query recent and active orders with full relation graph
+    // 1. Query recent and active orders with full relation graph (excluding unpaid online orders)
     const rawOrders = await prisma.order.findMany({
+      where: {
+        NOT: {
+          paymentMethod: "CASHFREE",
+          paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 60,
       include: {

@@ -41,17 +41,17 @@ function getStatusDetails(status: string) {
       };
     case "PACKING":
       return {
-        label: "Dark Store packing your items",
+        label: "Packing Order",
         icon: Package,
       };
     case "READY_FOR_PICKUP":
       return {
-        label: "Bag ready • Rider arriving",
+        label: "Rider Arriving",
         icon: Package,
       };
     case "OUT_FOR_DELIVERY":
       return {
-        label: "Rider on the way to your door",
+        label: "Out for Delivery",
         icon: Bike,
       };
     default:
@@ -226,24 +226,24 @@ export function ActiveOrderFloatingBar() {
           isExiting ? "opacity-0 scale-90 pointer-events-none" : "opacity-100 scale-100"
         }`}
       >
-        <div className="flex items-center gap-1.5 bg-slate-950/95 backdrop-blur-md text-white border border-emerald-500/40 rounded-full px-3 py-1.5 shadow-2xl ring-1 ring-white/10">
+        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md text-slate-900 border border-slate-200/90 rounded-full px-3 py-1.5 shadow-lg ring-1 ring-slate-900/5">
           <button
             type="button"
             onClick={() => setIsMinimized(false)}
-            className="flex items-center gap-2 text-xs font-bold hover:text-emerald-300 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold hover:text-emerald-600 transition-colors"
             title="Expand Order Status"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span>⚡ #{order.orderNumber.slice(-4)} (~{eta}m)</span>
-            <ChevronUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span>#{order.orderNumber.slice(-4)} (~{eta}m)</span>
+            <ChevronUp className="w-3.5 h-3.5 text-emerald-600" />
           </button>
           <button
             type="button"
             onClick={handleDismissOrderBar}
-            className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-1"
+            className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ml-0.5"
             title="Dismiss"
           >
             <X className="w-3 h-3" />
@@ -256,82 +256,75 @@ export function ActiveOrderFloatingBar() {
   return (
     <aside
       aria-label="Active delivery order status"
-      className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 inset-x-3 sm:inset-x-4 max-w-xl mx-auto z-50 transition-all duration-400 ease-out ${
+      className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 inset-x-3 sm:inset-x-4 max-w-lg mx-auto z-50 transition-all duration-300 ease-out ${
         isExiting
-          ? "opacity-0 translate-y-8 pointer-events-none"
+          ? "opacity-0 translate-y-6 pointer-events-none"
           : "opacity-100 translate-y-0"
       }`}
     >
-      <div className="bg-slate-950/95 backdrop-blur-md text-white border border-emerald-500/30 rounded-2xl p-3 sm:p-3.5 shadow-2xl flex items-center justify-between gap-2.5 sm:gap-3 relative overflow-hidden ring-1 ring-white/10">
-        {/* Ambient Top Glow Line */}
-        <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent" />
+      <div className="bg-white/95 backdrop-blur-md text-slate-900 border border-slate-200/90 rounded-2xl p-2.5 sm:p-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-between gap-2 sm:gap-3 relative overflow-hidden ring-1 ring-slate-900/5">
+        {/* Subtle Top Emerald Line */}
+        <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400" />
 
         {/* Left Column: Icon + Status + ETA */}
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Pulsing kinetic icon container */}
-          <div className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-600 shrink-0">
+            <span className="absolute -top-1 -right-1 flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <StatusIcon className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+            <StatusIcon className="w-4 h-4" />
           </div>
 
-          {/* Status Label & Subtext */}
+          {/* Minimal Status Label & Subtext */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs sm:text-sm font-black text-white truncate">
-                {statusDetails.label}
-              </span>
+            <div className="flex items-center gap-1.5 truncate text-xs sm:text-sm font-bold text-slate-900">
+              <span className="truncate">{statusDetails.label}</span>
+              <span className="text-slate-300 shrink-0">•</span>
+              <span className="text-emerald-600 font-semibold shrink-0">~{eta}m</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300">
-                <Zap className="w-3 h-3 fill-emerald-400 text-emerald-400 shrink-0" />
-                Arriving in ~{eta}m
-              </span>
-              <span className="text-slate-600 text-xs">&bull;</span>
-              <span className="text-[11px] text-slate-400 truncate">
-                {order.itemsCount} {order.itemsCount === 1 ? "item" : "items"}
-              </span>
+            <div className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">
+              Order #{order.orderNumber.slice(-4)} • {order.itemsCount} {order.itemsCount === 1 ? "item" : "items"}
             </div>
           </div>
         </div>
 
-        {/* Center / Right Column: 4-digit OTP + Track CTA + Minimize/Dismiss Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* 4-Digit In-App Delivery OTP Pill */}
-          <div className="bg-emerald-950/80 border border-emerald-500/40 px-2 py-1 rounded-md text-[11px] sm:text-xs font-mono font-bold text-emerald-400 shrink-0 shadow-inner">
-            OTP: {order.deliveryOtp}
+        {/* Right Column: OTP + Track CTA + Minimize/Close */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* OTP Pill */}
+          <div className="bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold text-emerald-800 shrink-0">
+            OTP {order.deliveryOtp}
           </div>
 
-          {/* Track CTA Button */}
+          {/* Track CTA */}
           <Link
             href={`/orders/${order.orderNumber}`}
-            className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1 shrink-0 transition-all shadow-sm active:scale-95"
+            className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shrink-0 transition-colors shadow-sm active:scale-95"
             title={`Track Order #${order.orderNumber}`}
           >
             <span>Track</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          {/* Minimize Toggle Button */}
+          {/* Minimize Button */}
           <button
             type="button"
             onClick={() => setIsMinimized(true)}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-            title="Minimize bar"
-            aria-label="Minimize bar"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
+            title="Minimize"
+            aria-label="Minimize"
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
 
-          {/* Dismiss / Close Button */}
+          {/* Dismiss Button */}
           <button
             type="button"
             onClick={handleDismissOrderBar}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
-            title="Dismiss order banner"
-            aria-label="Dismiss order banner"
+            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+            title="Dismiss"
+            aria-label="Dismiss"
           >
             <X className="w-3.5 h-3.5" />
           </button>

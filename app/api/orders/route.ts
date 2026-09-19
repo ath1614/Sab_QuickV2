@@ -255,21 +255,25 @@ export async function POST(req: NextRequest) {
     });
 
     // 6. Redis Event Notification to channel orders:dispatch
-    try {
-      await redis.publish(
-        "orders:dispatch",
-        JSON.stringify({
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          status: order.status,
-          customerId: order.customerId,
-          totalAmount: order.totalAmount,
-          deliveryOtp: order.deliveryOtp,
-          createdAt: order.createdAt,
-        })
-      );
-    } catch (redisErr) {
-      console.warn("[Redis publish error on orders:dispatch]:", redisErr);
+    // For Doorstep UPI and Cash on Delivery, order is confirmed immediately.
+    // For online prepaid (CASHFREE), dispatch is published ONLY after payment verification succeeds.
+    if (order.paymentMethod !== "CASHFREE") {
+      try {
+        await redis.publish(
+          "orders:dispatch",
+          JSON.stringify({
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            customerId: order.customerId,
+            totalAmount: order.totalAmount,
+            deliveryOtp: order.deliveryOtp,
+            createdAt: order.createdAt,
+          })
+        );
+      } catch (redisErr) {
+        console.warn("[Redis publish error on orders:dispatch]:", redisErr);
+      }
     }
 
     return NextResponse.json(

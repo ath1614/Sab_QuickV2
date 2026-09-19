@@ -44,7 +44,6 @@ import {
 
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
-import { Logo } from "@/components/brand/Logo";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
 
 interface NavbarProps {
@@ -153,13 +152,12 @@ export function Navbar({
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 w-full">
           {/* Logo & Interactive Geofence Address Trigger */}
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
-            <Link href="/" className="flex items-center hover:opacity-95 transition-opacity shrink-0" title="SabQuick Home">
-              <span className="hidden sm:inline-block">
-                <Logo variant="compact" size={38} />
-              </span>
-              <span className="inline-block sm:hidden">
-                <Logo variant="icon" size={32} />
-              </span>
+            <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SabQuick Home">
+              <img
+                src="/brand/navbar-logo.png"
+                alt="SabQuick"
+                className="h-8 sm:h-10 w-auto object-contain shrink-0"
+              />
             </Link>
 
             <div className="border-l border-slate-200 pl-2 sm:pl-3 min-w-0">

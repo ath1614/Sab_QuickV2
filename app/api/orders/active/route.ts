@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
             OrderStatus.READY_FOR_PICKUP,
             OrderStatus.OUT_FOR_DELIVERY,
           ],
+        },
+        // Exclude online orders where payment has not been completed / paid
+        NOT: {
+          paymentMethod: "CASHFREE",
+          paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
         },
       },
       orderBy: { createdAt: "desc" },

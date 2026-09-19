@@ -47,6 +47,7 @@ import {
   CreditCard,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Trash2,
   ChevronRight,
@@ -114,6 +115,11 @@ export function CartDrawer() {
   const [isPlacingOrder, setIsPlacingOrder] = React.useState<boolean>(false);
   const [isCashfreeActive, setIsCashfreeActive] = React.useState<boolean>(false);
   const [orderError, setOrderError] = React.useState<string | null>(null);
+  const [paymentFailureBanner, setPaymentFailureBanner] = React.useState<{
+    title: string;
+    message: string;
+    orderNumber?: string;
+  } | null>(null);
   const [orderSuccess, setOrderSuccess] = React.useState<{
     orderNumber: string;
     deliveryOtp: string;
@@ -377,11 +383,28 @@ export function CartDrawer() {
           mode: cfData.mode || "production",
         });
 
+        // Helper to cancel unconfirmed pending order and restore stock immediately
+        const cancelUnconfirmedOrder = async (orderId: string, reason: string) => {
+          try {
+            await fetch("/api/orders/cancel", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId, reason }),
+            });
+          } catch (cErr) {
+            console.warn("Could not cancel unconfirmed order:", cErr);
+          }
+        };
+
         // On mobile devices: Use redirectTarget: "_self" so Cashfree renders its native mobile payment page
         // with 1-tap UPI Intent buttons (PhonePe, Google Pay, Paytm) opening apps directly without desktop QR code.
         // On desktop: Use redirectTarget: "_modal" for a centered popup with QR code scanning.
         if (isMobileDevice) {
-          clearCart();
+          // Do not clear the cart before payment is verified!
+          // We save the pending order in sessionStorage so if user returns or cancels, their items are preserved.
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("sq_pending_checkout_order", data.orderNumber);
+          }
           cashfreeInstance.checkout({
             paymentSessionId: cfData.paymentSessionId,
             redirectTarget: "_self",
@@ -399,7 +422,12 @@ export function CartDrawer() {
               console.warn("[Payment modal closed/warning]:", result.error);
               setIsPlacingOrder(false);
               setIsCashfreeActive(false);
-              setOrderError("Online payment window was closed. You can retry or select another payment option.");
+              await cancelUnconfirmedOrder(data.orderId, "Payment modal closed by user before completion");
+              setPaymentFailureBanner({
+                title: "Payment Not Completed • Order Not Placed",
+                message: "The online payment popup was closed before completing the transaction. Your order was NOT placed, no money was charged, and your cart items remain preserved.",
+                orderNumber: data.orderNumber,
+              });
               return;
             }
 
@@ -430,22 +458,36 @@ export function CartDrawer() {
                 setShowCelebration(true);
               } else {
                 setIsCashfreeActive(false);
+                setIsPlacingOrder(false);
+                await cancelUnconfirmedOrder(data.orderId, "Payment verification unconfirmed or failed");
                 const errData = await verifyRes.json().catch(() => ({}));
-                setOrderError(errData.error || "Payment verification pending.");
-                closeCart();
-                router.push(`/orders/${data.orderNumber}`);
+                setPaymentFailureBanner({
+                  title: "Payment Unsuccessful • Order Not Placed",
+                  message: errData.error || "Payment could not be verified with your bank or UPI provider. Your order was NOT placed and no charge was made. Your items are still in your cart.",
+                  orderNumber: data.orderNumber,
+                });
               }
             } catch (vErr: any) {
               setIsCashfreeActive(false);
-              closeCart();
-              router.push(`/orders/${data.orderNumber}`);
+              setIsPlacingOrder(false);
+              await cancelUnconfirmedOrder(data.orderId, "Payment verification network error");
+              setPaymentFailureBanner({
+                title: "Payment Unconfirmed • Order Not Placed",
+                message: "A network issue occurred while verifying payment. Your order was not confirmed. You can retry or switch to Cash/UPI on Delivery.",
+                orderNumber: data.orderNumber,
+              });
             }
           })
-          .catch((err: any) => {
+          .catch(async (err: any) => {
             console.error("[Checkout Error]:", err);
             setIsPlacingOrder(false);
             setIsCashfreeActive(false);
-            setOrderError(err.message || "Payment checkout encountered an issue.");
+            await cancelUnconfirmedOrder(data.orderId, err.message || "Checkout exception");
+            setPaymentFailureBanner({
+              title: "Payment Issue • Order Not Placed",
+              message: err.message || "An issue occurred during checkout. Your order was not placed and your cart items are preserved.",
+              orderNumber: data.orderNumber,
+            });
           });
 
         return;
@@ -663,6 +705,56 @@ export function CartDrawer() {
               </div>
             ) : (
               <>
+                {/* Custom Payment Failure / Order Not Placed Banner */}
+                {paymentFailureBanner && (
+                  <div className="bg-amber-50/95 border-2 border-amber-400/80 rounded-2xl p-3.5 shadow-sm space-y-2.5 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-start gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-black text-amber-950">
+                          {paymentFailureBanner.title}
+                        </h4>
+                        <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5 leading-relaxed">
+                          {paymentFailureBanner.message}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentFailureBanner(null)}
+                        className="p-1 rounded-lg text-amber-500 hover:text-amber-900 hover:bg-amber-100 transition-colors shrink-0"
+                        title="Dismiss"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1 border-t border-amber-200">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setPaymentFailureBanner(null);
+                          handlePlaceOrder();
+                        }}
+                        className="flex-1 h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs"
+                      >
+                        Retry Online Payment
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setPaymentFailureBanner(null);
+                          setPaymentMethod("CASH_ON_DELIVERY");
+                        }}
+                        className="flex-1 h-8 rounded-xl border-amber-300 text-amber-900 bg-white hover:bg-amber-100 font-bold text-xs shadow-xs"
+                      >
+                        Pay on Delivery
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* 1. TOP BANNER: Free Delivery Kinetic Progress Bar */}
                 <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2">
                   {totals.itemTotal >= FREE_DELIVERY_THRESHOLD ? (
