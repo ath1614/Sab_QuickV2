@@ -51,6 +51,8 @@ import {
   Trash2,
   ChevronRight,
   ArrowRight,
+  ArrowLeft,
+  X,
   Tag,
   Banknote,
   Ticket,
@@ -356,11 +358,9 @@ export function CartDrawer() {
         const Cashfree = (window as any).Cashfree;
         if (!Cashfree) {
           setOrderError("Payment SDK not ready. Please try again.");
+          setIsPlacingOrder(false);
           return;
         }
-
-        // Close Cart Drawer so modal is unobstructed on laptops and mobile devices
-        closeCart();
 
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
@@ -374,7 +374,7 @@ export function CartDrawer() {
           .then(async (result: any) => {
             if (result?.error) {
               console.warn("[Payment modal closed/warning]:", result.error);
-              router.push(`/orders/${data.orderNumber}`);
+              setIsPlacingOrder(false);
               return;
             }
 
@@ -386,6 +386,7 @@ export function CartDrawer() {
               });
 
               if (verifyRes.ok) {
+                closeCart();
                 clearCart();
                 setCelebrationOrder({
                   orderNumber: data.orderNumber,
@@ -404,15 +405,17 @@ export function CartDrawer() {
               } else {
                 const errData = await verifyRes.json().catch(() => ({}));
                 setOrderError(errData.error || "Payment verification pending.");
+                closeCart();
                 router.push(`/orders/${data.orderNumber}`);
               }
             } catch (vErr: any) {
+              closeCart();
               router.push(`/orders/${data.orderNumber}`);
             }
           })
           .catch((err: any) => {
             console.error("[Checkout Error]:", err);
-            router.push(`/orders/${data.orderNumber}`);
+            setIsPlacingOrder(false);
           });
 
         return;
@@ -452,41 +455,62 @@ export function CartDrawer() {
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent
           side="right"
+          showCloseButton={false}
           className="w-full sm:max-w-md p-0 flex flex-col h-full bg-slate-50 overflow-hidden"
         >
-          {/* Header */}
-          <div className="p-4 bg-white border-b border-border-subtle flex items-center justify-between sticky top-0 z-10 shadow-2xs">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <div>
-                <SheetTitle className="text-base font-black text-surface-dark flex items-center gap-2">
-                  My Cart
+          {/* Header with Notch Safe Area & Back Button */}
+          <div className="pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-3.5 px-4 bg-white border-b border-border-subtle flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Prominent Back Button */}
+              <button
+                type="button"
+                onClick={closeCart}
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-surface-dark flex items-center justify-center transition-all shrink-0 border border-slate-200/80 shadow-2xs"
+                aria-label="Back to store"
+                title="Back to store"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+
+              <div className="min-w-0">
+                <SheetTitle className="text-base font-black text-surface-dark flex items-center gap-2 truncate">
+                  <span>My Cart</span>
                   {items.length > 0 && (
-                    <Badge variant="accent" className="text-xs px-2 py-0">
+                    <Badge variant="accent" className="text-xs px-2 py-0 shrink-0 font-bold">
                       {totals.totalQuantity} items
                     </Badge>
                   )}
                 </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground">
+                <SheetDescription className="text-xs text-muted-foreground truncate font-medium">
                   ⚡ 10-15 Min Express Delivery
                 </SheetDescription>
               </div>
             </div>
 
-            {items.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearCart}
-                className="text-xs text-muted-foreground hover:text-red-600 h-8 px-2 gap-1"
-                title="Clear Cart"
+            <div className="flex items-center gap-1.5 shrink-0">
+              {items.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearCart}
+                  className="text-xs text-muted-foreground hover:text-red-600 h-8 px-2 gap-1"
+                  title="Clear Cart"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Clear</span>
+                </Button>
+              )}
+
+              <button
+                type="button"
+                onClick={closeCart}
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                aria-label="Close cart"
+                title="Close"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear</span>
-              </Button>
-            )}
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Body Content */}
