@@ -19,7 +19,8 @@ const createOrderSchema = z.object({
   tipAmount: z.number().min(0).default(0),
   paymentMethod: z
     .enum(["CASHFREE", "UPI_DOORSTEP", "RAZORPAY", "CASH_ON_DELIVERY"])
-    .default("CASHFREE"),
+    .default("CASHFREE")
+    .transform((val) => (val === "RAZORPAY" ? "CASHFREE" : val)),
   couponCode: z.string().optional(),
 });
 

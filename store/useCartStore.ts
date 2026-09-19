@@ -7,7 +7,7 @@ export interface CartItem {
   quantity: number;
 }
 
-export type PaymentMethodType = "CASHFREE" | "UPI_DOORSTEP" | "RAZORPAY" | "CASH_ON_DELIVERY";
+export type PaymentMethodType = "CASHFREE" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY";
 export type PaymentMethod = PaymentMethodType;
 
 export const FREE_DELIVERY_THRESHOLD = 199;
@@ -118,7 +118,7 @@ export const useCartStore = create<CartStoreState>()(
     (set, get) => ({
       items: [],
       tipAmount: 0,
-      paymentMethod: "UPI_DOORSTEP",
+      paymentMethod: "CASHFREE",
       appliedCoupon: null,
       isOpen: false,
 
@@ -258,6 +258,14 @@ export const useCartStore = create<CartStoreState>()(
         paymentMethod: state.paymentMethod,
         appliedCoupon: state.appliedCoupon,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // If legacy RAZORPAY is in localStorage, automatically migrate to CASHFREE
+          if ((state.paymentMethod as any) === "RAZORPAY" || !state.paymentMethod) {
+            state.paymentMethod = "CASHFREE";
+          }
+        }
+      },
     }
   )
 );

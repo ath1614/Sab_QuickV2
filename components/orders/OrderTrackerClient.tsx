@@ -22,9 +22,11 @@ import {
   ShoppingBag,
   ArrowLeft,
   Loader2,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
+import { loadCashfreeSdk } from "@/lib/cashfree";
 
 // Dynamically import Leaflet OrderRouteMap to disable SSR
 const DynamicOrderRouteMap = dynamic(
@@ -93,6 +95,89 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
   const [copiedOtp, setCopiedOtp] = React.useState<boolean>(false);
   const [remainingSeconds, setRemainingSeconds] = React.useState<number>(900); // 15 mins default
   const [isConnected, setIsConnected] = React.useState<boolean>(true);
+  const [isPayingWithCashfree, setIsPayingWithCashfree] = React.useState<boolean>(false);
+  const [cashfreeError, setCashfreeError] = React.useState<string | null>(null);
+
+  // Cashfree retry / completion payment handler
+  const handlePayWithCashfree = async () => {
+    setIsPayingWithCashfree(true);
+    setCashfreeError(null);
+    try {
+      const isLoaded = await loadCashfreeSdk();
+      if (!isLoaded) {
+        setCashfreeError("Unable to load Cashfree checkout SDK. Please refresh the page.");
+        setIsPayingWithCashfree(false);
+        return;
+      }
+
+      const res = await fetch("/api/payments/cashfree/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.orderId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setCashfreeError(data.error || "Failed to initialize payment session.");
+        setIsPayingWithCashfree(false);
+        return;
+      }
+
+      const Cashfree = (window as any).Cashfree;
+      if (!Cashfree) {
+        setCashfreeError("Cashfree SDK not initialized. Please refresh.");
+        setIsPayingWithCashfree(false);
+        return;
+      }
+
+      const cashfreeInstance = new Cashfree({
+        mode: data.mode || "production",
+      });
+
+      cashfreeInstance
+        .checkout({
+          paymentSessionId: data.paymentSessionId,
+          redirectTarget: "_modal",
+        })
+        .then(async (result: any) => {
+          if (result?.error) {
+            console.warn("[Cashfree Modal Closed/Warning]:", result.error);
+            setIsPayingWithCashfree(false);
+            return;
+          }
+
+          try {
+            const verifyRes = await fetch("/api/payments/cashfree/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: order.orderId }),
+            });
+
+            if (verifyRes.ok) {
+              setOrder((prev) => ({
+                ...prev,
+                paymentStatus: "PAID",
+                status: prev.status === "PENDING" ? "CONFIRMED" : prev.status,
+              }));
+            } else {
+              const errData = await verifyRes.json().catch(() => ({}));
+              setCashfreeError(errData.error || "Payment verification pending.");
+            }
+          } catch (vErr: any) {
+            console.error("[Cashfree verify error]:", vErr);
+          } finally {
+            setIsPayingWithCashfree(false);
+          }
+        })
+        .catch((err: any) => {
+          console.error("Cashfree checkout error:", err);
+          setIsPayingWithCashfree(false);
+        });
+    } catch (err: any) {
+      setCashfreeError(err.message || "Failed to launch Cashfree payment.");
+      setIsPayingWithCashfree(false);
+    }
+  };
 
   // 1. Calculate Countdown ETA
   React.useEffect(() => {
@@ -295,6 +380,55 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
           </div>
         </div>
       </div>
+
+      {/* PENDING CASHFREE PAYMENT ACTION BANNER */}
+      {order.paymentStatus !== "PAID" &&
+        (order.paymentMethod === "CASHFREE" || (order.paymentMethod as string) === "RAZORPAY") && (
+          <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in-50">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-amber-500 text-amber-700 bg-amber-100 font-bold text-xs"
+                >
+                  Payment Pending
+                </Badge>
+                <span className="text-xs text-muted-foreground font-semibold">
+                  Cashfree 0% Gateway Fee
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-surface-dark">
+                Complete Payment for Order #{order.orderNumber}
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-md">
+                Pay instantly using UPI (Google Pay, PhonePe, Paytm), Credit/Debit Card, or NetBanking to proceed with dispatch.
+              </p>
+              {cashfreeError && (
+                <p className="text-xs font-bold text-red-600 pt-1">
+                  ⚠️ {cashfreeError}
+                </p>
+              )}
+            </div>
+
+            <Button
+              onClick={handlePayWithCashfree}
+              disabled={isPayingWithCashfree}
+              className="w-full sm:w-auto h-12 px-6 rounded-2xl bg-primary text-white font-black text-sm shadow-md hover:bg-primary/90 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
+            >
+              {isPayingWithCashfree ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Opening Cashfree...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay ₹{order.totalAmount} via Cashfree</span>
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
       {/* 2. 4-STAGE VISUAL STATUS STEPPER */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm space-y-4">
@@ -584,7 +718,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                 </div>
               )}
               <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-sm text-surface-dark">
-                <span>Total Amount Paid</span>
+                <span>Total Amount {order.paymentStatus === "PAID" ? "Paid" : "Due"}</span>
                 <span className="font-black text-primary font-mono text-base">
                   ₹{order.totalAmount}
                 </span>
@@ -594,7 +728,21 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                 <span className="font-semibold text-surface-dark">
                   {order.paymentMethod === "UPI_DOORSTEP"
                     ? "UPI at Doorstep (Scan QR)"
-                    : "Online Prepaid (UPI App)"}
+                    : order.paymentMethod === "CASH_ON_DELIVERY"
+                    ? "Cash on Delivery"
+                    : "Cashfree Instant UPI / Cards (0% Fee)"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Payment Status:</span>
+                <span
+                  className={`font-bold ${
+                    order.paymentStatus === "PAID"
+                      ? "text-primary"
+                      : "text-amber-600"
+                  }`}
+                >
+                  {order.paymentStatus === "PAID" ? "PAID ✓" : "PENDING"}
                 </span>
               </div>
             </div>

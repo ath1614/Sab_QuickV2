@@ -29,7 +29,6 @@ import {
 } from "@/components/location/LocationPickerModal";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { loadRazorpayCheckoutScript } from "@/lib/razorpay";
 import { loadCashfreeSdk } from "@/lib/cashfree";
 import {
   ShoppingBag,
@@ -281,7 +280,7 @@ export function CartDrawer() {
       }
 
       // If Cashfree payment method, launch Cashfree Checkout modal (0% Fee)
-      if (paymentMethod === "CASHFREE") {
+      if (paymentMethod === "CASHFREE" || (paymentMethod as any) === "RAZORPAY") {
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
           setOrderError("Unable to load Cashfree payment SDK. Please try again.");
@@ -306,6 +305,9 @@ export function CartDrawer() {
           return;
         }
 
+        // Close the Cart Drawer so the Cashfree popup is completely unobstructed and responsive on both laptop (desktop) and mobile viewports
+        closeCart();
+
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
         });
@@ -315,7 +317,7 @@ export function CartDrawer() {
             paymentSessionId: cfData.paymentSessionId,
             redirectTarget: "_modal",
           })
-          .then(async () => {
+          .then(async (result: any) => {
             try {
               const verifyRes = await fetch("/api/payments/cashfree/verify", {
                 method: "POST",
@@ -325,7 +327,6 @@ export function CartDrawer() {
 
               if (verifyRes.ok) {
                 clearCart();
-                closeCart();
                 router.push(`/orders/${data.orderNumber}`);
               } else {
                 const errData = await verifyRes.json().catch(() => ({}));
@@ -338,89 +339,9 @@ export function CartDrawer() {
           })
           .catch((err: any) => {
             console.error("[Cashfree Checkout Error]:", err);
-            setOrderError("Payment was dismissed. You can retry anytime.");
             router.push(`/orders/${data.orderNumber}`);
           });
 
-        return;
-      }
-
-      // If Razorpay payment method, launch Razorpay Checkout modal
-      if (paymentMethod === "RAZORPAY") {
-        const isScriptLoaded = await loadRazorpayCheckoutScript();
-        if (!isScriptLoaded) {
-          setOrderError("Unable to load Razorpay payment SDK. Please try again.");
-          return;
-        }
-
-        const rzpRes = await fetch("/api/payments/razorpay/create-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: data.orderId }),
-        });
-
-        const rzpData = await rzpRes.json();
-        if (!rzpRes.ok) {
-          setOrderError(rzpData.error || "Failed to initiate Razorpay payment.");
-          return;
-        }
-
-        const options = {
-          key: rzpData.keyId,
-          amount: rzpData.amount,
-          currency: rzpData.currency || "INR",
-          name: "SabQuick",
-          description: `Order #${data.orderNumber}`,
-          order_id: rzpData.razorpayOrderId,
-          handler: async function (response: any) {
-            try {
-              const verifyRes = await fetch("/api/payments/razorpay/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  orderId: data.orderId,
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                }),
-              });
-
-              if (verifyRes.ok) {
-                clearCart();
-                closeCart();
-                router.push(`/orders/${data.orderNumber}`);
-              } else {
-                const errData = await verifyRes.json().catch(() => ({}));
-                const msg = errData.error || "Payment verification failed. Please contact support.";
-                setOrderError(msg);
-                alert(msg);
-              }
-            } catch (vErr: any) {
-              const msg = vErr.message || "Payment verification failed. Please contact support.";
-              setOrderError(msg);
-              alert(msg);
-            }
-          },
-          prefill: {
-            name: session?.user?.name || "",
-            email: session?.user?.email || "",
-            contact: session?.user?.phone || "",
-          },
-          theme: {
-            color: "#0B6E4F",
-          },
-          modal: {
-            ondismiss: function () {
-              setOrderError("Payment was cancelled. You can retry payment or choose another method.");
-            },
-          },
-        };
-
-        const rzpInstance = new (window as any).Razorpay(options);
-        rzpInstance.on("payment.failed", function (response: any) {
-          setOrderError(response.error?.description || "Payment failed. Please try again.");
-        });
-        rzpInstance.open();
         return;
       }
 
@@ -1085,8 +1006,8 @@ export function CartDrawer() {
                   <span>
                     {isPlacingOrder
                       ? "Processing..."
-                      : paymentMethod === "CASHFREE" || paymentMethod === "RAZORPAY"
-                      ? "Pay Online Now"
+                      : paymentMethod === "CASHFREE" || (paymentMethod as any) === "RAZORPAY"
+                      ? "Pay Online Now (Cashfree 0% Fee)"
                       : "Place Order"}
                   </span>
                 </div>

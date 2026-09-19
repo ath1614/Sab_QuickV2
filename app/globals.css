@@ -124,3 +124,12 @@
   }
 }
 
+/* Cashfree SDK Checkout Modal - Ensure highest z-index and unobstructed visibility across desktop & mobile */
+.cf-modal,
+#cf-checkout-frame,
+iframe[src*="cashfree.com"],
+div[id*="cashfree"] {
+  z-index: 999999 !important;
+}
+
+
