@@ -31,6 +31,10 @@ import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDraw
 import { AuthModal } from "@/components/auth/AuthModal";
 import { loadCashfreeSdk } from "@/lib/cashfree";
 import {
+  OrderCelebrationModal,
+  OrderCelebrationData,
+} from "@/components/orders/OrderCelebrationModal";
+import {
   ShoppingBag,
   Plus,
   Minus,
@@ -49,7 +53,19 @@ import {
   ArrowRight,
   Tag,
   Banknote,
+  Ticket,
 } from "lucide-react";
+
+export interface AvailableCoupon {
+  id: string;
+  code: string;
+  description: string | null;
+  discountType: "FLAT" | "PERCENTAGE";
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscount: number | null;
+  validTill: string;
+}
 
 export function CartDrawer() {
   const { data: session } = useSession();
@@ -92,7 +108,7 @@ export function CartDrawer() {
   const [isLoadingAddress, setIsLoadingAddress] =
     React.useState<boolean>(false);
 
-  // Order Placement State
+  // Order Placement & Celebration State
   const [isPlacingOrder, setIsPlacingOrder] = React.useState<boolean>(false);
   const [orderError, setOrderError] = React.useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = React.useState<{
@@ -100,8 +116,14 @@ export function CartDrawer() {
     deliveryOtp: string;
     totalAmount: number;
   } | null>(null);
+  const [celebrationOrder, setCelebrationOrder] = React.useState<OrderCelebrationData | null>(null);
+  const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
 
-  // Coupon State
+  // Available Promotional Coupons State
+  const [availableCoupons, setAvailableCoupons] = React.useState<AvailableCoupon[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = React.useState<boolean>(false);
+
+  // Coupon Input State
   const [couponCodeInput, setCouponCodeInput] = React.useState<string>("");
   const [isValidatingCoupon, setIsValidatingCoupon] = React.useState<boolean>(false);
   const [couponError, setCouponError] = React.useState<string | null>(null);
@@ -188,9 +210,31 @@ export function CartDrawer() {
     loadRecommendations();
   }, [items, isOpen]);
 
-  // Coupon Validation Handler
-  const handleApplyCoupon = async () => {
-    if (!couponCodeInput.trim()) return;
+  // Load active promotional coupons from store owner when cart opens
+  React.useEffect(() => {
+    async function loadCoupons() {
+      if (!isOpen) return;
+      setIsLoadingCoupons(true);
+      try {
+        const res = await fetch("/api/coupons");
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableCoupons(data.coupons || []);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch available coupons:", err);
+      } finally {
+        setIsLoadingCoupons(false);
+      }
+    }
+
+    loadCoupons();
+  }, [isOpen]);
+
+  // Coupon Validation Handler (supports 1-click apply from list or manual code input)
+  const handleApplyCoupon = async (codeToApply?: string) => {
+    const code = (codeToApply || couponCodeInput).trim().toUpperCase();
+    if (!code) return;
     setCouponError(null);
     setCouponSuccessMsg(null);
     setIsValidatingCoupon(true);
@@ -200,7 +244,7 @@ export function CartDrawer() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code: couponCodeInput.trim(),
+          code,
           cartTotal: totals.itemTotal,
         }),
       });
@@ -250,6 +294,16 @@ export function CartDrawer() {
 
     setIsPlacingOrder(true);
 
+    // Compute total savings for celebration pop-up
+    const mrpSavings = items.reduce(
+      (sum, item) =>
+        sum + Math.max(0, ((item.product.mrp || item.product.salePrice) - item.product.salePrice) * item.quantity),
+      0
+    );
+    const couponSavings = appliedCoupon?.discountAmount || 0;
+    const deliverySavings = totals.subtotalAfterDiscount >= 199 ? 15 : 0;
+    const totalSavings = mrpSavings + couponSavings + deliverySavings;
+
     try {
       const payload = {
         addressId: activeAddress.id,
@@ -279,11 +333,11 @@ export function CartDrawer() {
         return;
       }
 
-      // If Cashfree payment method, launch Cashfree Checkout modal (0% Fee)
+      // If Online payment method (Cashfree), launch payment checkout modal
       if (paymentMethod === "CASHFREE" || (paymentMethod as any) === "RAZORPAY") {
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
-          setOrderError("Unable to load Cashfree payment SDK. Please try again.");
+          setOrderError("Unable to load payment SDK. Please try again.");
           return;
         }
 
@@ -295,17 +349,17 @@ export function CartDrawer() {
 
         const cfData = await cfRes.json();
         if (!cfRes.ok) {
-          setOrderError(cfData.error || "Failed to initiate Cashfree payment.");
+          setOrderError(cfData.error || "Failed to initiate online payment.");
           return;
         }
 
         const Cashfree = (window as any).Cashfree;
         if (!Cashfree) {
-          setOrderError("Cashfree SDK not ready. Please try again.");
+          setOrderError("Payment SDK not ready. Please try again.");
           return;
         }
 
-        // Close the Cart Drawer so the Cashfree popup is completely unobstructed and responsive on both laptop (desktop) and mobile viewports
+        // Close Cart Drawer so modal is unobstructed on laptops and mobile devices
         closeCart();
 
         const cashfreeInstance = new Cashfree({
@@ -318,6 +372,12 @@ export function CartDrawer() {
             redirectTarget: "_modal",
           })
           .then(async (result: any) => {
+            if (result?.error) {
+              console.warn("[Payment modal closed/warning]:", result.error);
+              router.push(`/orders/${data.orderNumber}`);
+              return;
+            }
+
             try {
               const verifyRes = await fetch("/api/payments/cashfree/verify", {
                 method: "POST",
@@ -327,7 +387,20 @@ export function CartDrawer() {
 
               if (verifyRes.ok) {
                 clearCart();
-                router.push(`/orders/${data.orderNumber}`);
+                setCelebrationOrder({
+                  orderNumber: data.orderNumber,
+                  totalAmount: data.totalAmount,
+                  deliveryOtp: data.deliveryOtp,
+                  totalSavings,
+                  savingsBreakdown: {
+                    mrpSavings,
+                    couponSavings,
+                    couponCode: appliedCoupon?.code,
+                    deliverySavings,
+                  },
+                  paymentMethod: "CASHFREE",
+                });
+                setShowCelebration(true);
               } else {
                 const errData = await verifyRes.json().catch(() => ({}));
                 setOrderError(errData.error || "Payment verification pending.");
@@ -338,20 +411,29 @@ export function CartDrawer() {
             }
           })
           .catch((err: any) => {
-            console.error("[Cashfree Checkout Error]:", err);
+            console.error("[Checkout Error]:", err);
             router.push(`/orders/${data.orderNumber}`);
           });
 
         return;
       }
 
-      // Order created successfully for UPI_DOORSTEP
-      setOrderSuccess({
+      // Order placed for UPI_DOORSTEP or CASH_ON_DELIVERY
+      closeCart();
+      setCelebrationOrder({
         orderNumber: data.orderNumber,
         deliveryOtp: data.deliveryOtp,
         totalAmount: data.totalAmount,
+        totalSavings,
+        savingsBreakdown: {
+          mrpSavings,
+          couponSavings,
+          couponCode: appliedCoupon?.code,
+          deliverySavings,
+        },
+        paymentMethod,
       });
-
+      setShowCelebration(true);
       clearCart();
     } catch (err: any) {
       setOrderError(err.message || "An unexpected error occurred.");
@@ -736,23 +818,28 @@ export function CartDrawer() {
                 </div>
 
                 {/* 6. COUPON / PROMO CODE SECTION */}
-                <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2.5">
+                <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-surface-dark text-xs flex items-center gap-1.5">
                       <Tag className="w-3.5 h-3.5 text-primary" />
                       Coupons & Offers
                     </h4>
-                    {appliedCoupon && (
+                    {appliedCoupon ? (
                       <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                         {appliedCoupon.code} ACTIVE
                       </span>
-                    )}
+                    ) : availableCoupons.length > 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {availableCoupons.length} offer{availableCoupons.length > 1 ? "s" : ""} available
+                      </span>
+                    ) : null}
                   </div>
 
                   {appliedCoupon ? (
                     <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
                       <div>
                         <div className="font-bold text-emerald-800 flex items-center gap-1">
+                          <Ticket className="w-3.5 h-3.5 text-emerald-600" />
                           <span>{appliedCoupon.code}</span>
                           <span className="text-[11px] text-emerald-600 font-black">
                             (-₹{totals.discountAmount})
@@ -773,11 +860,12 @@ export function CartDrawer() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
+                      {/* Manual Code Input Bar */}
                       <div className="flex items-center gap-2">
                         <Input
                           type="text"
-                          placeholder="Enter code (e.g. WELCOME50)"
+                          placeholder="Enter coupon code"
                           value={couponCodeInput}
                           onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
                           className="h-9 text-xs uppercase font-mono tracking-wider font-bold"
@@ -792,7 +880,7 @@ export function CartDrawer() {
                           type="button"
                           size="sm"
                           disabled={!couponCodeInput.trim() || isValidatingCoupon}
-                          onClick={handleApplyCoupon}
+                          onClick={() => handleApplyCoupon()}
                           className="h-9 px-3.5 text-xs font-black bg-primary hover:bg-primary/90 text-white rounded-lg shadow-xs"
                         >
                           {isValidatingCoupon ? "..." : "APPLY"}
@@ -809,6 +897,82 @@ export function CartDrawer() {
                           {couponSuccessMsg}
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {/* DYNAMIC LIST OF AVAILABLE COUPONS CREATED BY OWNER */}
+                  {availableCoupons.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        Available Store Coupons
+                      </span>
+
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {availableCoupons.map((coupon) => {
+                          const isApplied = appliedCoupon?.code === coupon.code;
+                          const isEligible = totals.itemTotal >= coupon.minOrderAmount;
+                          const shortfall = Math.ceil(coupon.minOrderAmount - totals.itemTotal);
+
+                          return (
+                            <div
+                              key={coupon.id}
+                              className={`p-2.5 rounded-xl border transition-all ${
+                                isApplied
+                                  ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-400"
+                                  : isEligible
+                                  ? "bg-slate-50 border-slate-200 hover:border-primary/40 hover:bg-white"
+                                  : "bg-slate-50/50 border-slate-200 opacity-75"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-0.5 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-mono font-black text-xs text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                                      {coupon.code}
+                                    </span>
+                                    <span className="text-[11px] font-bold text-surface-dark">
+                                      {coupon.discountType === "FLAT"
+                                        ? `Flat ₹${coupon.discountValue} OFF`
+                                        : `${coupon.discountValue}% OFF${
+                                            coupon.maxDiscount ? ` (Up to ₹${coupon.maxDiscount})` : ""
+                                          }`}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground line-clamp-1">
+                                    {coupon.description ||
+                                      (coupon.minOrderAmount > 0
+                                        ? `Valid on orders above ₹${coupon.minOrderAmount}`
+                                        : "Valid on all orders")}
+                                  </p>
+                                  {!isEligible && (
+                                    <p className="text-[10px] text-amber-600 font-semibold">
+                                      Add ₹{shortfall} more to unlock
+                                    </p>
+                                  )}
+                                </div>
+
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={isApplied ? "outline" : "default"}
+                                  disabled={isApplied || !isEligible || isValidatingCoupon}
+                                  onClick={() => handleApplyCoupon(coupon.code)}
+                                  className={`h-7 px-3 text-[11px] font-black rounded-lg shrink-0 ${
+                                    isApplied
+                                      ? "border-emerald-500 text-emerald-700 bg-emerald-100"
+                                      : isEligible
+                                      ? "bg-primary hover:bg-primary/90 text-white"
+                                      : "bg-slate-200 text-slate-400 border-none"
+                                  }`}
+                                >
+                                  {isApplied ? "APPLIED ✓" : isEligible ? "APPLY" : "LOCKED"}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -887,7 +1051,7 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: Pay Online (Cashfree - 0% Fee) */}
+                    {/* Option 1: Pay Online */}
                     <div
                       onClick={() => setPaymentMethod("CASHFREE")}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
@@ -907,14 +1071,14 @@ export function CartDrawer() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-surface-dark">
-                              Pay Online (0% Fee)
+                              Pay Online
                             </span>
                             <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
                               Instant
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            UPI (GPay, PhonePe, Paytm), Cards, NetBanking
+                            UPI (Google Pay, PhonePe, Paytm), Cards & NetBanking
                           </p>
                         </div>
                       </div>
@@ -1005,9 +1169,9 @@ export function CartDrawer() {
                   <Zap className="w-5 h-5 fill-surface-dark" />
                   <span>
                     {isPlacingOrder
-                      ? "Processing..."
-                      : paymentMethod === "CASHFREE" || (paymentMethod as any) === "RAZORPAY"
-                      ? "Pay Online Now (Cashfree 0% Fee)"
+                      ? "Placing Order..."
+                      : paymentMethod === "CASHFREE"
+                      ? "Pay Online"
                       : "Place Order"}
                   </span>
                 </div>
@@ -1025,6 +1189,24 @@ export function CartDrawer() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Celebration Popup Modal with Confetti & Total Savings */}
+      <OrderCelebrationModal
+        isOpen={showCelebration}
+        order={celebrationOrder}
+        onClose={() => {
+          setShowCelebration(false);
+          setCelebrationOrder(null);
+        }}
+        onTrackOrder={() => {
+          const num = celebrationOrder?.orderNumber;
+          setShowCelebration(false);
+          setCelebrationOrder(null);
+          if (num) {
+            router.push(`/orders/${num}`);
+          }
+        }}
+      />
 
       {/* Auth & Verification Modals */}
       <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />

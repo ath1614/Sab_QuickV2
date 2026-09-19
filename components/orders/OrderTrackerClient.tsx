@@ -394,7 +394,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                   Payment Pending
                 </Badge>
                 <span className="text-xs text-muted-foreground font-semibold">
-                  Cashfree 0% Gateway Fee
+                  Instant Prepaid Checkout
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-surface-dark">
@@ -418,12 +418,12 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               {isPayingWithCashfree ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Opening Cashfree...</span>
+                  <span>Opening Payment...</span>
                 </>
               ) : (
                 <>
                   <CreditCard className="w-4 h-4" />
-                  <span>Pay ₹{order.totalAmount} via Cashfree</span>
+                  <span>Pay Online • ₹{order.totalAmount}</span>
                 </>
               )}
             </Button>
@@ -730,7 +730,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                     ? "UPI at Doorstep (Scan QR)"
                     : order.paymentMethod === "CASH_ON_DELIVERY"
                     ? "Cash on Delivery"
-                    : "Cashfree Instant UPI / Cards (0% Fee)"}
+                    : "Online Prepaid (UPI / Cards / NetBanking)"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
