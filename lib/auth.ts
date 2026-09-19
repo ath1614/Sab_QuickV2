@@ -30,14 +30,65 @@ export const authOptions: NextAuthOptions = {
         pin: { label: "PIN", type: "password" },
         name: { label: "Name", type: "text" },
         idToken: { label: "Firebase ID Token", type: "text" },
+        mobileExchangeToken: { label: "Mobile Exchange Token", type: "text" },
       },
       async authorize(credentials) {
+        // Self-heal: Guarantee columns like "pin" exist in PostgreSQL before queries execute
+        await ensureDatabaseSchema();
+
+        // 0. Mobile Deep Link Exchange Token (Return from External Chrome Browser to SabQuick APK)
+        if (credentials?.mobileExchangeToken) {
+          const exchangeToken = credentials.mobileExchangeToken.trim();
+          const exchangeKey = `auth:mobile-exchange:${exchangeToken}`;
+          const cachedData = await redis.get(exchangeKey);
+
+          if (!cachedData) {
+            throw new Error("Invalid or expired mobile exchange session.");
+          }
+
+          // Single-use token: Delete immediately
+          await redis.del(exchangeKey);
+
+          const { userId, email, phone: userPhone, name: userName } = JSON.parse(cachedData);
+
+          let dbUser = null;
+          if (userId) {
+            dbUser = await prisma.user.findUnique({ where: { id: userId } });
+          }
+          if (!dbUser && email) {
+            dbUser = await prisma.user.findUnique({ where: { email } });
+          }
+          if (!dbUser && userPhone) {
+            dbUser = await prisma.user.findUnique({ where: { phone: userPhone } });
+          }
+
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: email || undefined,
+                name: userName || "Customer",
+                phone: userPhone || undefined,
+                role: Role.CUSTOMER,
+                roles: [Role.CUSTOMER],
+                phoneVerified: Boolean(userPhone),
+              },
+            });
+          }
+
+          return {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: dbUser.role,
+            roles: dbUser.roles?.length ? dbUser.roles : [dbUser.role],
+            phone: dbUser.phone,
+            phoneVerified: dbUser.phoneVerified,
+          };
+        }
+
         if (!credentials?.phone) {
           throw new Error("Mobile number is required.");
         }
-
-        // Self-heal: Guarantee columns like "pin" exist in PostgreSQL before queries execute
-        await ensureDatabaseSchema();
 
         const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();

@@ -305,7 +305,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   };
 
   const handleGoogleLogin = () => {
-    signIn("google", { callbackUrl: window.location.pathname });
+    // Detect if running inside Capacitor native mobile app (Android APK)
+    const isNative =
+      typeof window !== "undefined" &&
+      (Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+        Boolean((window as any).Capacitor?.isNative));
+
+    const callbackUrl = isNative ? "/auth/mobile-return" : window.location.pathname;
+    signIn("google", { callbackUrl });
   };
 
   return (

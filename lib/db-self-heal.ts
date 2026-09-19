@@ -25,7 +25,20 @@ export async function ensureDatabaseSchema() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "razorpayPaymentId" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "razorpaySignature" TEXT;`);
 
-    // 4. Ensure OrderItem.productId foreign key cascades on delete
+    // 4. Ensure Cashfree 0% Fee Payment Gateway support
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'CASHFREE';
+      EXCEPTION
+        WHEN others THEN NULL;
+      END $$;
+    `);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreeOrderId" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentId" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentStatus" TEXT;`);
+
+    // 5. Ensure OrderItem.productId foreign key cascades on delete
     await prisma.$executeRawUnsafe(`
       DO $$
       BEGIN

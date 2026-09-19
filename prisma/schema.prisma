@@ -31,6 +31,7 @@ enum PaymentMethod {
   CASH_ON_DELIVERY
   ONLINE_PREPAID
   RAZORPAY
+  CASHFREE
 }
 
 enum DiscountType {
@@ -148,6 +149,9 @@ model Order {
   razorpayOrderId   String?
   razorpayPaymentId String?
   razorpaySignature String?
+  cashfreeOrderId        String?
+  cashfreePaymentId      String?
+  cashfreePaymentStatus  String?
   packedAt          DateTime?
   deliveredAt       DateTime?
   items             OrderItem[]

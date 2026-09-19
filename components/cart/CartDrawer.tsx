@@ -30,6 +30,7 @@ import {
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { loadRazorpayCheckoutScript } from "@/lib/razorpay";
+import { loadCashfreeSdk } from "@/lib/cashfree";
 import {
   ShoppingBag,
   Plus,
@@ -276,6 +277,71 @@ export function CartDrawer() {
         } else {
           setOrderError(data.error || "Failed to place order.");
         }
+        return;
+      }
+
+      // If Cashfree payment method, launch Cashfree Checkout modal (0% Fee)
+      if (paymentMethod === "CASHFREE") {
+        const isScriptLoaded = await loadCashfreeSdk();
+        if (!isScriptLoaded) {
+          setOrderError("Unable to load Cashfree payment SDK. Please try again.");
+          return;
+        }
+
+        const cfRes = await fetch("/api/payments/cashfree/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: data.orderId }),
+        });
+
+        const cfData = await cfRes.json();
+        if (!cfRes.ok) {
+          setOrderError(cfData.error || "Failed to initiate Cashfree payment.");
+          return;
+        }
+
+        const Cashfree = (window as any).Cashfree;
+        if (!Cashfree) {
+          setOrderError("Cashfree SDK not ready. Please try again.");
+          return;
+        }
+
+        const cashfreeInstance = new Cashfree({
+          mode: cfData.mode || "production",
+        });
+
+        cashfreeInstance
+          .checkout({
+            paymentSessionId: cfData.paymentSessionId,
+            redirectTarget: "_modal",
+          })
+          .then(async () => {
+            try {
+              const verifyRes = await fetch("/api/payments/cashfree/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: data.orderId }),
+              });
+
+              if (verifyRes.ok) {
+                clearCart();
+                closeCart();
+                router.push(`/orders/${data.orderNumber}`);
+              } else {
+                const errData = await verifyRes.json().catch(() => ({}));
+                setOrderError(errData.error || "Payment verification pending.");
+                router.push(`/orders/${data.orderNumber}`);
+              }
+            } catch (vErr: any) {
+              router.push(`/orders/${data.orderNumber}`);
+            }
+          })
+          .catch((err: any) => {
+            console.error("[Cashfree Checkout Error]:", err);
+            setOrderError("Payment was dismissed. You can retry anytime.");
+            router.push(`/orders/${data.orderNumber}`);
+          });
+
         return;
       }
 
@@ -900,12 +966,12 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: Pay Online */}
+                    {/* Option 1: Pay Online (Cashfree - 0% Fee) */}
                     <div
-                      onClick={() => setPaymentMethod("RAZORPAY")}
+                      onClick={() => setPaymentMethod("CASHFREE")}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "RAZORPAY"
-                          ? "border-primary bg-primary/5 shadow-2xs"
+                        paymentMethod === "CASHFREE"
+                          ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
                     >
@@ -913,16 +979,21 @@ export function CartDrawer() {
                         <input
                           type="radio"
                           name="paymentMethod"
-                          checked={paymentMethod === "RAZORPAY"}
-                          onChange={() => setPaymentMethod("RAZORPAY")}
+                          checked={paymentMethod === "CASHFREE"}
+                          onChange={() => setPaymentMethod("CASHFREE")}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
                         <div>
-                          <span className="text-xs font-bold text-surface-dark">
-                            Pay Online
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-surface-dark">
+                              Pay Online (0% Fee)
+                            </span>
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              Instant
+                            </span>
+                          </div>
                           <p className="text-[11px] text-muted-foreground">
-                            UPI, Cards, NetBanking
+                            UPI (GPay, PhonePe, Paytm), Cards, NetBanking
                           </p>
                         </div>
                       </div>
@@ -1014,8 +1085,8 @@ export function CartDrawer() {
                   <span>
                     {isPlacingOrder
                       ? "Processing..."
-                      : paymentMethod === "RAZORPAY"
-                      ? "Pay Now"
+                      : paymentMethod === "CASHFREE" || paymentMethod === "RAZORPAY"
+                      ? "Pay Online Now"
                       : "Place Order"}
                   </span>
                 </div>
