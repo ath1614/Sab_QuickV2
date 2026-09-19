@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
-import { loadCashfreeSdk } from "@/lib/cashfree";
+import { loadCashfreeSdk, setupCashfreeModalAdjuster } from "@/lib/cashfree";
 
 // Dynamically import Leaflet OrderRouteMap to disable SSR
 const DynamicOrderRouteMap = dynamic(
@@ -98,6 +98,28 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
   const [isPayingWithCashfree, setIsPayingWithCashfree] = React.useState<boolean>(false);
   const [cashfreeError, setCashfreeError] = React.useState<string | null>(null);
 
+  // Auto-verify payment status if returning from Cashfree with PENDING payment status
+  React.useEffect(() => {
+    if (order.paymentMethod === "CASHFREE" && order.paymentStatus === "PENDING") {
+      fetch("/api/payments/cashfree/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.orderId }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((resData) => {
+          if (resData && (resData.orderStatus === "PAID" || resData.paymentStatus === "SUCCESS")) {
+            setOrder((prev) => ({
+              ...prev,
+              paymentStatus: "PAID",
+              status: prev.status === "PENDING" ? "CONFIRMED" : prev.status,
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [order.orderId, order.paymentMethod, order.paymentStatus]);
+
   // Cashfree retry / completion payment handler
   const handlePayWithCashfree = async () => {
     setIsPayingWithCashfree(true);
@@ -129,6 +151,8 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
         setIsPayingWithCashfree(false);
         return;
       }
+
+      setupCashfreeModalAdjuster();
 
       const cashfreeInstance = new Cashfree({
         mode: data.mode || "production",

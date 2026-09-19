@@ -29,7 +29,7 @@ import {
 } from "@/components/location/LocationPickerModal";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { loadCashfreeSdk } from "@/lib/cashfree";
+import { loadCashfreeSdk, setupCashfreeModalAdjuster } from "@/lib/cashfree";
 import {
   OrderCelebrationModal,
   OrderCelebrationData,
@@ -112,6 +112,7 @@ export function CartDrawer() {
 
   // Order Placement & Celebration State
   const [isPlacingOrder, setIsPlacingOrder] = React.useState<boolean>(false);
+  const [isCashfreeActive, setIsCashfreeActive] = React.useState<boolean>(false);
   const [orderError, setOrderError] = React.useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = React.useState<{
     orderNumber: string;
@@ -362,6 +363,9 @@ export function CartDrawer() {
           return;
         }
 
+        setIsCashfreeActive(true);
+        setupCashfreeModalAdjuster();
+
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
         });
@@ -375,6 +379,8 @@ export function CartDrawer() {
             if (result?.error) {
               console.warn("[Payment modal closed/warning]:", result.error);
               setIsPlacingOrder(false);
+              setIsCashfreeActive(false);
+              setOrderError("Online payment window was closed. You can retry or select another payment option.");
               return;
             }
 
@@ -386,6 +392,7 @@ export function CartDrawer() {
               });
 
               if (verifyRes.ok) {
+                setIsCashfreeActive(false);
                 closeCart();
                 clearCart();
                 setCelebrationOrder({
@@ -403,12 +410,14 @@ export function CartDrawer() {
                 });
                 setShowCelebration(true);
               } else {
+                setIsCashfreeActive(false);
                 const errData = await verifyRes.json().catch(() => ({}));
                 setOrderError(errData.error || "Payment verification pending.");
                 closeCart();
                 router.push(`/orders/${data.orderNumber}`);
               }
             } catch (vErr: any) {
+              setIsCashfreeActive(false);
               closeCart();
               router.push(`/orders/${data.orderNumber}`);
             }
@@ -416,6 +425,8 @@ export function CartDrawer() {
           .catch((err: any) => {
             console.error("[Checkout Error]:", err);
             setIsPlacingOrder(false);
+            setIsCashfreeActive(false);
+            setOrderError(err.message || "Payment checkout encountered an issue.");
           });
 
         return;
@@ -452,11 +463,35 @@ export function CartDrawer() {
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
+          // Never dismiss drawer while payment processing or Cashfree is active
+          if (!open && (isPlacingOrder || isCashfreeActive)) {
+            return;
+          }
+          setIsOpen(open);
+        }}
+      >
         <SheetContent
           side="right"
           showCloseButton={false}
           className="w-full sm:max-w-md p-0 flex flex-col h-full bg-slate-50 overflow-hidden"
+          onPointerDownOutside={(e) => {
+            if (isPlacingOrder || isCashfreeActive) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (isPlacingOrder || isCashfreeActive) {
+              e.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            if (isPlacingOrder || isCashfreeActive) {
+              e.preventDefault();
+            }
+          }}
         >
           {/* Header with Notch Safe Area & Back Button */}
           <div className="pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-3.5 px-4 bg-white border-b border-border-subtle flex items-center justify-between sticky top-0 z-20 shadow-2xs">
@@ -1168,6 +1203,14 @@ export function CartDrawer() {
                     </div>
                   </div>
                 </div>
+
+                {/* Cashfree Active Banner */}
+                {isCashfreeActive && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2.5 animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600 shrink-0" />
+                    <span>Cashfree payment window is open. Complete payment in the popup or close it to choose another option.</span>
+                  </div>
+                )}
 
                 {/* Error Banner */}
                 {orderError && (

@@ -198,6 +198,88 @@ export function verifyCashfreeWebhookSignature({
 }
 
 /**
+ * Client-side: Adjusts Cashfree iframe/modal to ensure safe area clearance from phone notch & bottom navigation buttons.
+ */
+export function setupCashfreeModalAdjuster(): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const adjustElement = (node: Element) => {
+    if (
+      node.tagName === "IFRAME" &&
+      (node.id?.startsWith("frame-") ||
+        node.getAttribute("name")?.startsWith("framemodal-") ||
+        (node as HTMLIFrameElement).src?.includes("cashfree"))
+    ) {
+      const iframe = node as HTMLIFrameElement;
+      iframe.setAttribute(
+        "allow",
+        "payment *; publickey-credentials-get *; clipboard-read; clipboard-write"
+      );
+
+      const isMobile = window.innerWidth <= 640;
+      if (isMobile) {
+        iframe.style.setProperty("position", "fixed", "important");
+        iframe.style.setProperty(
+          "top",
+          "max(48px, calc(env(safe-area-inset-top, 0px) + 16px))",
+          "important"
+        );
+        iframe.style.setProperty(
+          "bottom",
+          "max(68px, calc(env(safe-area-inset-bottom, 0px) + 20px))",
+          "important"
+        );
+        iframe.style.setProperty("left", "8px", "important");
+        iframe.style.setProperty("right", "8px", "important");
+        iframe.style.setProperty("width", "calc(100vw - 16px)", "important");
+        iframe.style.setProperty(
+          "height",
+          "calc(100dvh - max(48px, calc(env(safe-area-inset-top, 0px) + 16px)) - max(68px, calc(env(safe-area-inset-bottom, 0px) + 20px)))",
+          "important"
+        );
+        iframe.style.setProperty(
+          "max-height",
+          "calc(100dvh - max(48px, calc(env(safe-area-inset-top, 0px) + 16px)) - max(68px, calc(env(safe-area-inset-bottom, 0px) + 20px)))",
+          "important"
+        );
+        iframe.style.setProperty("border-radius", "20px", "important");
+        iframe.style.setProperty(
+          "box-shadow",
+          "0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.65)",
+          "important"
+        );
+        iframe.style.setProperty("z-index", "2147483647", "important");
+        iframe.style.setProperty("box-sizing", "border-box", "important");
+        iframe.style.setProperty("background-color", "#ffffff", "important");
+      }
+    }
+  };
+
+  try {
+    document
+      .querySelectorAll('iframe[id^="frame-"], iframe[name^="framemodal-"], iframe[src*="cashfree"]')
+      .forEach(adjustElement);
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) {
+            adjustElement(node as Element);
+            (node as Element).querySelectorAll?.("iframe").forEach(adjustElement);
+          }
+        });
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  } catch (err) {
+    console.warn("Cashfree modal adjuster error:", err);
+    return () => {};
+  }
+}
+
+/**
  * Client-side: Dynamically loads the Cashfree v3 JS SDK.
  */
 export function loadCashfreeSdk(): Promise<boolean> {
@@ -208,6 +290,7 @@ export function loadCashfreeSdk(): Promise<boolean> {
     }
 
     if ((window as any).Cashfree) {
+      setupCashfreeModalAdjuster();
       resolve(true);
       return;
     }
@@ -215,7 +298,10 @@ export function loadCashfreeSdk(): Promise<boolean> {
     const script = document.createElement("script");
     script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
     script.async = true;
-    script.onload = () => resolve(true);
+    script.onload = () => {
+      setupCashfreeModalAdjuster();
+      resolve(true);
+    };
     script.onerror = () => {
       console.error("Failed to load Cashfree JS Checkout SDK.");
       resolve(false);
@@ -224,3 +310,4 @@ export function loadCashfreeSdk(): Promise<boolean> {
     document.body.appendChild(script);
   });
 }
+
