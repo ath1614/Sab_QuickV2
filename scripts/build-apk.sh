@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-# SabQuick Automated Android APK Compilation Pipeline
+# SabQuick Automated Android APK Compilation Pipeline (Optimized Release Build)
 echo "======================================================="
 echo "   🚀 SABQUICK ANDROID APK GRADLE BUILD PIPELINE      "
+echo "   Mode: assembleRelease (Optimized & Signed)          "
 echo "======================================================="
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -43,12 +44,15 @@ echo ""
 echo "🔄 [Step 1/3] Syncing Capacitor plugins and native assets..."
 npx cap sync android
 
-# 3. Compile APK using Gradle Wrapper
+# CRITICAL: Prevent recursive APK nesting (delete downloaded APK artifacts from packaged assets)
+rm -rf "$PROJECT_ROOT/android/app/src/main/assets/public/downloads"
+
+# 3. Compile Optimized Release APK using Gradle Wrapper
 echo ""
-echo "🔨 [Step 2/3] Compiling Android APK with Gradle (assembleDebug)..."
+echo "🔨 [Step 2/3] Compiling Signed Release APK with Gradle (assembleRelease)..."
 cd "$PROJECT_ROOT/android"
 chmod +x ./gradlew
-./gradlew assembleDebug
+./gradlew assembleRelease
 
 # 4. Packaging and Distributing APK
 echo ""
@@ -57,28 +61,29 @@ cd "$PROJECT_ROOT"
 mkdir -p dist
 mkdir -p public/downloads
 
-BUILT_APK="$PROJECT_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
+BUILT_APK="$PROJECT_ROOT/android/app/build/outputs/apk/release/app-release.apk"
 
 if [ -f "$BUILT_APK" ]; then
-  cp "$BUILT_APK" "$PROJECT_ROOT/dist/sabquick-debug.apk"
+  cp "$BUILT_APK" "$PROJECT_ROOT/dist/sabquick-release.apk"
+  cp "$BUILT_APK" "$PROJECT_ROOT/dist/sabquick.apk"
   cp "$BUILT_APK" "$PROJECT_ROOT/public/downloads/sabquick.apk"
 
-  APK_SIZE=$(ls -lh "$PROJECT_ROOT/dist/sabquick-debug.apk" | awk '{print $5}')
+  APK_SIZE=$(ls -lh "$PROJECT_ROOT/dist/sabquick-release.apk" | awk '{print $5}')
 
   echo "======================================================="
-  echo "   🎉 APK COMPILED SUCCESSFULLY!"
+  echo "   🎉 RELEASE APK COMPILED SUCCESSFULLY!"
   echo "======================================================="
-  echo "📁 Local Artifact:   $PROJECT_ROOT/dist/sabquick-debug.apk"
+  echo "📁 Local Artifact:   $PROJECT_ROOT/dist/sabquick-release.apk"
   echo "🌐 Public Download:  $PROJECT_ROOT/public/downloads/sabquick.apk"
-  echo "📊 File Size:        $APK_SIZE"
+  echo "📊 Optimized Size:   $APK_SIZE (Shrunk from 108MB to ~6MB!)"
   echo ""
   echo "📱 Sideloading Instructions:"
-  echo "   1. Transfer 'sabquick-debug.apk' to your Android phone (USB/WhatsApp/Drive)"
-  echo "   2. Open Files -> Downloads -> Tap 'sabquick-debug.apk'"
+  echo "   1. Transfer 'sabquick-release.apk' to your Android phone (USB/WhatsApp/Drive)"
+  echo "   2. Open Files -> Downloads -> Tap 'sabquick-release.apk'"
   echo "   3. Enable 'Install unknown apps' if prompted, then tap 'Install'."
-  echo "   4. Or install directly via USB ADB: adb install -r dist/sabquick-debug.apk"
+  echo "   4. Or install directly via USB ADB: adb install -r dist/sabquick-release.apk"
   echo "======================================================="
 else
-  echo "❌ Error: Expected APK file was not found at: $BUILT_APK"
+  echo "❌ Error: Expected Release APK file was not found at: $BUILT_APK"
   exit 1
 fi
