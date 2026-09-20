@@ -25,8 +25,6 @@ import {
   Lock,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { signInWithPhoneNumber, ConfirmationResult, RecaptchaVerifier } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
 
 interface AuthModalProps {
   open: boolean;
@@ -39,7 +37,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [fullName, setFullName] = React.useState<string>("");
   const [isNewUser, setIsNewUser] = React.useState<boolean>(false);
   const [otpDigits, setOtpDigits] = React.useState<string[]>(["", "", "", ""]);
-  const [isFirebaseOtp, setIsFirebaseOtp] = React.useState<boolean>(false);
   const [pinValue, setPinValue] = React.useState<string>("");
   const [staffRole, setStaffRole] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -49,8 +46,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [countdown, setCountdown] = React.useState<number>(0);
 
   const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
-  const confirmationResultRef = React.useRef<ConfirmationResult | null>(null);
-  const recaptchaVerifierRef = React.useRef<RecaptchaVerifier | null>(null);
 
   // Reset state when modal opens/closes
   React.useEffect(() => {
@@ -60,22 +55,12 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       setFullName("");
       setIsNewUser(false);
       setOtpDigits(["", "", "", ""]);
-      setIsFirebaseOtp(false);
       setPinValue("");
       setStaffRole("");
       setAutoOtp(null);
       setErrorMsg(null);
       setSuccessMsg(null);
       setCountdown(0);
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {
-          // ignore cleanup errors
-        }
-        recaptchaVerifierRef.current = null;
-      }
-      confirmationResultRef.current = null;
     }
   }, [open]);
 
@@ -129,49 +114,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       setIsNewUser(Boolean(data.isNewUser));
       setCountdown(data.cooldown || 60);
 
-      // Customer verification path: Firebase Phone Auth (10,000 Free Real SMS/Month)
-      if (data.useFirebase) {
-        setIsFirebaseOtp(true);
-        setOtpDigits(["", "", "", "", "", ""]);
-        setStep("OTP");
+      // Customer verification path: Direct 4-digit OTP (Zero-Captcha / Instant Verification)
+      setOtpDigits(["", "", "", ""]);
+      setStep("OTP");
 
-        try {
-          const auth = getFirebaseAuth();
-          if (recaptchaVerifierRef.current) {
-            try {
-              recaptchaVerifierRef.current.clear();
-            } catch (e) {
-              // ignore
-            }
-            recaptchaVerifierRef.current = null;
-          }
-
-          const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-            size: "invisible",
-          });
-          recaptchaVerifierRef.current = verifier;
-
-          const confirmation = await signInWithPhoneNumber(auth, `+91${cleanPhone}`, verifier);
-          confirmationResultRef.current = confirmation;
-          setSuccessMsg(`📲 6-digit SMS verification code dispatched to +91 ${cleanPhone}`);
-        } catch (fbErr: any) {
-          console.error("[Firebase Send Error]:", fbErr);
-          throw new Error(fbErr.message || "Failed to dispatch Firebase SMS. Please try again.");
-        }
+      if (data.freeOtp) {
+        setAutoOtp(data.freeOtp);
+        setOtpDigits(data.freeOtp.split(""));
+        setSuccessMsg("⚡ Verification code ready! Click 'Verify & Continue' below.");
       } else {
-        // Fallback OTP for Dev / Staging / CI tests
-        setIsFirebaseOtp(false);
-        setOtpDigits(["", "", "", ""]);
-        setStep("OTP");
-
-        if (data.freeOtp) {
-          setAutoOtp(data.freeOtp);
-          setOtpDigits(data.freeOtp.split(""));
-          setSuccessMsg("⚡ Quick-Login Code ready! Click 'Verify & Continue' below.");
-        } else {
-          setAutoOtp(null);
-          setSuccessMsg("Verification code dispatched via SMS.");
-        }
+        setAutoOtp(null);
+        setSuccessMsg(data.message || "4-digit verification code dispatched via SMS.");
       }
 
       // Focus first OTP box
@@ -193,8 +146,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     setOtpDigits(newDigits);
 
     // Auto-advance
-    const maxIdx = otpDigits.length - 1;
-    if (val && index < maxIdx) {
+    if (val && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -210,9 +162,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     setSuccessMsg(null);
 
     const otpCode = otpDigits.join("");
-    const requiredLen = isFirebaseOtp ? 6 : 4;
-    if (otpCode.length !== requiredLen) {
-      setErrorMsg(`Please enter the complete ${requiredLen}-digit verification code.`);
+    if (otpCode.length !== 4) {
+      setErrorMsg("Please enter the complete 4-digit verification code.");
       return;
     }
 
@@ -224,22 +175,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     try {
       setIsLoading(true);
 
-      let idToken: string | undefined;
-
-      // If Firebase Phone Auth was used, confirm code with Firebase client
-      if (isFirebaseOtp && confirmationResultRef.current) {
-        const userCredential = await confirmationResultRef.current.confirm(otpCode);
-        idToken = await userCredential.user.getIdToken();
-      }
-
       const signInPayload: Record<string, string> = {
         phone: phone.trim(),
+        otp: otpCode,
       };
-      if (idToken) {
-        signInPayload.idToken = idToken;
-      } else {
-        signInPayload.otp = otpCode;
-      }
       if (fullName.trim()) {
         signInPayload.name = fullName.trim();
       }
@@ -351,12 +290,9 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               ? "Store Owner account (+91 9109066668). Enter your 6-digit Secret Passcode."
               : step === "STAFF_PIN"
               ? `Internal Staff account (+91 ${phone}). Enter your 4-digit Staff PIN.`
-              : `Enter the ${isFirebaseOtp ? "6-digit SMS" : "4-digit"} code sent to +91 ${phone}`}
+              : `Enter the 4-digit verification code sent to +91 ${phone}`}
           </DialogDescription>
         </DialogHeader>
-
-        {/* Invisible Google reCAPTCHA Container for Firebase Phone Auth */}
-        <div id="recaptcha-container" />
 
         {errorMsg && (
           <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
@@ -682,10 +618,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               </div>
             )}
 
-            {/* Numeric OTP Inputs (4-digit fallback or 6-digit Firebase SMS) */}
+            {/* Numeric OTP Inputs (4-Digit Code) */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-surface-dark text-center block">
-                Enter {isFirebaseOtp ? "6-Digit SMS Code" : "4-Digit Code"}
+                Enter 4-Digit Code
               </label>
               <div className="flex justify-center gap-2 sm:gap-2.5">
                 {otpDigits.map((digit, idx) => (
@@ -733,7 +669,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <Button
               variant="default"
               className="w-full h-11 rounded-xl font-bold gap-2 shadow-sm"
-              disabled={otpDigits.join("").length !== (isFirebaseOtp ? 6 : 4) || isLoading}
+              disabled={otpDigits.join("").length !== 4 || isLoading}
               onClick={handleVerifyAndLogin}
             >
               {isLoading ? (

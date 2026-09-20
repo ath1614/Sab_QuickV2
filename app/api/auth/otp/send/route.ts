@@ -82,38 +82,62 @@ export async function POST(req: NextRequest) {
 
     const isNewUser = !existingUser || !existingUser.name;
 
-    // 6. SMS Dispatch Gateway Integration
-    if (process.env.SMS_GATEWAY_API_KEY && process.env.NODE_ENV === "production") {
-      // In production with live SMS credentials, forward to SMS gateway
+    // 6. Direct SMS Dispatch Gateway Integration (Fast2SMS / 2Factor / MSG91)
+    let smsDispatched = false;
+    const fast2smsKey = process.env.FAST2SMS_API_KEY || process.env.SMS_GATEWAY_API_KEY;
+    const twoFactorKey = process.env.TWOFACTOR_API_KEY;
+
+    if (fast2smsKey) {
       try {
-        console.log(`[SMS GATEWAY] Dispatching OTP to +91 ${phone}...`);
-        // Gateway dispatch hook (e.g., Fast2SMS / Twilio / MSG91)
+        console.log(`[SMS GATEWAY] Dispatching OTP via Fast2SMS to +91 ${phone}...`);
+        const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+          method: "POST",
+          headers: {
+            authorization: fast2smsKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            route: "otp",
+            variables_values: otpCode,
+            numbers: phone,
+          }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (d.return) smsDispatched = true;
       } catch (smsErr) {
-        console.error("[SMS Gateway Error]:", smsErr);
+        console.error("[Fast2SMS Gateway Error]:", smsErr);
+      }
+    } else if (twoFactorKey) {
+      try {
+        console.log(`[SMS GATEWAY] Dispatching OTP via 2Factor to +91 ${phone}...`);
+        await fetch(`https://2factor.in/API/V1/${twoFactorKey}/SMS/${phone}/${otpCode}/`);
+        smsDispatched = true;
+      } catch (smsErr) {
+        console.error("[2Factor Gateway Error]:", smsErr);
       }
     } else {
-      // Developer terminal output for local / staging verification
+      // Direct console log for development and staging
       console.log(`\n======================================================`);
-      console.log(`[SABQUICK SECURE OTP] >>> Phone: +91 ${phone} | OTP: ${otpCode} | Role: ${existingUser?.role || "CUSTOMER"} <<<`);
+      console.log(`[SABQUICK OTP] >>> Phone: +91 ${phone} | Code: ${otpCode} | Role: ${existingUser?.role || "CUSTOMER"} <<<`);
       console.log(`======================================================\n`);
     }
 
-    // Security: Never expose dev OTP for customers in production or when Firebase Phone Auth is enabled
-    const isProd = process.env.NODE_ENV === "production";
-    const hasFirebase = Boolean(
-      (process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBbGGhlWnPJm2BkwuGWXzpgqA0p233WrHE") &&
-      (process.env.FIREBASE_PROJECT_ID || "sabquick-17da6")
-    );
-    const shouldExposeDevOtp = !isProd && !hasFirebase && !process.env.SMS_GATEWAY_API_KEY;
+    // Zero-Captcha Policy:
+    // We permanently disable client-side reCAPTCHA (useFirebase: false) so customers
+    // never encounter fire-hydrant/traffic-light captcha challenges or WebView freezes.
+    const hasSmsGateway = Boolean(fast2smsKey || twoFactorKey);
+    const exposeDevCode = !hasSmsGateway || process.env.ENABLE_DEV_OTP_BANNER === "true";
 
     return NextResponse.json({
       success: true,
-      useFirebase: hasFirebase,
-      message: hasFirebase ? "Ready for Firebase Phone Authentication" : "OTP sent successfully",
+      useFirebase: false,
+      message: smsDispatched
+        ? "Verification code sent to your mobile phone"
+        : "Verification code ready",
       expiresIn: 300,
       cooldown: 60,
       isNewUser,
-      ...(shouldExposeDevOtp ? { freeOtp: otpCode } : {}),
+      ...(exposeDevCode ? { freeOtp: otpCode } : {}),
     });
   } catch (error: any) {
     console.error("[OTP Send Error]:", error);

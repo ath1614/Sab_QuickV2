@@ -136,13 +136,15 @@ div[class*="cashfree"] {
   pointer-events: auto !important;
 }
 
-/* Mobile: Ensure Cashfree Checkout Modal NEVER collapses with phone camera notch bar, status bar, or bottom Back and Home buttons */
+/* Mobile: Ensure Checkout & Third-Party Overlays NEVER collide with phone camera notch bar, status bar, or bottom navigation */
 @media (max-width: 640px) {
   iframe[id^="frame-"],
   iframe[name^="framemodal-"],
   iframe[src*="cashfree"],
   #cf-checkout-frame,
-  .cf-modal {
+  .cf-modal,
+  iframe[src*="recaptcha"],
+  div[style*="z-index: 2000000000"] {
     position: fixed !important;
     top: max(48px, calc(env(safe-area-inset-top, 0px) + 16px)) !important;
     bottom: max(68px, calc(env(safe-area-inset-bottom, 0px) + 20px)) !important;
