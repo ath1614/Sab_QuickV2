@@ -1251,6 +1251,26 @@ export default function OwnerCatalogPage() {
                     <span>Compressing &amp; uploading image...</span>
                   </div>
                 )}
+                {parentImage && (
+                  <div className="mt-2 flex items-center gap-2.5 p-2 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                      <img
+                        src={parentImage}
+                        alt="Category Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Image Loaded
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate font-mono">{parentImage}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1419,6 +1439,26 @@ export default function OwnerCatalogPage() {
                   <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Compressing &amp; uploading image...</span>
+                  </div>
+                )}
+                {subImage && (
+                  <div className="mt-2 flex items-center gap-2.5 p-2 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                      <img
+                        src={subImage}
+                        alt="Subcategory Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Image Loaded
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate font-mono">{subImage}</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1968,6 +2008,26 @@ export default function OwnerCatalogPage() {
                     <span>Compressing &amp; uploading photo (WebP)...</span>
                   </div>
                 )}
+                {editProdImage && (
+                  <div className="mt-2 flex items-center gap-2.5 p-2 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                      <img
+                        src={editProdImage}
+                        alt="Product Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Live Image Preview
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate font-mono">{editProdImage}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -2116,6 +2176,26 @@ export default function OwnerCatalogPage() {
                   <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Compressing &amp; uploading image...</span>
+                  </div>
+                )}
+                {editCatImage && (
+                  <div className="mt-2 flex items-center gap-2.5 p-2 bg-slate-950/80 border border-slate-800 rounded-xl">
+                    <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                      <img
+                        src={editCatImage}
+                        alt="Category Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Image Loaded
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate font-mono">{editCatImage}</p>
+                    </div>
                   </div>
                 )}
               </div>
