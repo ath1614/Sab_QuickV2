@@ -44,8 +44,9 @@ echo ""
 echo "🔄 [Step 1/3] Syncing Capacitor plugins and native assets..."
 npx cap sync android
 
-# CRITICAL: Prevent recursive APK nesting (delete downloaded APK artifacts from packaged assets)
+# CRITICAL: Prevent recursive APK nesting & bloating (delete downloads and user uploads from packaged assets)
 rm -rf "$PROJECT_ROOT/android/app/src/main/assets/public/downloads"
+rm -rf "$PROJECT_ROOT/android/app/src/main/assets/public/uploads"
 
 # 3. Compile Optimized Release APK using Gradle Wrapper
 echo ""

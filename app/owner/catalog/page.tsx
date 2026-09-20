@@ -24,7 +24,11 @@ import {
   TrendingDown,
   RefreshCw,
   ExternalLink,
+  Camera,
+  Upload,
+  Loader2,
 } from "lucide-react";
+import { compressProductImage } from "@/lib/image-compress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,6 +157,58 @@ export default function OwnerCatalogPage() {
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-");
+  };
+
+  // Image Upload Pipeline state & handler
+  const [uploadingTarget, setUploadingTarget] = React.useState<string | null>(null);
+
+  const handleFileUpload = async (
+    file: File,
+    target: "add-product" | "edit-product" | "add-parent-cat" | "add-sub-cat" | "edit-cat"
+  ) => {
+    try {
+      setUploadingTarget(target);
+      setErrorMsg(null);
+
+      // 1. Smart Client-Side WebP compression (shrinks 5MB-10MB phone camera photos to ~35KB-50KB)
+      const compressed = await compressProductImage(file, 800, 0.82);
+
+      const formData = new FormData();
+      formData.append("file", compressed.file);
+
+      const res = await fetch("/api/ops/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload image.");
+      }
+
+      const uploadedUrl = data.url || data.relativePath;
+
+      if (target === "add-product") {
+        setProdImage(uploadedUrl);
+      } else if (target === "edit-product") {
+        setEditProdImage(uploadedUrl);
+      } else if (target === "add-parent-cat") {
+        setParentImage(uploadedUrl);
+      } else if (target === "add-sub-cat") {
+        setSubImage(uploadedUrl);
+      } else if (target === "edit-cat") {
+        setEditCatImage(uploadedUrl);
+      }
+
+      setSuccessMsg(
+        `Photo captured & compressed (${compressed.originalSizeKb} KB → ${compressed.sizeKb} KB, -${compressed.savingsPercent}%)!`
+      );
+    } catch (err: any) {
+      console.error("[Image Upload Error]:", err);
+      setErrorMsg(err.message || "Failed to process photo.");
+    } finally {
+      setUploadingTarget(null);
+    }
   };
 
   // Fetch Categories
@@ -1124,15 +1180,72 @@ export default function OwnerCatalogPage() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-200 block mb-1.5">
-                  Image URL (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-black text-slate-200 block">
+                    Image URL (Optional)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="camera-add-parent"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "add-parent-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      id="upload-add-parent"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "add-parent-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "add-parent-cat"}
+                      onClick={() => document.getElementById("camera-add-parent")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
+                      title="Snap photo with device camera"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Camera</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "add-parent-cat"}
+                      onClick={() => document.getElementById("upload-add-parent")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
+                      title="Upload image from device gallery"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Gallery</span>
+                    </Button>
+                  </div>
+                </div>
                 <Input
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://... or capture using Camera above"
                   value={parentImage}
                   onChange={(e) => setParentImage(e.target.value)}
-                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
                 />
+                {uploadingTarget === "add-parent-cat" && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Compressing &amp; uploading image...</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1249,15 +1362,72 @@ export default function OwnerCatalogPage() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-200 block mb-1.5">
-                  Image URL (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-black text-slate-200 block">
+                    Image URL (Optional)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="camera-add-sub"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "add-sub-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      id="upload-add-sub"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "add-sub-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "add-sub-cat"}
+                      onClick={() => document.getElementById("camera-add-sub")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
+                      title="Snap photo with device camera"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Camera</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "add-sub-cat"}
+                      onClick={() => document.getElementById("upload-add-sub")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
+                      title="Upload image from device gallery"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Gallery</span>
+                    </Button>
+                  </div>
+                </div>
                 <Input
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://... or capture using Camera above"
                   value={subImage}
                   onChange={(e) => setSubImage(e.target.value)}
-                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
                 />
+                {uploadingTarget === "add-sub-cat" && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Compressing &amp; uploading image...</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1482,16 +1652,73 @@ export default function OwnerCatalogPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-black text-slate-200 block mb-1.5">
-                      Image URL *
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-200 block">
+                        Image URL *
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          id="camera-add-prod"
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleFileUpload(f, "add-product");
+                            e.target.value = "";
+                          }}
+                        />
+                        <input
+                          id="upload-add-prod"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleFileUpload(f, "add-product");
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadingTarget === "add-product"}
+                          onClick={() => document.getElementById("camera-add-prod")?.click()}
+                          className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
+                          title="Snap photo with device camera"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>Camera</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadingTarget === "add-product"}
+                          onClick={() => document.getElementById("upload-add-prod")?.click()}
+                          className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
+                          title="Upload image from device gallery"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Gallery</span>
+                        </Button>
+                      </div>
+                    </div>
                     <Input
                       required
-                      placeholder="https://images.unsplash.com/..."
+                      placeholder="https://... or capture using Camera above"
                       value={prodImage}
                       onChange={(e) => setProdImage(e.target.value)}
-                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
                     />
+                    {uploadingTarget === "add-product" && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Compressing &amp; uploading photo (WebP)...</span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1706,14 +1933,72 @@ export default function OwnerCatalogPage() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-200 block mb-1.5">
-                  Image URL
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-black text-slate-200 block">
+                    Image URL
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="camera-edit-prod"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "edit-product");
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      id="upload-edit-prod"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "edit-product");
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "edit-product"}
+                      onClick={() => document.getElementById("camera-edit-prod")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
+                      title="Snap photo with device camera"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Camera</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "edit-product"}
+                      onClick={() => document.getElementById("upload-edit-prod")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
+                      title="Upload image from device gallery"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Gallery</span>
+                    </Button>
+                  </div>
+                </div>
                 <Input
                   value={editProdImage}
                   onChange={(e) => setEditProdImage(e.target.value)}
-                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                  placeholder="https://... or capture using Camera above"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
                 />
+                {uploadingTarget === "edit-product" && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Compressing &amp; uploading photo (WebP)...</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1810,15 +2095,72 @@ export default function OwnerCatalogPage() {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-200 block mb-1.5">
-                  Image URL (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-black text-slate-200 block">
+                    Image URL (Optional)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="camera-edit-cat"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "edit-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      id="upload-edit-cat"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleFileUpload(f, "edit-cat");
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "edit-cat"}
+                      onClick={() => document.getElementById("camera-edit-cat")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
+                      title="Snap photo with device camera"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Camera</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={uploadingTarget === "edit-cat"}
+                      onClick={() => document.getElementById("upload-edit-cat")?.click()}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
+                      title="Upload image from device gallery"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Gallery</span>
+                    </Button>
+                  </div>
+                </div>
                 <Input
-                  placeholder="https://..."
+                  placeholder="https://... or capture using Camera above"
                   value={editCatImage}
                   onChange={(e) => setEditCatImage(e.target.value)}
-                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white"
+                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
                 />
+                {uploadingTarget === "edit-cat" && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Compressing &amp; uploading image...</span>
+                  </div>
+                )}
               </div>
 
               <div>

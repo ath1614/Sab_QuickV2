@@ -119,6 +119,8 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-sabquick-17da6}
       FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-firebase-adminsdk-fbsvc@sabquick-17da6.iam.gserviceaccount.com}
       FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+    volumes:
+      - uploads_prod:/app/public/uploads
     expose:
       - "3000"
     deploy:
@@ -169,6 +171,8 @@ volumes:
   caddy_data:
     driver: local
   caddy_config:
+    driver: local
+  uploads_prod:
     driver: local
 
 # ------------------------------------------------------------------------------

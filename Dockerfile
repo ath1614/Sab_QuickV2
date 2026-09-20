@@ -86,6 +86,7 @@ COPY --from=builder /app/public ./public
 
 # Setup directories and permissions
 RUN mkdir .next && chown nextjs:nodejs .next
+RUN mkdir -p public/uploads/products && chown -R nextjs:nodejs public/uploads
 
 # Copy standalone build output and static bundle
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
