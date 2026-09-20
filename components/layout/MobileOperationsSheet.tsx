@@ -29,6 +29,9 @@ import {
   ShieldCheck,
   Store,
   User,
+  FileText,
+  RotateCcw,
+  UserX,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -75,7 +78,7 @@ export function MobileOperationsSheet({
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="w-full max-h-[88dvh] rounded-t-3xl p-0 flex flex-col bg-slate-50 border-t border-border-subtle shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,16px)]"
+        className="w-full max-h-[88dvh] sm:max-w-lg sm:mx-auto sm:rounded-3xl sm:mb-6 sm:border rounded-t-3xl p-0 flex flex-col bg-slate-50 border-t border-border-subtle shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,16px)]"
       >
         {/* Handle / Drag Pill */}
         <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-3 shrink-0" />
@@ -378,44 +381,107 @@ export function MobileOperationsSheet({
               )}
             </div>
           </div>
+
+          {/* Account Policies & Compliance (Under User Account Profile) */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 px-1">
+              Account Policies &amp; Legal
+            </span>
+
+            <div className="bg-white rounded-2xl border border-border-subtle divide-y divide-slate-100 overflow-hidden shadow-xs">
+              {/* 1. Privacy Policy */}
+              <Link
+                href="/privacy"
+                onClick={handleLinkClick}
+                className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-dark group-hover:text-primary transition-colors">
+                      Privacy Policy
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Data protection, cookies &amp; customer security
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+              </Link>
+
+              {/* 2. Terms of Service */}
+              <Link
+                href="/terms"
+                onClick={handleLinkClick}
+                className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-dark group-hover:text-primary transition-colors">
+                      Terms of Service
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      User terms, delivery conditions &amp; store rules
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+              </Link>
+
+              {/* 3. Refund & Cancellation */}
+              <Link
+                href="/refund"
+                onClick={handleLinkClick}
+                className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                    <RotateCcw className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-dark group-hover:text-primary transition-colors">
+                      Refund &amp; Cancellation
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      10-minute grocery return &amp; settlement terms
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+              </Link>
+
+              {/* 4. Delete Account */}
+              <Link
+                href="/delete-account"
+                onClick={handleLinkClick}
+                className="flex items-center justify-between p-3.5 hover:bg-rose-50/50 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                    <UserX className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-rose-600 group-hover:text-rose-700 transition-colors">
+                      Delete Account
+                    </div>
+                    <p className="text-[11px] text-rose-400">
+                      Permanently remove your account and stored data
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-rose-400 group-hover:text-rose-600 transition-colors" />
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Footer: Legal Links & Sign Out */}
-        <div className="p-4 border-t border-border-subtle bg-white shrink-0 space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
-            <Link
-              href="/privacy"
-              onClick={() => onOpenChange(false)}
-              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
-            >
-              Privacy Policy
-            </Link>
-            <span>&bull;</span>
-            <Link
-              href="/terms"
-              onClick={() => onOpenChange(false)}
-              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
-            >
-              Terms of Service
-            </Link>
-            <span>&bull;</span>
-            <Link
-              href="/refund"
-              onClick={() => onOpenChange(false)}
-              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
-            >
-              Refund Policy
-            </Link>
-            <span>&bull;</span>
-            <Link
-              href="/delete-account"
-              onClick={() => onOpenChange(false)}
-              className="text-rose-500 hover:text-rose-700 transition-colors underline-offset-2 hover:underline"
-            >
-              Delete Account
-            </Link>
-          </div>
-
+        {/* Footer: Sign Out */}
+        <div className="p-4 border-t border-border-subtle bg-white shrink-0 space-y-2">
           <Button
             variant="outline"
             onClick={() => {
@@ -427,6 +493,9 @@ export function MobileOperationsSheet({
             <LogOut className="w-4 h-4" />
             <span>Sign Out of SabQuick</span>
           </Button>
+          <p className="text-[10px] text-center text-slate-400">
+            SabQuick &bull; Hyper-Local Provision Store &bull; v2.0
+          </p>
         </div>
       </SheetContent>
     </Sheet>

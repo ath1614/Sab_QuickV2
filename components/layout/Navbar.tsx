@@ -234,33 +234,40 @@ export function Navbar({
                   </span>
                 </button>
 
-                {/* Desktop User Info & Role Badge */}
-                <div className="hidden sm:flex flex-col items-end">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-surface-dark truncate max-w-[120px]">
-                      {user.name || user.email?.split("@")[0]}
-                    </span>
-                    <Badge variant={getRoleBadgeVariant(user.role)} className="text-[9px] py-0 px-1.5 uppercase font-bold">
-                      {user.role}
-                    </Badge>
-                  </div>
+                {/* Desktop User Info & Role Badge - Clickable to open Account & Policies Sheet */}
+                <button
+                  type="button"
+                  onClick={() => setOperationsSheetOpen(true)}
+                  className="hidden sm:flex items-center gap-2 p-1 pl-2.5 rounded-xl hover:bg-slate-100 border border-transparent hover:border-border-subtle transition-all text-right group cursor-pointer"
+                  title="View Account Profile, Orders & Legal Policies"
+                >
+                  <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-surface-dark truncate max-w-[120px] group-hover:text-primary transition-colors">
+                        {user.name || user.email?.split("@")[0]}
+                      </span>
+                      <Badge variant={getRoleBadgeVariant(user.role)} className="text-[9px] py-0 px-1.5 uppercase font-bold">
+                        {user.role}
+                      </Badge>
+                    </div>
 
-                  {/* Phone verification indicator */}
-                  {isPhoneVerified ? (
-                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      +91 {user.phone}
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => setPhoneDrawerOpen(true)}
-                      className="text-[10px] text-amber-700 hover:text-amber-800 font-bold flex items-center gap-0.5 animate-pulse"
-                    >
-                      <AlertTriangle className="w-3 h-3 text-amber-600" />
-                      Verify Phone
-                    </button>
-                  )}
-                </div>
+                    {/* Phone verification indicator */}
+                    {isPhoneVerified ? (
+                      <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        +91 {user.phone}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5 animate-pulse">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        Verify Phone
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
+                    {user.role === "OWNER" ? "👑" : (user.name?.[0] || "U").toUpperCase()}
+                  </div>
+                </button>
 
                 {/* Operations Quick Links */}
                 {user.role === "RIDER" && (

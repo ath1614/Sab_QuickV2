@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
               Introduction &amp; Scope
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              SabQuick Technologies (&quot;SabQuick&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) operates the SabQuick hyper-local provision store mobile applications and web storefront accessible at{" "}
+              SabQuick (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) operates the SabQuick hyper-local provision store mobile applications and web storefront accessible at{" "}
               <strong>https://srv1985371.hstgr.cloud</strong>. This Privacy Policy outlines our strict protocols regarding the collection, processing, storage, and deletion of personal data when you use our services.
             </p>
           </section>

@@ -478,14 +478,14 @@ function StorefrontContent() {
         onDecrement={(p) => removeItem(p.id)}
       />
 
-      {/* Store Footer & Legal Disclosures (Mandatory for App Store & Play Store Compliance) */}
-      <footer className="mt-16 sm:mt-20 border-t border-border-subtle bg-white py-10 pb-28 md:pb-10">
+      {/* Store Footer & Legal Disclosures (Visible on Web View, Hidden on Mobile App Screens) */}
+      <footer className="hidden md:block mt-16 sm:mt-20 border-t border-border-subtle bg-white py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground border-b border-slate-100 pb-6">
             <div className="flex items-center space-x-2.5">
               <Logo variant="icon" size={28} className="rounded-lg shrink-0" />
               <div>
-                <span className="font-extrabold text-surface-dark block text-sm">SabQuick Technologies</span>
+                <span className="font-extrabold text-surface-dark block text-sm">SabQuick</span>
                 <span className="text-[11px] text-slate-500">Hyper-Local 10-15 Min Grocery Fulfillment &bull; Ambikapur, Chhattisgarh</span>
               </div>
             </div>
@@ -508,7 +508,7 @@ function StorefrontContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
-            <span>&copy; {new Date().getFullYear()} SabQuick Retail. All rights reserved. Registered Indian MSME.</span>
+            <span>&copy; {new Date().getFullYear()} SabQuick. All rights reserved. Registered Indian MSME.</span>
             <span>Customer Support: contact@sabquick.com | +91 9109066668</span>
           </div>
         </div>
