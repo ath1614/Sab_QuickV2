@@ -29,6 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { compressProductImage } from "@/lib/image-compress";
+import { CameraCaptureModal } from "@/components/ui/CameraCaptureModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,6 +158,22 @@ export default function OwnerCatalogPage() {
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-");
+  };
+
+  // In-App Live Camera Modal State
+  const [cameraModalOpen, setCameraModalOpen] = React.useState<boolean>(false);
+  const [cameraTarget, setCameraTarget] = React.useState<
+    "add-product" | "edit-product" | "add-parent-cat" | "add-sub-cat" | "edit-cat" | null
+  >(null);
+  const [cameraModalTitle, setCameraModalTitle] = React.useState<string>("Snap Product Photo");
+
+  const openCameraFor = (
+    target: "add-product" | "edit-product" | "add-parent-cat" | "add-sub-cat" | "edit-cat",
+    title = "Snap Photo"
+  ) => {
+    setCameraTarget(target);
+    setCameraModalTitle(title);
+    setCameraModalOpen(true);
   };
 
   // Image Upload Pipeline state & handler
@@ -1186,18 +1203,6 @@ export default function OwnerCatalogPage() {
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
-                      id="camera-add-parent"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, "add-parent-cat");
-                        e.target.value = "";
-                      }}
-                    />
-                    <input
                       id="upload-add-parent"
                       type="file"
                       accept="image/*"
@@ -1213,9 +1218,9 @@ export default function OwnerCatalogPage() {
                       size="sm"
                       variant="outline"
                       disabled={uploadingTarget === "add-parent-cat"}
-                      onClick={() => document.getElementById("camera-add-parent")?.click()}
+                      onClick={() => openCameraFor("add-parent-cat", "Snap Category Photo")}
                       className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                      title="Snap photo with device camera"
+                      title="Snap photo with in-app camera"
                     >
                       <Camera className="w-3.5 h-3.5" />
                       <span>Camera</span>
@@ -1368,18 +1373,6 @@ export default function OwnerCatalogPage() {
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
-                      id="camera-add-sub"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, "add-sub-cat");
-                        e.target.value = "";
-                      }}
-                    />
-                    <input
                       id="upload-add-sub"
                       type="file"
                       accept="image/*"
@@ -1395,9 +1388,9 @@ export default function OwnerCatalogPage() {
                       size="sm"
                       variant="outline"
                       disabled={uploadingTarget === "add-sub-cat"}
-                      onClick={() => document.getElementById("camera-add-sub")?.click()}
+                      onClick={() => openCameraFor("add-sub-cat", "Snap Subcategory Photo")}
                       className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                      title="Snap photo with device camera"
+                      title="Snap photo with in-app camera"
                     >
                       <Camera className="w-3.5 h-3.5" />
                       <span>Camera</span>
@@ -1658,18 +1651,6 @@ export default function OwnerCatalogPage() {
                       </label>
                       <div className="flex items-center gap-1.5">
                         <input
-                          id="camera-add-prod"
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) handleFileUpload(f, "add-product");
-                            e.target.value = "";
-                          }}
-                        />
-                        <input
                           id="upload-add-prod"
                           type="file"
                           accept="image/*"
@@ -1685,9 +1666,9 @@ export default function OwnerCatalogPage() {
                           size="sm"
                           variant="outline"
                           disabled={uploadingTarget === "add-product"}
-                          onClick={() => document.getElementById("camera-add-prod")?.click()}
+                          onClick={() => openCameraFor("add-product", "Snap Product Photo")}
                           className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                          title="Snap photo with device camera"
+                          title="Snap photo with in-app camera"
                         >
                           <Camera className="w-3.5 h-3.5" />
                           <span>Camera</span>
@@ -1939,18 +1920,6 @@ export default function OwnerCatalogPage() {
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
-                      id="camera-edit-prod"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, "edit-product");
-                        e.target.value = "";
-                      }}
-                    />
-                    <input
                       id="upload-edit-prod"
                       type="file"
                       accept="image/*"
@@ -1966,9 +1935,9 @@ export default function OwnerCatalogPage() {
                       size="sm"
                       variant="outline"
                       disabled={uploadingTarget === "edit-product"}
-                      onClick={() => document.getElementById("camera-edit-prod")?.click()}
+                      onClick={() => openCameraFor("edit-product", "Snap Product Photo")}
                       className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                      title="Snap photo with device camera"
+                      title="Snap photo with in-app camera"
                     >
                       <Camera className="w-3.5 h-3.5" />
                       <span>Camera</span>
@@ -2101,18 +2070,6 @@ export default function OwnerCatalogPage() {
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
-                      id="camera-edit-cat"
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, "edit-cat");
-                        e.target.value = "";
-                      }}
-                    />
-                    <input
                       id="upload-edit-cat"
                       type="file"
                       accept="image/*"
@@ -2128,9 +2085,9 @@ export default function OwnerCatalogPage() {
                       size="sm"
                       variant="outline"
                       disabled={uploadingTarget === "edit-cat"}
-                      onClick={() => document.getElementById("camera-edit-cat")?.click()}
+                      onClick={() => openCameraFor("edit-cat", "Snap Category Photo")}
                       className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                      title="Snap photo with device camera"
+                      title="Snap photo with in-app camera"
                     >
                       <Camera className="w-3.5 h-3.5" />
                       <span>Camera</span>
@@ -2283,6 +2240,23 @@ export default function OwnerCatalogPage() {
           </div>
         </div>
       )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* IN-APP DIRECT CAMERA CAPTURE MODAL                            */}
+      {/* ------------------------------------------------------------- */}
+      <CameraCaptureModal
+        isOpen={cameraModalOpen}
+        onClose={() => {
+          setCameraModalOpen(false);
+          setCameraTarget(null);
+        }}
+        onCapture={(file) => {
+          if (cameraTarget) {
+            handleFileUpload(file, cameraTarget);
+          }
+        }}
+        title={cameraModalTitle}
+      />
     </div>
   );
 }
