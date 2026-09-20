@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Zap,
@@ -477,18 +478,38 @@ function StorefrontContent() {
         onDecrement={(p) => removeItem(p.id)}
       />
 
-      {/* Footer (Desktop Only - hidden on mobile apps) */}
-      <footer className="hidden md:block mt-20 border-t border-border-subtle bg-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center space-x-2">
-            <Logo variant="icon" size={24} className="rounded shrink-0" />
-            <span className="font-bold text-surface-dark">SabQuick Technologies</span>
-            <span>&copy; {new Date().getFullYear()} - Hyper-Local 10-15 Min Commerce</span>
+      {/* Store Footer & Legal Disclosures (Mandatory for App Store & Play Store Compliance) */}
+      <footer className="mt-16 sm:mt-20 border-t border-border-subtle bg-white py-10 pb-28 md:pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground border-b border-slate-100 pb-6">
+            <div className="flex items-center space-x-2.5">
+              <Logo variant="icon" size={28} className="rounded-lg shrink-0" />
+              <div>
+                <span className="font-extrabold text-surface-dark block text-sm">SabQuick Technologies</span>
+                <span className="text-[11px] text-slate-500">Hyper-Local 10-15 Min Grocery Fulfillment &bull; Ambikapur, Chhattisgarh</span>
+              </div>
+            </div>
+
+            {/* Legal & App Store Compliance Links */}
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-semibold text-slate-600">
+              <Link href="/privacy" className="hover:text-primary transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="hover:text-primary transition-colors">
+                Terms of Service
+              </Link>
+              <Link href="/refund" className="hover:text-primary transition-colors">
+                Refund &amp; Cancellation
+              </Link>
+              <Link href="/delete-account" className="hover:text-rose-600 transition-colors">
+                Delete Account
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <span>Next.js 14 (App Router)</span>
-            <span>Prisma + PostgreSQL 16</span>
-            <span>Redis 7 Cache</span>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
+            <span>&copy; {new Date().getFullYear()} SabQuick Retail. All rights reserved. Registered Indian MSME.</span>
+            <span>Customer Support: contact@sabquick.com | +91 9109066668</span>
           </div>
         </div>
       </footer>

@@ -380,8 +380,42 @@ export function MobileOperationsSheet({
           </div>
         </div>
 
-        {/* Footer: Sign Out */}
-        <div className="p-4 border-t border-border-subtle bg-white shrink-0">
+        {/* Footer: Legal Links & Sign Out */}
+        <div className="p-4 border-t border-border-subtle bg-white shrink-0 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+            <Link
+              href="/privacy"
+              onClick={() => onOpenChange(false)}
+              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            <span>&bull;</span>
+            <Link
+              href="/terms"
+              onClick={() => onOpenChange(false)}
+              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
+              Terms of Service
+            </Link>
+            <span>&bull;</span>
+            <Link
+              href="/refund"
+              onClick={() => onOpenChange(false)}
+              className="hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
+              Refund Policy
+            </Link>
+            <span>&bull;</span>
+            <Link
+              href="/delete-account"
+              onClick={() => onOpenChange(false)}
+              className="text-rose-500 hover:text-rose-700 transition-colors underline-offset-2 hover:underline"
+            >
+              Delete Account
+            </Link>
+          </div>
+
           <Button
             variant="outline"
             onClick={() => {
