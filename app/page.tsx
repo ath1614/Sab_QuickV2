@@ -362,10 +362,10 @@ function StorefrontContent() {
                 {activeSearch
                   ? `Search results for "${activeSearch}"`
                   : subParam
-                  ? `Aisle: ${subParam.replace(/-/g, " ").toUpperCase()}`
-                  : categoryParam !== "all"
-                  ? `Category: ${categoryParam.replace(/-/g, " ").toUpperCase()}`
-                  : "All Fresh Dark Store Catalog"}
+                    ? `Aisle: ${subParam.replace(/-/g, " ").toUpperCase()}`
+                    : categoryParam !== "all"
+                      ? `Category: ${categoryParam.replace(/-/g, " ").toUpperCase()}`
+                      : "All Fresh Dark Store Catalog"}
               </span>
               <Badge variant="outline" className="text-xs font-mono font-bold">
                 {products.length} Items
@@ -509,7 +509,7 @@ function StorefrontContent() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-400">
             <span>&copy; {new Date().getFullYear()} SabQuick. All rights reserved. Registered Indian MSME.</span>
-            <span>Customer Support: contact@sabquick.com | +91 9109066668</span>
+            <span>Customer Support: sabsupermart68@gmail.com | +91 9109066668</span>
           </div>
         </div>
       </footer>

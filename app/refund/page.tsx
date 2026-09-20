@@ -26,7 +26,7 @@ export default function RefundPolicyPage() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-8 pt-8 sm:pt-12">
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-border-subtle shadow-sm space-y-8">
-          
+
           {/* Title Hero */}
           <div className="border-b border-slate-100 pb-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3">
@@ -138,7 +138,7 @@ export default function RefundPolicyPage() {
             </h2>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 space-y-1 font-mono">
               <div><strong>Direct WhatsApp &amp; Call:</strong> +91 9109066668</div>
-              <div><strong>Support Email:</strong> contact@sabquick.com</div>
+              <div><strong>Support Email:</strong> sabsupermart68@gmail.com</div>
               <div><strong>Operating Hours:</strong> 7:00 AM – 11:00 PM IST (7 Days a Week)</div>
             </div>
           </section>

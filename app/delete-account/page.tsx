@@ -74,7 +74,7 @@ export default function DeleteAccountPage() {
       {/* Main Content */}
       <main className="max-w-xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12">
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-border-subtle shadow-sm space-y-6">
-          
+
           <div className="border-b border-slate-100 pb-5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-800 text-xs font-bold mb-3">
               <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
@@ -178,8 +178,8 @@ export default function DeleteAccountPage() {
           <div className="pt-4 border-t border-slate-100 text-center">
             <p className="text-[11px] text-slate-400">
               Need assistance? Email our Grievance Officer at{" "}
-              <a href="mailto:contact@sabquick.com" className="text-primary underline">
-                contact@sabquick.com
+              <a href="mailto:sabsupermart68@gmail.com" className="text-primary underline">
+                sabsupermart68@gmail.com
               </a>
             </p>
           </div>
