@@ -18,6 +18,9 @@ ThemeData buildSabQuickTheme({
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
+    // Inter is the default UI face; Space Grotesk is applied per-style via
+    // SQType (display/h1/h2) for headlines and numbers.
+    fontFamily: 'Inter',
     scaffoldBackgroundColor: SQColor.fog,
     appBarTheme: const AppBarTheme(
       backgroundColor: SQColor.fog,
@@ -56,7 +59,8 @@ ThemeData buildSabQuickTheme({
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(SQRadius.md),
         ),
-        textStyle: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900),
+        textStyle: const TextStyle(
+            fontFamily: 'Inter', fontSize: 14.5, fontWeight: FontWeight.w800),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -88,7 +92,10 @@ ThemeData buildSabQuickTheme({
       behavior: SnackBarBehavior.floating,
       backgroundColor: SQColor.ink,
       contentTextStyle: const TextStyle(
-          color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+          fontFamily: 'Inter',
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w700),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(SQRadius.sm),
       ),

@@ -113,6 +113,26 @@ class ApiClient {
     required String otp,
     String? name,
   }) async {
+    return _credentialsLogin(phone: phone, fields: {
+      'otp': otp,
+      if (name != null && name.isNotEmpty) 'name': name,
+    });
+  }
+
+  /// Step 2b: owner / staff login via passcode or PIN.
+  /// IMPORTANT: the backend authorize() checks the `pin` field FIRST —
+  /// sending a passcode in the `otp` field breaks owner/staff login.
+  Future<Map<String, dynamic>> loginWithPin({
+    required String phone,
+    required String pin,
+  }) async {
+    return _credentialsLogin(phone: phone, fields: {'pin': pin});
+  }
+
+  Future<Map<String, dynamic>> _credentialsLogin({
+    required String phone,
+    required Map<String, String> fields,
+  }) async {
     final csrf = await _getCsrfToken();
     final res = await _http.post(
       _uri('/api/auth/callback/credentials'),
@@ -121,8 +141,7 @@ class ApiClient {
       }),
       body: {
         'phone': phone,
-        'otp': otp,
-        if (name != null && name.isNotEmpty) 'name': name,
+        ...fields,
         'csrfToken': csrf,
         'json': 'true',
       },
@@ -141,14 +160,6 @@ class ApiClient {
     _sessionCookie = setCookie;
     await _fetchAndStoreSessionUser();
     return _user ?? {};
-  }
-
-  /// Step 2b: owner / staff login via passcode or PIN.
-  Future<Map<String, dynamic>> loginWithPin({
-    required String phone,
-    required String pin,
-  }) async {
-    return loginWithOtp(phone: phone, otp: pin);
   }
 
   Future<String> _getCsrfToken() async {

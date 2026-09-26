@@ -194,7 +194,10 @@ class _AuthScreenState extends State<AuthScreen>
         const SizedBox(height: 24),
         _brandHeader(),
         const SizedBox(height: SQSpace.lg),
-        const Text('Fresh groceries\ndelivered fast.', style: SQType.display),
+        HighlightText(
+          text: 'Fresh =groceries=\ndelivered =fast=.',
+          style: SQType.display,
+        ),
         const SizedBox(height: 8),
         Text(
           'Log in with your mobile number to shop the SabQuick dark store.',

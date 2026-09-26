@@ -603,7 +603,7 @@ export default function OwnerCatalogPage() {
                 title="Back to Hub"
               >
                 <ArrowLeft className="w-4 h-4 text-emerald-400" />
-                <span>Back</span>
+                <span>Hub</span>
               </Link>
               <div className="h-4 w-px bg-slate-700" />
               <Logo variant="compact" theme="dark" size={24} />
@@ -1149,7 +1149,7 @@ export default function OwnerCatalogPage() {
                   className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Back</span>
+                  <span>Close</span>
                 </Button>
                 <h3 className="text-sm font-black flex items-center gap-2 text-white">
                   <FolderTree className="w-4 h-4 text-emerald-400" />
@@ -1320,7 +1320,7 @@ export default function OwnerCatalogPage() {
                   className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Back</span>
+                  <span>Close</span>
                 </Button>
                 <h3 className="text-sm font-black flex items-center gap-2 text-white">
                   <Layers className="w-4 h-4 text-emerald-400" />
@@ -1511,7 +1511,7 @@ export default function OwnerCatalogPage() {
                   className="h-9 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs gap-1.5 border border-slate-700 shadow-xs"
                 >
                   <ArrowLeft className="w-4 h-4 text-emerald-400" />
-                  <span>Back to Catalog</span>
+                  <span>Close</span>
                 </Button>
                 <div className="h-5 w-px bg-slate-700 hidden sm:block" />
                 <div>
@@ -1763,7 +1763,7 @@ export default function OwnerCatalogPage() {
                       className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
-                      Back / Cancel
+                      Close / Cancel
                     </Button>
                     <Button
                       type="submit"
@@ -1869,7 +1869,7 @@ export default function OwnerCatalogPage() {
                   className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Back</span>
+                  <span>Close</span>
                 </Button>
                 <h3 className="text-sm font-black flex items-center gap-2 text-white">
                   <Edit2 className="w-4 h-4 text-emerald-400" />
@@ -2078,7 +2078,7 @@ export default function OwnerCatalogPage() {
                   className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Back</span>
+                  <span>Close</span>
                 </Button>
                 <h3 className="text-sm font-black flex items-center gap-2 text-white">
                   <Edit2 className="w-4 h-4 text-emerald-400" />
@@ -2252,7 +2252,7 @@ export default function OwnerCatalogPage() {
                   className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-slate-300" />
-                  <span>Back</span>
+                  <span>Close</span>
                 </Button>
                 <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
                   <Trash2 className="w-4 h-4 text-rose-500" />
