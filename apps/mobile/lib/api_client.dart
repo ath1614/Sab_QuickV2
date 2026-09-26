@@ -520,6 +520,17 @@ class ApiClient {
     return body as Map<String, dynamic>;
   }
 
+  /// Today's KPI metrics for the Everything/Manager header. Returns null on
+  /// any failure so boards render without the strip (staff roles get 403).
+  Future<Map<String, dynamic>?> fetchOpsMetrics() async {
+    try {
+      final data = await fetchOpsAnalytics();
+      return (data['metrics'] ?? data) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Staff directory — OWNER only (`/api/owner/staff`).
   Future<List<dynamic>> fetchStaff() async {
     final res = await _http.get(_uri('/api/owner/staff'), headers: _headers());

@@ -231,7 +231,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             CartScreen(cart: cart, primary: _primary, accent: _accent),
             OrdersScreen(primary: _primary, accent: _accent),
-            AccountScreen(primary: _primary),
+            AccountScreen(
+              primary: _primary,
+              onNavigateToOrders: () => setState(() => _tabIndex = 3),
+            ),
           ],
           destinations: [
             const NavigationDestination(
@@ -297,126 +300,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeTab() {
+    // NOTE: CustomScrollView.slivers accepts ONLY Sliver widgets. Spreading
+    // the rail Columns directly into it crashed the whole board (the grey
+    // release screen) — every section now lives in SliverToBoxAdapter.
     return RefreshIndicator(
       onRefresh: _loadAll,
       color: _primary,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // ── Brand header (logo asset, theme colors, SafeArea) ──
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 132,
-            toolbarHeight: 64,
-            backgroundColor: _primary,
-            surfaceTintColor: _primary,
-            automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: _primary,
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(SQSpace.md, 6, SQSpace.md, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              height: 30,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(SQRadius.xs),
-                              ),
-                              child: Image.asset(
-                                  'assets/brand/navbar-logo.png',
-                                  fit: BoxFit.contain),
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: SQColor.ink.withValues(alpha: 0.35),
-                                borderRadius:
-                                    BorderRadius.circular(SQRadius.pill),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.bolt_rounded,
-                                      color: SQColor.lime, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '10–15 MIN',
-                                    style: TextStyle(
-                                      color: SQColor.lime,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 11,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _saleTag,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(58),
-              child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(SQSpace.md, 0, SQSpace.md, 12),
-                child: GestureDetector(
-                  onTap: () => setState(() => _tabIndex = 1),
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(SQRadius.md),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.10),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search_rounded, color: _primary, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Search milk, bread, chips...',
-                            style: SQType.body.copyWith(
-                                color: const Color(0xFFA8A29B))),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // ── Brand header (theme colors, logo, search) ──
+          SliverToBoxAdapter(child: _brandHeader()),
 
           // ── Category tiles ──
           SliverToBoxAdapter(
@@ -425,20 +319,114 @@ class _HomeScreenState extends State<HomeScreen> {
               products: _products,
               primary: _primary,
               onSelect: (slug) async {
-                setState(() => _loading = true);
-                final products = await _api.fetchProducts(categoryId: slug);
-                if (!mounted) return;
-                setState(() {
-                  _products = products;
-                  _loading = false;
-                });
+                setState(() => _tabIndex = 1);
               },
             ),
           ),
 
           // ── Product rails ──
-          ..._buildRails(),
+          ..._buildRails()
+              .map((rail) => SliverToBoxAdapter(child: rail)),
         ],
+      ),
+    );
+  }
+
+  /// Flat brand header: green block with logo, ETA chip, sale tag and the
+  /// white search pill. A plain box (no SliverAppBar/FlexibleSpaceBar) so
+  /// the Color-derivation stays release-safe and the header never renders
+  /// as a blank block.
+  Widget _brandHeader() {
+    return Container(
+      color: _primary,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(SQSpace.md, 10, SQSpace.md, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    height: 30,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(SQRadius.xs),
+                    ),
+                    child: Image.asset('assets/brand/navbar-logo.png',
+                        fit: BoxFit.contain),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(SQRadius.pill),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.bolt_rounded,
+                            color: SQColor.lime, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '10–15 MIN',
+                          style: TextStyle(
+                            color: SQColor.lime,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _saleTag,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () => setState(() => _tabIndex = 1),
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(SQRadius.md),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search_rounded, color: _primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text('Search milk, bread, chips...',
+                          style: SQType.body
+                              .copyWith(color: const Color(0xFFA8A29B))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

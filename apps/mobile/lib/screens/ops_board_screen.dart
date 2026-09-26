@@ -31,6 +31,7 @@ class OpsBoardScreen extends StatefulWidget {
 class _OpsBoardScreenState extends State<OpsBoardScreen> {
   final _api = ApiClient.instance;
   Map<String, dynamic>? _grouped;
+  Map<String, dynamic>? _metrics; // today's KPIs (OWNER only; staff see none)
   bool _loading = true;
   String? _error;
   String? _busyOrderId;
@@ -97,10 +98,15 @@ class _OpsBoardScreenState extends State<OpsBoardScreen> {
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
-      final data = await _api.fetchOpsOrders();
+      final results = await Future.wait([
+        _api.fetchOpsOrders(),
+        _api.fetchOpsMetrics(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _grouped = data['grouped'] as Map<String, dynamic>?;
+        _grouped = (results[0] as Map<String, dynamic>)['grouped']
+            as Map<String, dynamic>?;
+        _metrics = results[1];
         _loading = false;
         _error = null;
       });
@@ -271,6 +277,33 @@ class _OpsBoardScreenState extends State<OpsBoardScreen> {
         ),
         const SizedBox(height: SQSpace.md),
 
+        // ── Today's KPI strip (mirrors the web Owner Hub cards) ──
+        if (_metrics != null) ...[
+          Row(
+            children: [
+              _KpiCard(
+                label: "Today's GMV",
+                value:
+                    '₹${((_metrics!['todayGMV'] ?? 0) as num).toStringAsFixed(0)}',
+                color: SQColor.green,
+              ),
+              const SizedBox(width: 8),
+              _KpiCard(
+                label: 'Delivered',
+                value: '${(_metrics!['completedOrders'] ?? 0) as num}',
+                color: const Color(0xFF3B82F6),
+              ),
+              const SizedBox(width: 8),
+              _KpiCard(
+                label: 'Low stock',
+                value: '${(_metrics!['lowStockCount'] ?? 0) as num}',
+                color: const Color(0xFFE5484D),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
+
         // Live counters strip
         Row(
           children: [
@@ -314,6 +347,20 @@ class _OpsBoardScreenState extends State<OpsBoardScreen> {
 
   List<Widget> _buildSection(
       String status, String label, Color color, List orders) {
+    // "Completed" mirrors the web's "Completed Today" card: historical
+    // delivered orders stay on the website's orders hub, not this live board.
+    if (status == 'DELIVERED') {
+      final now = DateTime.now();
+      orders = orders.where((o) {
+        final raw = (o as Map)['createdAt'];
+        if (raw is! String) return true; // shape change? show, don't hide.
+        final created = DateTime.tryParse(raw);
+        return created != null &&
+            created.year == now.year &&
+            created.month == now.month &&
+            created.day == now.day;
+      }).toList();
+    }
     if (orders.isEmpty) return [];
     return [
       Padding(
@@ -345,6 +392,52 @@ class _OpsBoardScreenState extends State<OpsBoardScreen> {
           onAdvance: () => _advance(order),
         ),
     ];
+  }
+}
+
+class _KpiCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _KpiCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.10),
+              SQColor.card,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(SQRadius.sm),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+                style: TextStyle(
+                  fontFamily: 'SpaceGrotesk',
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                )),
+            Text(label, style: SQType.micro.copyWith(letterSpacing: 0.3)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

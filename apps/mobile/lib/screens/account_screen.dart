@@ -14,7 +14,11 @@ import 'auth_screen.dart';
 class AccountScreen extends StatefulWidget {
   final Color primary;
 
-  const AccountScreen({super.key, required this.primary});
+  /// Switches the shell to the Orders tab (customer shell wires this up).
+  final VoidCallback? onNavigateToOrders;
+
+  const AccountScreen(
+      {super.key, required this.primary, this.onNavigateToOrders});
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
@@ -185,7 +189,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 icon: Icons.receipt_long_outlined,
                 title: 'My Orders',
                 subtitle: 'Live tracking, delivery OTP & history',
-                onTap: () {},
+                onTap: widget.onNavigateToOrders ?? () {},
                 trailing: const Icon(Icons.arrow_forward_rounded,
                     size: 16, color: SQColor.inkFaint),
               ),

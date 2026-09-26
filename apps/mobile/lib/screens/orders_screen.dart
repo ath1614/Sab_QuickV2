@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../design/widgets.dart';
 import 'tracking_screen.dart';
 
 /// Orders history + active deliveries.
@@ -59,15 +60,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
               color: widget.primary,
               child: _orders.isEmpty
                   ? ListView(
-                      children: const [
-                        SizedBox(height: 140),
-                        Center(
-                          child: Text(
-                            'No orders yet',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF64748B)),
-                          ),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 120),
+                        const SQEmpty(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'No orders yet',
+                          subtitle:
+                              'Your groceries will show up here once you place your first order.',
                         ),
                       ],
                     )
