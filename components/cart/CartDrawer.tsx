@@ -270,7 +270,7 @@ export function CartDrawer() {
         discountAmount: data.discountAmount,
         description: data.description,
       });
-      setCouponSuccessMsg(`Saved ₹${data.discountAmount} with ${data.code}! 🎉`);
+      setCouponSuccessMsg(`Saved ₹${data.discountAmount} with ${data.code}!`);
       setCouponCodeInput("");
     } catch (err: any) {
       setCouponError(err.message || "Failed to validate coupon.");
@@ -577,8 +577,9 @@ export function CartDrawer() {
                     </Badge>
                   )}
                 </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground truncate font-medium">
-                  ⚡ 10-15 Min Express Delivery
+                <SheetDescription className="text-xs text-muted-foreground truncate font-medium flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-primary fill-primary" />
+                  10-15 Min Express Delivery
                 </SheetDescription>
               </div>
             </div>
@@ -760,7 +761,7 @@ export function CartDrawer() {
                   {totals.itemTotal >= FREE_DELIVERY_THRESHOLD ? (
                     <div className="flex items-center gap-2 text-primary font-bold text-xs bg-primary/10 p-2 rounded-xl">
                       <Sparkles className="w-4 h-4 text-primary-accent fill-primary-accent" />
-                      <span>🎉 You&apos;ve unlocked FREE Delivery!</span>
+                      <span>You&apos;ve unlocked FREE Delivery!</span>
                     </div>
                   ) : (
                     <div>
@@ -1136,7 +1137,7 @@ export function CartDrawer() {
                                       : "bg-slate-200 text-slate-400 border-none"
                                   }`}
                                 >
-                                  {isApplied ? "APPLIED ✓" : isEligible ? "APPLY" : "LOCKED"}
+                                  {isApplied ? "APPLIED" : isEligible ? "APPLY" : "LOCKED"}
                                 </Button>
                               </div>
                             </div>

@@ -13,35 +13,35 @@ export const THEME_PRESETS = [
     name: "Forest Speed (Standard)",
     primary: "#0B6E4F",
     accent: "#00C853",
-    saleTag: "⚡ 10-15 Min Delivery Guarantee",
+    saleTag: "10-15 Min Delivery Guarantee",
     bannerUrl: "/banners/forest-speed-hero.webp",
   },
   {
     name: "Diwali Gold Dhamaka",
     primary: "#B45309",
     accent: "#F59E0B",
-    saleTag: "🪔 Diwali Dhamaka: 15-Min Festival Express",
+    saleTag: "Diwali Dhamaka: 15-Min Festival Express",
     bannerUrl: "/banners/diwali-express.webp",
   },
   {
     name: "Midnight Flash",
     primary: "#1E1B4B",
     accent: "#6366F1",
-    saleTag: "🌙 Midnight Flash: Late-Night Snacks & Drinks",
+    saleTag: "Midnight Flash: Late-Night Snacks & Drinks",
     bannerUrl: "/banners/midnight-flash.webp",
   },
   {
     name: "Summer Citrus Coolers",
     primary: "#EA580C",
     accent: "#FBBF24",
-    saleTag: "☀️ Summer Coolers: Ice Creams & Beverages",
+    saleTag: "Summer Coolers: Ice Creams & Beverages",
     bannerUrl: "/banners/summer-coolers.webp",
   },
   {
     name: "Holi Colors & Treats",
     primary: "#BE185D",
     accent: "#F43F5E",
-    saleTag: "🎨 Holi Utsav: Gulal, Sweets & Thandai",
+    saleTag: "Holi Utsav: Gulal, Sweets & Thandai",
     bannerUrl: "/banners/holi-sweets.webp",
   },
 ];
@@ -164,7 +164,7 @@ export function SeasonalThemeModal({
           {/* 1-Click Festival Presets */}
           <div>
             <label className="text-xs font-black uppercase tracking-wider text-slate-500 block mb-2">
-              ⚡ 1-Click Seasonal Presets
+              1-Click Seasonal Presets
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {THEME_PRESETS.map((preset) => {
@@ -223,7 +223,7 @@ export function SeasonalThemeModal({
                   required
                   value={saleTagText}
                   onChange={(e) => setSaleTagText(e.target.value)}
-                  placeholder="e.g. 🪔 15-Min Festival Express"
+                  placeholder="e.g. 15-Min Festival Express"
                   className="h-10 text-xs font-bold rounded-xl"
                 />
               </div>
@@ -302,7 +302,7 @@ export function SeasonalThemeModal({
                   <span>10-15 Min Delivery</span>
                 </div>
                 <h3 className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-sm">
-                  {saleTagText || "⚡ 10-15 Min Delivery Guarantee"}
+                  {saleTagText || "10-15 Min Delivery Guarantee"}
                 </h3>
               </div>
             </div>

@@ -23,6 +23,9 @@ import {
   User,
   KeyRound,
   Lock,
+  Crown,
+  Shield,
+  Zap,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -102,11 +105,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         setPinValue("");
         if (data.isOwner) {
           setStep("OWNER_PIN");
-          setSuccessMsg("👑 Store Owner detected. Enter your 6-digit passcode.");
+          setSuccessMsg("Store Owner detected. Enter your 6-digit passcode.");
         } else {
           setStep("STAFF_PIN");
           setStaffRole(data.role || "STAFF");
-          setSuccessMsg(`🛡️ Staff account [${data.role}] detected. Enter your 4-digit PIN.`);
+          setSuccessMsg(`Staff account [${data.role}] detected. Enter your 4-digit PIN.`);
         }
         return;
       }
@@ -121,7 +124,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       if (data.freeOtp) {
         setAutoOtp(data.freeOtp);
         setOtpDigits(data.freeOtp.split(""));
-        setSuccessMsg("⚡ Verification code ready! Click 'Verify & Continue' below.");
+        setSuccessMsg("Verification code ready! Click 'Verify & Continue' below.");
       } else {
         setAutoOtp(null);
         setSuccessMsg(data.message || "4-digit verification code dispatched via SMS.");
@@ -338,8 +341,9 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   </svg>
                   <span className="text-surface-dark font-extrabold">Continue with Google</span>
                 </div>
-                <Badge variant="accent" className="text-[10px] uppercase font-black px-2 py-0.5 tracking-wider">
-                  ⚡ Instant Login
+                <Badge variant="accent" className="gap-1 text-[10px] uppercase font-black px-2 py-0.5 tracking-wider">
+                  <Zap className="w-3 h-3 fill-surface-dark" />
+                  Instant Login
                 </Badge>
               </Button>
               <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
@@ -364,8 +368,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 Mobile Number
               </label>
               <div className="flex items-center gap-2">
-                <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center gap-1.5 text-xs font-bold text-surface-dark select-none">
-                  <span>🇮🇳</span>
+                <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center text-xs font-bold text-surface-dark select-none">
                   <span>+91</span>
                 </div>
                 <Input
@@ -416,7 +419,9 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/80 border border-amber-200">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <Badge className="bg-amber-500 text-white font-black text-[10px] px-1.5 py-0">👑 OWNER</Badge>
+                  <Badge className="gap-1 bg-amber-500 text-white font-black text-[10px] px-1.5 py-0">
+                    <Crown className="w-3 h-3" /> OWNER
+                  </Badge>
                   <span className="text-[11px] text-amber-900 font-semibold">Anurag Soni</span>
                 </div>
                 <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5">+91 {phone}</span>
@@ -499,7 +504,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               <div>
                 <div className="flex items-center gap-1.5">
                   <Badge className="bg-blue-600 text-white font-black text-[10px] px-1.5 py-0">
-                    🛡️ {staffRole}
+                    <Shield className="w-3 h-3" /> {staffRole}
                   </Badge>
                   <span className="text-[11px] text-blue-900 font-semibold">Store Operations</span>
                 </div>

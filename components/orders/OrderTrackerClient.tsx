@@ -468,7 +468,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               </span>
               <div className="font-mono text-lg font-black text-surface-dark flex items-center gap-1.5">
                 {isDelivered ? (
-                  <span className="text-primary">Delivered 🎉</span>
+                  <span className="text-primary">Delivered</span>
                 ) : (
                   <>
                     <span>
@@ -510,7 +510,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               </p>
               {cashfreeError && (
                 <p className="text-xs font-bold text-red-600 pt-1">
-                  ⚠️ {cashfreeError}
+                  {cashfreeError}
                 </p>
               )}
             </div>
@@ -867,7 +867,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                       : "text-amber-600"
                   }`}
                 >
-                  {order.paymentStatus === "PAID" ? "PAID ✓" : "PENDING"}
+                  {order.paymentStatus === "PAID" ? "PAID" : "PENDING"}
                 </span>
               </div>
             </div>

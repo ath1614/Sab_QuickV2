@@ -131,7 +131,7 @@ export function PhoneVerificationDrawer({
       if (data.freeOtp) {
         setAutoOtp(data.freeOtp);
         setOtpDigits(data.freeOtp.split(""));
-        setSuccessMsg("⚡ Quick-Code ready! Click 'Verify & Activate Account' below.");
+        setSuccessMsg("Quick-Code ready! Click 'Verify & Activate Account' below.");
       } else {
         setAutoOtp(null);
         setSuccessMsg("OTP sent! Please check your mobile messages.");
@@ -253,8 +253,7 @@ export function PhoneVerificationDrawer({
                   10-Digit Delivery Mobile Number
                 </label>
                 <div className="flex items-center gap-2">
-                  <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center gap-1.5 text-xs font-bold text-surface-dark select-none">
-                    <span>🇮🇳</span>
+                  <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center text-xs font-bold text-surface-dark select-none">
                     <span>+91</span>
                   </div>
                   <Input

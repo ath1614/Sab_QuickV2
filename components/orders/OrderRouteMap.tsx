@@ -57,7 +57,7 @@ export default function OrderRouteMap({
 
     storeMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #0B6E4F;">⚡ SabQuick Dark Store Hub</strong><br/>
+        <strong style="color: #0B6E4F;">SabQuick Dark Store Hub</strong><br/>
         Ambikapur Dispatch Center, Chhattisgarh<br/>
         <span style="color: #64748b;">Packing & Dispatch Hub</span>
       </div>
@@ -73,7 +73,7 @@ export default function OrderRouteMap({
 
     customerMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #111827;">📍 ${customerAddressLabel}</strong><br/>
+        <strong style="color: #111827;">${customerAddressLabel}</strong><br/>
         <span style="color: #00C853; font-weight: bold;">Destination</span>
       </div>
     `);
@@ -89,7 +89,7 @@ export default function OrderRouteMap({
 
       riderMarker.bindPopup(`
         <div style="font-size: 12px; line-height: 1.4;">
-          <strong style="color: #00C853;">⚡ EV Rider En Route</strong><br/>
+          <strong style="color: #00C853;">EV Rider En Route</strong><br/>
           <span style="color: #64748b;">Express courier in transit to doorstep</span>
         </div>
       `);

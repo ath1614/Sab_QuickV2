@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
       if (isPlaceholder || process.env.NODE_ENV !== "production") {
         console.warn(
-          "⚠️ Razorpay API error with placeholder/test keys. Using local test order ID for development:",
+          "Razorpay API error with placeholder/test keys. Using local test order ID for development:",
           err?.message || err
         );
         razorpayOrderId = `order_test_${order.orderNumber.replace(/[^a-zA-Z0-9]/g, "")}_${Date.now()}`;

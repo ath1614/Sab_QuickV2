@@ -90,7 +90,7 @@ export function DoorstepSettlement({
         return;
       }
 
-      setSuccessMsg("Order verified and settled successfully! 🎉");
+      setSuccessMsg("Order verified and settled successfully!");
       setTimeout(() => {
         onDeliveryCompleted();
       }, 1500);

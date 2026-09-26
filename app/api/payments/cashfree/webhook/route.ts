@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!isValid && process.env.NODE_ENV === "production") {
-      console.warn("⚠️ Invalid Cashfree webhook signature rejected.");
+      console.warn("Invalid Cashfree webhook signature rejected.");
       return NextResponse.json(
         { error: "Invalid webhook signature." },
         { status: 401 }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         });
 
         await updateOrderStatus(order.id, OrderStatus.CONFIRMED);
-        console.log(`✅ Order ${order.orderNumber} successfully confirmed via Cashfree webhook.`);
+        console.log(`Order ${order.orderNumber} successfully confirmed via Cashfree webhook.`);
       }
     }
 

@@ -136,7 +136,7 @@ export function ActiveDeliveryCard({
               className="h-12 sm:h-14 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors active:scale-98 shadow-sm"
             >
               <Phone className="w-4 h-4 text-primary-accent" />
-              <span>📞 Call Customer ({order.customer.phone})</span>
+            <span>Call Customer ({order.customer.phone})</span>
             </a>
           ) : (
             <Button
@@ -156,7 +156,7 @@ export function ActiveDeliveryCard({
             className="h-12 sm:h-14 rounded-2xl bg-primary-accent hover:bg-primary-accent/90 text-surface-dark font-black text-xs flex items-center justify-center gap-2 transition-all active:scale-98 shadow-lg shadow-primary-accent/20"
           >
             <Navigation className="w-4 h-4" />
-            <span>🗺️ Google Maps (Turn-by-Turn GPS)</span>
+            <span>Google Maps (Turn-by-Turn GPS)</span>
           </a>
         </div>
 

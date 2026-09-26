@@ -285,8 +285,8 @@ class _AuthScreenState extends State<AuthScreen>
                 border: Border.all(color: SQColor.line),
               ),
               alignment: Alignment.center,
-              child: const Text('🇮🇳 +91',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5)),
+              child: const Text('+91',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -394,12 +394,21 @@ class _AuthScreenState extends State<AuthScreen>
                     color: SQColor.lime.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(SQRadius.pill),
                   ),
-                  child: const Text(
-                    '⚡ Instant',
-                    style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
-                        color: SQColor.greenDeep),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bolt_rounded,
+                          size: 11, color: SQColor.greenDeep),
+                      const SizedBox(width: 2),
+                      Text(
+                        'INSTANT',
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                            color: SQColor.greenDeep),
+                      ),
+                    ],
                   ),
                 ),
               ],

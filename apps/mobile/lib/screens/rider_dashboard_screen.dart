@@ -117,7 +117,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     if (result != true) return;
     await _run(
       () => _api.verifyDeliveryOtp(order['id'] as String, controller.text.trim()),
-      'Delivery completed! 🎉',
+      'Delivery completed!',
     );
   }
 

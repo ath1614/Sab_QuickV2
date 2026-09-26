@@ -20,6 +20,9 @@ import {
   TrendingDown,
   ShoppingBag,
   PartyPopper,
+  Ticket,
+  Tag,
+  Truck,
 } from "lucide-react";
 
 export interface OrderCelebrationData {
@@ -125,11 +128,9 @@ export function OrderCelebrationModal({
             >
               Order Placed Successfully!
             </Badge>
-            <DialogTitle className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
-              Woohoo! It&apos;s Confirmed 🎉
+            <DialogTitle className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">                Woohoo! It&apos;s Confirmed
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">
-              ⚡ Your items are being packed at Dark Store Hub #01. Arriving in 10-15 mins!
+            <DialogDescription className="text-xs text-muted-foreground font-medium">                Your items are being packed at Dark Store Hub #01. Arriving in 10-15 mins!
             </DialogDescription>
           </DialogHeader>
 
@@ -150,18 +151,21 @@ export function OrderCelebrationModal({
               {order.savingsBreakdown && (
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[10px] text-emerald-800/80 font-semibold">
                   {(order.savingsBreakdown.couponSavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">
-                      🎟️ Coupon ({order.savingsBreakdown.couponCode}): -₹{order.savingsBreakdown.couponSavings}
+                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                      <Ticket className="w-3 h-3" />
+                      Coupon ({order.savingsBreakdown.couponCode}): -₹{order.savingsBreakdown.couponSavings}
                     </span>
                   )}
                   {(order.savingsBreakdown.mrpSavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">
-                      🏷️ MRP Discount: -₹{order.savingsBreakdown.mrpSavings}
+                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      MRP Discount: -₹{order.savingsBreakdown.mrpSavings}
                     </span>
                   )}
                   {(order.savingsBreakdown.deliverySavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">
-                      🚚 Free Delivery: -₹{order.savingsBreakdown.deliverySavings}
+                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                      <Truck className="w-3 h-3" />
+                      Free Delivery: -₹{order.savingsBreakdown.deliverySavings}
                     </span>
                   )}
                 </div>

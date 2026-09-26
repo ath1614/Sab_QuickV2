@@ -29,8 +29,8 @@ export default function NotFound() {
 
         {/* 404 Hero Illustration & Badge */}
         <div className="relative inline-flex items-center justify-center mt-2">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white border border-slate-200/80 shadow-xl shadow-emerald-950/5 flex flex-col items-center justify-center p-4 relative">
-            <span className="text-4xl sm:text-5xl">🛒</span>
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white border border-slate-200/80 shadow-xl shadow-emerald-950/5 flex flex-col items-center justify-center relative">
+            <ShoppingBag className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-600" />
             <span className="absolute -top-2 -right-2 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-black text-xs shadow-sm">
               404
             </span>

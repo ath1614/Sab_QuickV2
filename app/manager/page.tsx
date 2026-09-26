@@ -456,7 +456,7 @@ export default function ManagerDispatchPage() {
             </div>
             <div className="text-lg font-black text-surface-dark flex items-center gap-1.5">
               <span>{analytics?.avgPackingTimeMinutes || 2.4}m</span>
-              <span className="text-xs font-bold text-emerald-600">⚡ Target &lt;3m</span>
+              <span className="text-xs font-bold text-emerald-600">Target &lt;3m</span>
             </div>
           </div>
         </div>
@@ -1032,7 +1032,7 @@ export default function ManagerDispatchPage() {
                 <option value="">-- Select Rider ({onlineRidersCount} online) --</option>
                 {riders.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} ({r.isOnline ? "🟢 Online" : "⚪ Offline"}) - {r.vehicleDetails}
+                    {r.name} ({r.isOnline ? "Online" : "Offline"}) - {r.vehicleDetails}
                   </option>
                 ))}
               </select>

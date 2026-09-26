@@ -59,7 +59,7 @@ export default function LeafletMap({
 
     storeMarker.bindPopup(`
       <div style="font-family: inherit; font-size: 12px; padding: 2px;">
-        <strong style="color: #0B6E4F;">⚡ SabQuick Dark Store Hub #01</strong><br/>
+        <strong style="color: #0B6E4F;">SabQuick Dark Store Hub #01</strong><br/>
         Ambikapur Dark Store Hub, Chhattisgarh<br/>
         <span style="color: #64748b; font-size: 11px;">Geofence SLA: 2.5 km (10-15 Mins)</span>
       </div>

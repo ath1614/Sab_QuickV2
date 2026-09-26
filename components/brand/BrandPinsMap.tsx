@@ -36,7 +36,7 @@ export default function BrandPinsMap() {
 
     hubMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #0B6E4F;">⚡ SabQuick Dark Store Hub #01</strong><br/>
+        <strong style="color: #0B6E4F;">SabQuick Dark Store Hub #01</strong><br/>
         Central Delhi Dispatch Station<br/>
         <span style="color: #00C853; font-weight: bold;">Geofence SLA: 2.5 km</span>
       </div>
@@ -62,7 +62,7 @@ export default function BrandPinsMap() {
 
     customerInMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #111827;">📍 Customer Pin (In Range)</strong><br/>
+        <strong style="color: #111827;">Customer Pin (In Range)</strong><br/>
         <span style="color: #00C853; font-weight: bold;">0.9 km &bull; 11 Mins ETA</span>
       </div>
     `);
@@ -77,7 +77,7 @@ export default function BrandPinsMap() {
 
     customerOutMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #EF4444;">📍 Customer Pin (Out of Range)</strong><br/>
+        <strong style="color: #EF4444;">Customer Pin (Out of Range)</strong><br/>
         <span style="color: #EF4444; font-weight: bold;">3.4 km &bull; Outside 2.5 km Geofence</span>
       </div>
     `);
@@ -92,7 +92,7 @@ export default function BrandPinsMap() {
 
     riderMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong style="color: #00C853;">🛵 Electric Rider Fleet #04</strong><br/>
+        <strong style="color: #00C853;">Electric Rider Fleet #04</strong><br/>
         Live GPS Telemetry &bull; Speed 28 km/h<br/>
         <span style="color: #64748b;">En route with delivery order</span>
       </div>

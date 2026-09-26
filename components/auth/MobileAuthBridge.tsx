@@ -21,7 +21,7 @@ export function MobileAuthBridge() {
         const listenerHandle = await App.addListener("appUrlOpen", async (data) => {
           if (!isSubscribed || !data?.url) return;
 
-          console.log("📱 [MobileAuthBridge] Received deep link URL:", data.url);
+          console.log("[MobileAuthBridge] deep link:", data.url);
 
           try {
             // Handle sabquick://auth-callback?token=xxx
@@ -34,21 +34,21 @@ export function MobileAuthBridge() {
             }
 
             if (token) {
-              console.log("⚡ [MobileAuthBridge] Exchanging mobile token for active session...");
+              console.log("[MobileAuthBridge] exchanging mobile token...");
               const res = await signIn("credentials", {
                 mobileExchangeToken: token,
                 redirect: false,
               });
 
               if (res?.ok) {
-                console.log("🎉 [MobileAuthBridge] Native session established successfully!");
+                console.log("[MobileAuthBridge] native session established");
                 window.location.reload();
               } else {
-                console.error("❌ [MobileAuthBridge] Token exchange failed:", res?.error);
+                console.error("[MobileAuthBridge] token exchange failed:", res?.error);
               }
             }
           } catch (err) {
-            console.error("❌ [MobileAuthBridge] Failed parsing deep link URL:", err);
+            console.error("[MobileAuthBridge] failed parsing deep link URL:", err);
           }
         });
 
@@ -56,7 +56,7 @@ export function MobileAuthBridge() {
           listenerHandle.remove();
         };
       } catch (err) {
-        console.warn("⚠️ [MobileAuthBridge] @capacitor/app listener setup failed:", err);
+        console.warn("[MobileAuthBridge] @capacitor/app listener setup failed:", err);
       }
     }
 

@@ -21,6 +21,7 @@ import {
   PackageCheck,
   LayoutDashboard,
   TrendingUp,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -228,7 +229,7 @@ export function Navbar({
                   title="Open Operations & Role Hub"
                 >
                   <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black">
-                    {user.role === "OWNER" ? "👑" : user.name?.[0]?.toUpperCase() || "U"}
+                    {user.role === "OWNER" ? <Crown className="w-3 h-3 text-amber-500" /> : user.name?.[0]?.toUpperCase() || "U"}
                   </div>
                   <span className="text-[10px] font-black uppercase text-slate-700 max-w-[55px] truncate">
                     {user.role}
@@ -266,7 +267,7 @@ export function Navbar({
                     )}
                   </div>
                   <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
-                    {user.role === "OWNER" ? "👑" : (user.name?.[0] || "U").toUpperCase()}
+                    {user.role === "OWNER" ? <Crown className="w-3.5 h-3.5 text-amber-500" /> : (user.name?.[0] || "U").toUpperCase()}
                   </div>
                 </button>
 

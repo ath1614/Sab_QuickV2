@@ -179,7 +179,7 @@ export default function OwnerControlPage() {
   const [themeName, setThemeName] = React.useState("Forest Speed (Standard)");
   const [primaryColor, setPrimaryColor] = React.useState("#0B6E4F");
   const [accentColor, setAccentColor] = React.useState("#00C853");
-  const [saleTagText, setSaleTagText] = React.useState("⚡ 10-15 Min Delivery Guarantee");
+  const [saleTagText, setSaleTagText] = React.useState("10-15 Min Delivery Guarantee");
   const [bannerImageUrl, setBannerImageUrl] = React.useState("/banners/forest-speed-hero.webp");
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
@@ -1070,7 +1070,7 @@ export default function OwnerControlPage() {
                 {analytics?.avgPackingTimeMinutes || 2.4} min
               </div>
               <p className="text-xs font-semibold text-emerald-600 mt-1">
-                ⚡ Dark Store Packing Speed
+                Dark Store Packing Speed
               </p>
             </div>
           </div>
@@ -1271,7 +1271,7 @@ export default function OwnerControlPage() {
                 <Input
                   value={campaignForm.saleTagText}
                   onChange={(e) => setCampaignForm({ ...campaignForm, saleTagText: e.target.value })}
-                  placeholder="e.g. 🪔 Diwali Dhamaka — Festive Deals Live"
+                  placeholder="e.g. Diwali Dhamaka - Festive Deals Live"
                   className="h-9 text-xs rounded-lg"
                 />
               </div>
@@ -1314,7 +1314,7 @@ export default function OwnerControlPage() {
               <Input
                 value={saleTagText}
                 onChange={(e) => setSaleTagText(e.target.value)}
-                placeholder="⚡ 10-15 Min Delivery Guarantee"
+                placeholder="10-15 Min Delivery Guarantee"
                 className="h-10 rounded-xl"
               />
             </div>

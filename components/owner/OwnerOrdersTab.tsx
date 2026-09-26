@@ -397,7 +397,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                             <option value="">-- Unassigned --</option>
                             {(riders || []).map((r) => (
                               <option key={r.id} value={r.id}>
-                                🛵 {r.name || "Rider"} ({r.phone ? String(r.phone).slice(-4) : "...."})
+                                {r.name || "Rider"} ({r.phone ? String(r.phone).slice(-4) : "...."})
                               </option>
                             ))}
                           </select>

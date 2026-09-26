@@ -71,6 +71,7 @@ flutter:
   assets:
     - assets/brand/splash-logo.png
     - assets/brand/navbar-logo.png
+    - assets/brand/navbar-mark.png
     - assets/brand/app-icon.png
 
   # Custom typography: Space Grotesk (display) + Inter (UI/body)

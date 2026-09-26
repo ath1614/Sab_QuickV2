@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Color _primary = SQColor.green;
   Color _accent = SQColor.lime;
-  String _saleTag = '⚡ Super Fast Delivery';
+  String _saleTag = 'Super Fast Delivery';
 
   @override
   void initState() {
@@ -363,26 +363,10 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  // Brand lockup directly on the green (Blinkit pattern):
-                  // icon mark + white wordmark. No white box behind it.
-                  Image.asset('assets/brand/app-icon.png',
-                      width: 30, height: 30, fit: BoxFit.contain),
-                  const SizedBox(width: 8),
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [Colors.white, Color(0xFFC8F531)],
-                    ).createShader(bounds),
-                    child: const Text(
-                      'SabQuick',
-                      style: TextStyle(
-                        fontFamily: 'SpaceGrotesk',
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  // Official SQ speed-mark, white variant, straight on the
+                  // green header — blends with the theme (Blinkit pattern).
+                  Image.asset('assets/brand/navbar-mark.png',
+                      height: 34, fit: BoxFit.contain),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(

@@ -169,8 +169,8 @@ export default function DeleteAccountPage() {
                   Registered 10-Digit Mobile Number
                 </label>
                 <div className="flex items-center gap-2">
-                  <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center gap-1 text-xs font-bold text-slate-700 select-none">
-                    <span>🇮🇳 +91</span>
+                  <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center text-xs font-bold text-slate-700 select-none">
+                    <span>+91</span>
                   </div>
                   <Input
                     type="tel"
