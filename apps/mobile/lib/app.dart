@@ -6,8 +6,8 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme.dart';
 
-/// Root widget: builds the SabQuick Material 3 theme and routes between
-/// splash, auth and storefront based on the persisted session.
+/// Launch flow: stage 1 splash (brand, min 1.2s) → session bootstrap →
+/// stage 2 auth or stage 3/4 home (loading board → main board).
 class SabQuickApp extends StatefulWidget {
   const SabQuickApp({super.key});
 
@@ -26,7 +26,11 @@ class _SabQuickAppState extends State<SabQuickApp> {
   }
 
   Future<void> _bootstrap() async {
-    await ApiClient.instance.loadSession();
+    // Hold the brand splash for at least 1.2s so the launch never "flashes".
+    await Future.wait([
+      ApiClient.instance.loadSession(),
+      Future.delayed(const Duration(milliseconds: 1200)),
+    ]);
     if (!mounted) return;
     setState(() {
       _loggedIn = ApiClient.instance.isLoggedIn;

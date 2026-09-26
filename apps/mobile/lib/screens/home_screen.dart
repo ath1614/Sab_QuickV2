@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../cart_store.dart';
-import '../theme.dart';
+import '../design/tokens.dart';
+import '../design/widgets.dart';
 import '../widgets/product_card.dart';
-import '../widgets/pressable.dart';
 import 'aisles_screen.dart';
 import 'cart_screen.dart';
 import 'orders_screen.dart';
@@ -12,8 +12,8 @@ import 'account_screen.dart';
 import 'staff_orders_screen.dart';
 import 'rider_dashboard_screen.dart';
 
-/// Storefront home: theme-aware header, category tiles and product rails.
-/// Hosts the role-aware shell (customer 5-tab, packer/manager queue, rider dashboard).
+/// Stage 3: skeleton "loading board" shown while catalog + theme resolve.
+/// Stage 4: the main board — role-aware, theme-aware storefront.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -29,25 +29,48 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> _products = [];
   bool _loading = true;
   int _tabIndex = 0;
-  Color _primary = kBrandPrimary;
-  Color _accent = kBrandAccent;
-  String _saleTag = '⚡ 10-15 Min Delivery Guarantee';
+  String? _loadError;
+
+  Color _primary = SQColor.green;
+  Color _accent = SQColor.lime;
+  String _saleTag = '⚡ Super Fast Delivery';
 
   @override
   void initState() {
     super.initState();
-    _loadCatalog();
-    _loadTheme();
+    _loadAll();
   }
 
-  Future<void> _loadTheme() async {
-    final theme = await _api.fetchTheme();
-    if (!mounted || theme == null) return;
+  Future<void> _loadAll() async {
     setState(() {
-      _primary = _parseColor(theme['primaryColor'], kBrandPrimary);
-      _accent = _parseColor(theme['accentColor'], kBrandAccent);
-      _saleTag = (theme['saleTagText'] ?? _saleTag) as String;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final results = await Future.wait([
+        _api.fetchCategories(),
+        _api.fetchProducts(),
+        _api.fetchTheme(),
+      ]);
+      if (!mounted) return;
+      final theme = results[2] as Map<String, dynamic>?;
+      setState(() {
+        _categories = results[0] as List<dynamic>;
+        _products = results[1] as List<dynamic>;
+        if (theme != null) {
+          _primary = _parseColor(theme['primaryColor'], SQColor.green);
+          _accent = _parseColor(theme['accentColor'], SQColor.lime);
+          _saleTag = (theme['saleTagText'] ?? _saleTag) as String;
+        }
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Could not reach the store. Check your connection.';
+      });
+    }
   }
 
   Color _parseColor(dynamic hex, Color fallback) {
@@ -59,25 +82,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadCatalog() async {
-    setState(() => _loading = true);
-    final results = await Future.wait([
-      _api.fetchCategories(),
-      _api.fetchProducts(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _categories = results[0];
-      _products = results[1];
-      _loading = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Stage 3: placeholder loading board
+    if (_loading) return _LoadingBoard();
+
+    // Unrecoverable load failure (offline etc.)
+    if (_loadError != null && _categories.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(SQSpace.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SQEmpty(
+                  icon: Icons.wifi_off_rounded,
+                  title: 'You appear to be offline',
+                  subtitle: 'Pull down to retry once you are connected.',
+                ),
+                const SizedBox(height: SQSpace.lg),
+                SQButton(label: 'Retry', icon: Icons.refresh_rounded, onTap: _loadAll),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Stage 4: main board (role-aware)
     final role = (ApiClient.instance.user?['role'] ?? 'CUSTOMER') as String;
 
-    // ---- Role-aware shell: staff land straight in their tooling ----
     if (role == 'RIDER') {
       return _buildShell(
         screens: [
@@ -86,15 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.two_wheeler_outlined),
-            selectedIcon: Icon(Icons.two_wheeler),
-            label: 'Deliveries',
-          ),
+              icon: Icon(Icons.two_wheeler_outlined),
+              selectedIcon: Icon(Icons.two_wheeler),
+              label: 'Deliveries'),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Account',
-          ),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Account'),
         ],
       );
     }
@@ -107,21 +140,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Queue',
-          ),
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2),
+              label: 'Queue'),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Account',
-          ),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Account'),
         ],
       );
     }
 
-    // ---- Customer storefront (5 tabs) ----
     return _buildShell(
+      floatingCart: _tabIndex != 2,
       screens: [
         _buildHomeTab(),
         AislesScreen(
@@ -135,42 +166,41 @@ class _HomeScreenState extends State<HomeScreen> {
         OrdersScreen(primary: _primary, accent: _accent),
         AccountScreen(primary: _primary),
       ],
-      floatingCart: _tabIndex != 2,
       destinations: [
-          const NavigationDestination(
+        const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          const NavigationDestination(
+            label: 'Home'),
+        const NavigationDestination(
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view),
-            label: 'Aisles',
+            label: 'Aisles'),
+        NavigationDestination(
+          icon: Badge(
+            label: Text('${cart.totalQuantity}'),
+            isLabelVisible: cart.isNotEmpty,
+            backgroundColor: SQColor.lime,
+            textColor: SQColor.ink,
+            child: const Icon(Icons.shopping_bag_outlined),
           ),
-          NavigationDestination(
-            icon: Badge(
-              label: Text('${cart.totalQuantity}'),
-              isLabelVisible: cart.isNotEmpty,
-              child: const Icon(Icons.shopping_bag_outlined),
-            ),
-            selectedIcon: Badge(
-              label: Text('${cart.totalQuantity}'),
-              isLabelVisible: cart.isNotEmpty,
-              child: const Icon(Icons.shopping_bag),
-            ),
-            label: 'Cart',
+          selectedIcon: Badge(
+            label: Text('${cart.totalQuantity}'),
+            isLabelVisible: cart.isNotEmpty,
+            backgroundColor: SQColor.lime,
+            textColor: SQColor.ink,
+            child: const Icon(Icons.shopping_bag),
           ),
-          const NavigationDestination(
+          label: 'Cart',
+        ),
+        const NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          const NavigationDestination(
+            label: 'Orders'),
+        const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Account',
-          ),
-        ],
+            label: 'Account'),
+      ],
     );
   }
 
@@ -182,16 +212,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_tabIndex >= screens.length) _tabIndex = 0;
     return Scaffold(
       body: IndexedStack(index: _tabIndex, children: screens),
-      floatingActionButton:
-          floatingCart && cart.isNotEmpty
-              ? _FloatingCartPill(cart: cart, primary: _primary)
+      floatingActionButton: floatingCart && cart.isNotEmpty          ? _FloatingCartPill(
+              cart: cart,
+              primary: _primary,
+              onOpenCart: () => setState(() => _tabIndex = 2),
+            )
               : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() => _tabIndex = i),
-        backgroundColor: Colors.white,
-        indicatorColor: _primary.withValues(alpha: 0.12),
         destinations: destinations,
       ),
     );
@@ -199,96 +229,145 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeTab() {
     return RefreshIndicator(
-      onRefresh: _loadCatalog,
+      onRefresh: _loadAll,
       color: _primary,
       child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Green header — Blinkit style
+          // ── Brand header (logo asset, theme colors) ──
           SliverAppBar(
             pinned: true,
-            expandedHeight: 120,
+            expandedHeight: 132,
             toolbarHeight: 64,
             backgroundColor: _primary,
             surfaceTintColor: _primary,
             automaticallyImplyLeading: false,
             flexibleSpace: FlexibleSpaceBar(
-              background: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'SabQuick',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
+              background: Container(
+                color: _primary,
+                child: SafeArea(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(SQSpace.md, 6, SQSpace.md, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              height: 30,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius:
+                                    BorderRadius.circular(SQRadius.xs),
+                              ),
+                              child: Image.asset(
+                                  'assets/brand/navbar-logo.png',
+                                  fit: BoxFit.contain),
                             ),
-                          ),
-                          const Spacer(),
-                          Icon(Icons.flash_on, color: _accent, size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            '10-15 MIN',
-                            style: TextStyle(
-                              color: _accent,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: SQColor.ink.withValues(alpha: 0.35),
+                                borderRadius:
+                                    BorderRadius.circular(SQRadius.pill),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.bolt_rounded,
+                                      color: SQColor.lime, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '10–15 MIN',
+                                    style: TextStyle(
+                                      color: SQColor.lime,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _saleTag,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          _saleTag,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(56),
+              preferredSize: const Size.fromHeight(58),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: _SearchField(primary: _primary),
+                padding:
+                    const EdgeInsets.fromLTRB(SQSpace.md, 0, SQSpace.md, 12),
+                child: GestureDetector(
+                  onTap: () => setState(() => _tabIndex = 1),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(SQRadius.md),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search_rounded, color: _primary, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Search milk, bread, chips...',
+                            style: SQType.body.copyWith(
+                                color: const Color(0xFFA8A29B))),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
 
-          // Category tiles
+          // ── Category tiles ──
           SliverToBoxAdapter(
-            child: _loading
-                ? _HomeSkeleton(primary: _primary)
-                : _CategoryTiles(
-                    categories: _categories,
-                    products: _products,
-                    primary: _primary,
-                    accent: _accent,
-                    onSelect: (slug) async {
-                      setState(() => _loading = true);
-                      final products =
-                          await _api.fetchProducts(categoryId: slug);
-                      if (!mounted) return;
-                      setState(() {
-                        _products = products;
-                        _loading = false;
-                      });
-                    },
-                  ),
+            child: _CategoryTiles(
+              categories: _categories,
+              products: _products,
+              primary: _primary,
+              onSelect: (slug) async {
+                setState(() => _loading = true);
+                final products = await _api.fetchProducts(categoryId: slug);
+                if (!mounted) return;
+                setState(() {
+                  _products = products;
+                  _loading = false;
+                });
+              },
+            ),
           ),
 
-          // Product rails per category
-          if (!_loading)
-            ..._buildRails(),
+          // ── Product rails ──
+          ..._buildRails(),
         ],
       ),
     );
@@ -312,65 +391,99 @@ class _HomeScreenState extends State<HomeScreen> {
           products: railProducts,
           cart: cart,
           primary: _primary,
-          accent: _accent,
         ),
       );
     }
-    // Anything not in a known parent gets a fallback rail.
     final knownIds = <String>{
       for (final c in _categories) c['id'] as String,
       for (final c in _categories)
-        ...((c['subCategories'] as List?) ?? [])
-            .map((s) => s['id'] as String),
+        ...((c['subCategories'] as List?) ?? []).map((s) => s['id'] as String),
     };
     final extras = _products
         .where((p) => !knownIds.contains(p['category']?['id']))
         .take(10)
         .toList();
     if (extras.isNotEmpty) {
-      rails.add(
-        _ProductRail(
-          title: 'More for you',
-          products: extras,
-          cart: cart,
-          primary: _primary,
-          accent: _accent,
-        ),
-      );
+      rails.add(_ProductRail(
+        title: 'More for you',
+        products: extras,
+        cart: cart,
+        primary: _primary,
+      ));
     }
-    rails.add(const SizedBox(height: 24));
+    rails.add(const SizedBox(height: 28));
     return rails;
   }
 }
 
-class _SearchField extends StatelessWidget {
-  final Color primary;
-  const _SearchField({required this.primary});
+// ═════════════════ Stage 3: skeleton loading board ═════════════════
 
+class _LoadingBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return Scaffold(
+      backgroundColor: SQColor.fog,
+      appBar: AppBar(
+        backgroundColor: SQColor.green,
+        toolbarHeight: 96,
+        automaticallyImplyLeading: false,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SQSkeleton(width: 120, height: 26, radius: 8),
+            const SizedBox(height: 6),
+            SQSkeleton(width: 200, height: 12, radius: 6),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(58),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: SQSkeleton(height: 48, radius: SQRadius.md),
           ),
-        ],
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      alignment: Alignment.centerLeft,
-      child: Row(
+      body: ListView(
+        padding: const EdgeInsets.all(SQSpace.md),
         children: [
-          Icon(Icons.search, color: primary, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'Search milk, bread, chips...',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          Row(
+            children: List.generate(
+              3,
+              (i) => const Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: 10),
+                  child: SQSkeleton(height: 92, radius: SQRadius.md),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: SQSpace.lg),
+          const SQSkeleton(height: 18, radius: 6),
+          const SizedBox(height: SQSpace.sm),
+          SizedBox(
+            height: 220,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 3,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, _) => const SQSkeleton(
+                  width: 150, height: 220, radius: SQRadius.md),
+            ),
+          ),
+          const SizedBox(height: SQSpace.md),
+          const SQSkeleton(height: 18, radius: 6),
+          const SizedBox(height: SQSpace.sm),
+          SizedBox(
+            height: 220,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 3,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, _) => const SQSkeleton(
+                  width: 150, height: 220, radius: SQRadius.md),
+            ),
           ),
         ],
       ),
@@ -378,18 +491,18 @@ class _SearchField extends StatelessWidget {
   }
 }
 
+// ═════════════════ Home board pieces ═════════════════
+
 class _CategoryTiles extends StatelessWidget {
   final List<dynamic> categories;
   final List<dynamic> products;
   final Color primary;
-  final Color accent;
   final ValueChanged<String> onSelect;
 
   const _CategoryTiles({
     required this.categories,
     required this.products,
     required this.primary,
-    required this.accent,
     required this.onSelect,
   });
 
@@ -397,73 +510,65 @@ class _CategoryTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     final tiles = categories.take(9).toList();
     if (tiles.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 0, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Shop by Category',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: tiles.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (context, i) {
-                final cat = tiles[i] as Map<String, dynamic>;
-                final name = (cat['name'] ?? '') as String;
-                return Pressable(
-                  onTap: () => onSelect(cat['slug'] as String? ?? ''),
-                  child: Container(
-                    width: 84,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE8EDF2)),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.08),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.storefront, color: primary, size: 20),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                            height: 1.15,
-                          ),
-                        ),
-                      ],
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SQSectionHeader(title: 'Shop by category'),
+        SizedBox(
+          height: 104,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding:
+                const EdgeInsets.symmetric(horizontal: SQSpace.md),
+            itemCount: tiles.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, i) {
+              final cat = tiles[i] as Map<String, dynamic>;
+              final name = (cat['name'] ?? '') as String;
+              return GestureDetector(
+                onTap: () => onSelect(cat['slug'] as String? ?? ''),
+                child: Container(
+                  width: 86,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(SQRadius.md),
+                    border: Border.all(color: SQColor.line),
                   ),
-                );
-              },
-            ),
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: primary.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.storefront_rounded,
+                            color: primary, size: 20),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: SQColor.ink,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -473,94 +578,34 @@ class _ProductRail extends StatelessWidget {
   final List<dynamic> products;
   final CartStore cart;
   final Color primary;
-  final Color accent;
 
   const _ProductRail({
     required this.title,
     required this.products,
     required this.cart,
     required this.primary,
-    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SQSectionHeader(title: title),
+        SizedBox(
+          height: 236,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: SQSpace.md),
+            itemCount: products.length,
+            itemBuilder: (context, i) => ProductCard(
+              product: products[i] as Map<String, dynamic>,
+              cart: cart,
+              primary: primary,
             ),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 230,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: products.length,
-              itemBuilder: (context, i) => ProductCard(
-                product: products[i] as Map<String, dynamic>,
-                cart: cart,
-                primary: primary,
-                accent: accent,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeSkeleton extends StatelessWidget {
-  final Color primary;
-  const _HomeSkeleton({required this.primary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: List.generate(
-              3,
-              (i) => Expanded(
-                child: Container(
-                  height: 84,
-                  margin: const EdgeInsets.only(right: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ...List.generate(
-            2,
-            (i) => Container(
-              height: 200,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -568,8 +613,13 @@ class _HomeSkeleton extends StatelessWidget {
 class _FloatingCartPill extends StatelessWidget {
   final CartStore cart;
   final Color primary;
+  final VoidCallback onOpenCart;
 
-  const _FloatingCartPill({required this.cart, required this.primary});
+  const _FloatingCartPill({
+    required this.cart,
+    required this.primary,
+    required this.onOpenCart,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -577,37 +627,35 @@ class _FloatingCartPill extends StatelessWidget {
       animation: cart,
       builder: (context, _) {
         if (cart.isEmpty) return const SizedBox.shrink();
-        return Pressable(
-          onTap: () {},
+        return GestureDetector(
+          onTap: onOpenCart,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
-              color: primary,
-              borderRadius: BorderRadius.circular(16),
+              color: SQColor.ink,
+              borderRadius: BorderRadius.circular(SQRadius.pill),
               boxShadow: [
                 BoxShadow(
-                  color: primary.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.shopping_bag, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
                 Text(
                   '${cart.totalQuantity} items • ₹${cart.itemTotal.toStringAsFixed(0)}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
+                      color: SQColor.lime,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13),
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_ios,
-                    color: Colors.white70, size: 12),
+                const SizedBox(width: 10),
+                const Icon(Icons.arrow_forward_rounded,
+                    color: SQColor.lime, size: 16),
               ],
             ),
           ),

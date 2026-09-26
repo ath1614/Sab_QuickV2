@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:sabquick_app/design/tokens.dart';
 import 'package:sabquick_app/screens/splash_screen.dart';
 import 'package:sabquick_app/theme.dart';
 
@@ -9,15 +10,17 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(theme: buildSabQuickTheme(), home: const SplashScreen()),
     );
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('SabQuick'), findsOneWidget);
-    expect(find.text('Groceries in 10-15 minutes'), findsOneWidget);
-    expect(find.byIcon(Icons.flash_on), findsNothing);
+    expect(find.text('Groceries at your door in minutes'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
   });
 
-  test('SabQuick theme uses brand colors', () {
+  test('Design system theme uses brand tokens', () {
     final theme = buildSabQuickTheme();
-    expect(theme.colorScheme.primary, const Color(0xFF0B6E4F));
-    expect(theme.colorScheme.secondary, const Color(0xFF00C853));
+    expect(theme.colorScheme.primary, SQColor.green);
+    expect(theme.colorScheme.secondary, SQColor.lime);
+    expect(theme.scaffoldBackgroundColor, SQColor.fog);
   });
 }

@@ -36,9 +36,6 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.3.4
 
-  # Currency formatting
-  intl: ^0.20.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -60,6 +57,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Brand assets copied from the website (public/brand)
+  assets:
+    - assets/brand/splash-logo.png
+    - assets/brand/navbar-logo.png
+    - assets/brand/app-icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
