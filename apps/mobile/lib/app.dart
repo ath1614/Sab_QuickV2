@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 
 import 'api_client.dart';
+import 'design/status_bar.dart';
 import 'design/tokens.dart';
 import 'screens/auth_screen.dart';
+import 'screens/error_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme.dart';
@@ -41,6 +44,16 @@ class _SabQuickAppState extends State<SabQuickApp> {
   @override
   void initState() {
     super.initState();
+    // Blinkit-style edge-to-edge + brand splash icons while the first
+    // frame paints (splash switches to dark icons on white immediately).
+    StatusBar.configureSystemChrome();
+    // A build-phase exception ANYWHERE renders the branded error screen
+    // instead of the grey release box. Debug builds include the stack.
+    ErrorWidget.builder = (details) => BrandedErrorScreen(
+          details: details,
+          showDetails: !kReleaseMode,
+          title: 'Screen error',
+        );
     _bootstrap();
     _initDeepLinks();
   }
@@ -131,6 +144,12 @@ class _SabQuickAppState extends State<SabQuickApp> {
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey,
       theme: buildSabQuickTheme(),
+      // Custom 404 for unknown routes instead of Flutter's red error page.
+      onUnknownRoute: (settings) => MaterialPageRoute(
+        builder: (_) => const NotFoundScreen(),
+        settings: settings,
+      ),
+      routes: const {},
       home: _checkingSession
           ? const SplashScreen()
           : _loggedIn

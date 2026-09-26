@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../cart_store.dart';
+import '../design/status_bar.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/product_card.dart';
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   int _tabIndex = 0;
   String? _loadError;
+  String? _aisleCategorySlug; // Home category tap deep-links into Aisles
 
   Color _primary = SQColor.green;
   Color _accent = SQColor.lime;
@@ -220,14 +222,17 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return _buildShell(
           floatingCart: _tabIndex != 2,
+          lightStatusBar: true,
           screens: [
             _buildHomeTab(),
             AislesScreen(
+              key: ValueKey('aisles-$_aisleCategorySlug'),
               categories: _categories,
               primary: _primary,
               accent: _accent,
               cart: cart,
               onNavigateToProducts: () => setState(() => _tabIndex = 0),
+              initialCategorySlug: _aisleCategorySlug,
             ),
             CartScreen(cart: cart, primary: _primary, accent: _accent),
             OrdersScreen(primary: _primary, accent: _accent),
@@ -279,8 +284,14 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<Widget> screens,
     required List<NavigationDestination> destinations,
     bool floatingCart = false,
+    bool lightStatusBar = false,
   }) {
     if (_tabIndex >= screens.length) _tabIndex = 0;
+    // Blinkit-style per-surface status-bar brightness: light icons over the
+    // green storefront header, dark icons everywhere else.
+    lightStatusBar && _tabIndex == 0
+        ? StatusBar.lightIcons()
+        : StatusBar.darkIcons();
     return Scaffold(
       body: IndexedStack(index: _tabIndex, children: screens),
       floatingActionButton: floatingCart && cart.isNotEmpty
@@ -318,8 +329,12 @@ class _HomeScreenState extends State<HomeScreen> {
               categories: _categories,
               products: _products,
               primary: _primary,
-              onSelect: (slug) async {
-                setState(() => _tabIndex = 1);
+              onSelect: (slug) {
+                // Deep-link straight into the tapped aisle (Blinkit flow).
+                setState(() {
+                  _aisleCategorySlug = slug;
+                  _tabIndex = 1;
+                });
               },
             ),
           ),
@@ -348,15 +363,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  Container(
-                    height: 30,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(SQRadius.xs),
+                  // Brand lockup directly on the green (Blinkit pattern):
+                  // icon mark + white wordmark. No white box behind it.
+                  Image.asset('assets/brand/app-icon.png',
+                      width: 30, height: 30, fit: BoxFit.contain),
+                  const SizedBox(width: 8),
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Colors.white, Color(0xFFC8F531)],
+                    ).createShader(bounds),
+                    child: const Text(
+                      'SabQuick',
+                      style: TextStyle(
+                        fontFamily: 'SpaceGrotesk',
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: Image.asset('assets/brand/navbar-logo.png',
-                        fit: BoxFit.contain),
                   ),
                   const Spacer(),
                   Container(
@@ -583,31 +608,37 @@ class _CategoryTiles extends StatelessWidget {
             itemBuilder: (context, i) {
               final cat = tiles[i] as Map<String, dynamic>;
               final name = (cat['name'] ?? '') as String;
+              final imageUrl = (cat['imageUrl'] ?? '') as String? ?? '';
               return GestureDetector(
                 onTap: () => onSelect(cat['slug'] as String? ?? ''),
-                child: Container(
-                  width: 86,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(SQRadius.md),
-                    border: Border.all(color: SQColor.line),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: primary.withValues(alpha: 0.08),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.storefront_rounded,
-                            color: primary, size: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Blinkit-style circular category with the real image
+                    Container(
+                      width: 62,
+                      height: 62,
+                      decoration: BoxDecoration(
+                        color: primary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: SQColor.line),
+                        image: imageUrl.startsWith('http')
+                            ? DecorationImage(
+                                image: NetworkImage(imageUrl),
+                                fit: BoxFit.cover,
+                                onError: (_, _) {},
+                              )
+                            : null,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
+                      child: imageUrl.startsWith('http')
+                          ? null
+                          : Icon(Icons.storefront_rounded,
+                              color: primary, size: 24),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: 86,
+                      child: Text(
                         name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -619,8 +650,8 @@ class _CategoryTiles extends StatelessWidget {
                           height: 1.15,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             },

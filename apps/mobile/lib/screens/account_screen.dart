@@ -7,6 +7,7 @@ import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 import 'auth_screen.dart';
+import 'web_console_screen.dart';
 
 /// Account: profile, saved addresses (add + list), policies, app info.
 /// Parity with the website's account sheet: everything a customer or staff
@@ -182,6 +183,40 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: SQSpace.md),
 
+            // ── Web consoles (same pages the website links between) ──
+            if (role == 'OWNER' || role == 'MANAGER') ...[
+              _SectionLabel('Web consoles — full site tools'),
+              _ConsoleTile(
+                icon: Icons.trending_up_rounded,
+                title: 'Owner Hub',
+                subtitle: 'GMV, inventory toggles, theme engine',
+                path: '/owner',
+                allowed: role == 'OWNER',
+              ),
+              _ConsoleTile(
+                icon: Icons.category_rounded,
+                title: 'Catalog & Pricing',
+                subtitle: 'SKUs, categories, dual pricing',
+                path: '/owner/catalog',
+                allowed: true,
+              ),
+              _ConsoleTile(
+                icon: Icons.view_kanban_rounded,
+                title: 'Manager Dispatch Kanban',
+                subtitle: 'Live floor orchestration & SLA',
+                path: '/manager',
+                allowed: true,
+              ),
+              _ConsoleTile(
+                icon: Icons.inventory_rounded,
+                title: 'Packer Floor Station',
+                subtitle: 'Aisle-by-aisle bagging queue',
+                path: '/packer',
+                allowed: true,
+              ),
+              const SizedBox(height: SQSpace.md),
+            ],
+
             // ── Orders shortcut for customers ──
             if (!isStaff) ...[
               _SectionLabel('Shopping'),
@@ -304,6 +339,92 @@ class _AccountScreenState extends State<AccountScreen> {
               onTap: () => _logout(context),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens one of the website's staff consoles in an in-app browser with the
+/// session cookie injected — exactly the pages the website navigates
+/// between, so app and web stay in sync.
+class _ConsoleTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String path;
+  final bool allowed;
+
+  const _ConsoleTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.path,
+    required this.allowed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NeonPressable(
+      skewAmount: -0.02,
+      onTap: allowed
+          ? () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) =>
+                    WebConsoleScreen(title: title, path: path),
+              ));
+            }
+          : null,
+      glowColor: SQColor.lime.withValues(alpha: 0.3),
+      child: Opacity(
+        opacity: allowed ? 1 : 0.55,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: SQColor.card,
+            borderRadius: BorderRadius.circular(SQRadius.sm),
+            border: Border.all(color: SQColor.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: SQColor.green.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(SQRadius.xs),
+                ),
+                child: Icon(icon, color: SQColor.green, size: 19),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: SQColor.ink)),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: SQColor.inkSoft)),
+                  ],
+                ),
+              ),
+              allowed
+                  ? const Icon(Icons.open_in_new_rounded,
+                      size: 15, color: SQColor.inkFaint)
+                  : const Text('OWNER',
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: SQColor.inkFaint)),
+            ],
+          ),
         ),
       ),
     );

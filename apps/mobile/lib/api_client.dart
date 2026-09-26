@@ -72,6 +72,9 @@ class ApiClient {
   Map<String, dynamic>? get user => _user;
   bool get isLoggedIn => _sessionCookie != null && _user != null;
 
+  /// Raw Cookie header for the in-app WebView console (name=value pairs).
+  String? get sessionCookieHeader => _sessionCookie;
+
   Future<void> loadSession() async {
     if (_loaded) return;
     final prefs = await SharedPreferences.getInstance();

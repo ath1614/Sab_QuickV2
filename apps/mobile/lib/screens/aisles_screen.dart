@@ -2,25 +2,27 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../cart_store.dart';
+import '../design/status_bar.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 
-/// Blinkit-style two-pane aisle explorer: sticky parent rail on the left,
-/// products on the right.
+/// Blinkit-style aisle explorer: parent rail on the left, a horizontal
+/// subcategory-chip row above a clean 2-column product grid on the right.
 ///
 /// WHY client-side filtering: the public `/api/products` endpoint resolves
 /// `categoryId` against SUB-category ids only — filtering by a parent slug
 /// that has no subcategories (e.g. Beverages) returns an empty list. So we
-/// fetch the full catalog once (the home tab already does exactly this) and
-/// filter locally: a product belongs to the selected parent when its
-/// category id/slug matches the parent OR one of its subcategories.
+/// fetch the full catalog once (home already does) and filter locally.
+///
+/// [initialCategorySlug] lets Home deep-link straight into an aisle.
 class AislesScreen extends StatefulWidget {
   final List<dynamic> categories;
   final Color primary;
   final Color accent;
   final CartStore cart;
   final VoidCallback onNavigateToProducts;
+  final String? initialCategorySlug;
 
   const AislesScreen({
     super.key,
@@ -29,6 +31,7 @@ class AislesScreen extends StatefulWidget {
     required this.accent,
     required this.cart,
     required this.onNavigateToProducts,
+    this.initialCategorySlug,
   });
 
   @override
@@ -48,6 +51,12 @@ class _AislesScreenState extends State<AislesScreen> {
   @override
   void initState() {
     super.initState();
+    StatusBar.darkIcons();
+    if (widget.initialCategorySlug != null) {
+      final idx = widget.categories
+          .indexWhere((c) => (c as Map)['slug'] == widget.initialCategorySlug);
+      if (idx >= 0) _selectedParent = idx;
+    }
     _loadProducts();
   }
 
@@ -65,7 +74,6 @@ class _AislesScreenState extends State<AislesScreen> {
   Future<void> _loadProducts({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
-      // Full catalog, one request — filtered locally below.
       final products = await _api.fetchProducts();
       if (!mounted) return;
       setState(() {
@@ -99,7 +107,6 @@ class _AislesScreenState extends State<AislesScreen> {
 
     Iterable<dynamic> result = _all.where(inParent);
 
-    // Subcategory chip narrows further.
     if (_selectedSubId != null) {
       result = result.where((p) {
         final c = p['category'];
@@ -107,21 +114,23 @@ class _AislesScreenState extends State<AislesScreen> {
       });
     }
 
-    // Search narrows across the whole catalog (not just this aisle).
     final q = _searchController.text.trim().toLowerCase();
     if (q.isNotEmpty) {
-      result = _all.where((p) =>
-          (p['title'] as String? ?? '').toLowerCase().contains(q));
+      result = _all.where(
+          (p) => (p['title'] as String? ?? '').toLowerCase().contains(q));
     }
     return result.toList();
   }
 
-  List<dynamic> get _currentSubs =>
-      ((_currentParent['subCategories'] as List?) ?? const [])
-          .where((s) => _all.any((p) =>
-              p['category'] is Map &&
-              p['category']['id'] == (s as Map)['id']))
-          .toList();
+  /// Subcategories that actually contain products (chips row).
+  List<Map<String, dynamic>> get _currentSubs {
+    final subs = ((_currentParent['subCategories'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>();
+    return subs
+        .where((s) =>
+            _all.any((p) => p['category'] is Map && p['category']['id'] == s['id']))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,8 +176,7 @@ class _AislesScreenState extends State<AislesScreen> {
               ),
             ),
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(SQSpace.md, 0, SQSpace.md, 8),
+              padding: const EdgeInsets.fromLTRB(SQSpace.md, 0, SQSpace.md, 8),
               child: TextField(
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
@@ -226,13 +234,14 @@ class _AislesScreenState extends State<AislesScreen> {
 
   Widget _buildParentRail() {
     return Container(
-      width: 132,
+      width: 118,
       color: SQColor.card,
       child: ListView.builder(
         itemCount: widget.categories.length,
         itemBuilder: (context, i) {
           final cat = widget.categories[i] as Map<String, dynamic>;
           final selected = i == _selectedParent;
+          final imageUrl = (cat['imageUrl'] ?? '') as String? ?? '';
           return InkWell(
             onTap: () {
               setState(() {
@@ -242,7 +251,7 @@ class _AislesScreenState extends State<AislesScreen> {
             },
             child: Container(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
               decoration: BoxDecoration(
                 color: selected ? SQColor.fog : Colors.transparent,
                 border: Border(
@@ -252,13 +261,46 @@ class _AislesScreenState extends State<AislesScreen> {
                   ),
                 ),
               ),
-              child: Text(
-                (cat['name'] ?? '') as String,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? SQColor.ink : SQColor.inkSoft,
-                ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? widget.primary.withValues(alpha: 0.1)
+                          : SQColor.fog,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected ? widget.primary : SQColor.line,
+                      ),
+                      image: imageUrl.startsWith('http')
+                          ? DecorationImage(
+                              image: NetworkImage(imageUrl),
+                              fit: BoxFit.cover,
+                              onError: (_, _) {},
+                            )
+                          : null,
+                    ),
+                    child: imageUrl.startsWith('http')
+                        ? null
+                        : Icon(Icons.storefront_rounded,
+                            color: widget.primary, size: 18),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    (cat['name'] ?? '') as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: selected ? SQColor.ink : SQColor.inkSoft,
+                      height: 1.15,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -294,110 +336,81 @@ class _AislesScreenState extends State<AislesScreen> {
                 ),
               ],
             )
-          : GridView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, SQSpace.xl),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.68,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-              ),
-              itemCount: products.length + (subs.isEmpty ? 0 : 1),
-              itemBuilder: (context, i) {
-                // First cell: subcategory chips when this parent has them.
-                if (subs.isNotEmpty && i == 0) {
-                  return _SubcategoryCard(
-                    subs: subs,
-                    selectedSubId: _selectedSubId,
-                    onSelect: (id) => setState(() {
-                      _selectedSubId =
-                          _selectedSubId == id ? null : id;
-                    }),
-                    primary: widget.primary,
-                  );
-                }
-                final index = subs.isNotEmpty ? i - 1 : i;
-                return _AisleProductTile(
-                  product: products[index] as Map<String, dynamic>,
-                  cart: widget.cart,
-                  primary: widget.primary,
-                  accent: widget.accent,
-                );
-              },
-            ),
-    );
-  }
-}
-
-/// Spanning card holding the subcategory chips for the current parent.
-class _SubcategoryCard extends StatelessWidget {
-  final List<dynamic> subs;
-  final String? selectedSubId;
-  final ValueChanged<String> onSelect;
-  final Color primary;
-
-  const _SubcategoryCard({
-    required this.subs,
-    required this.selectedSubId,
-    required this.onSelect,
-    required this.primary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: SQColor.card,
-        borderRadius: BorderRadius.circular(SQRadius.sm),
-        border: Border.all(color: SQColor.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Refine', style: SQType.micro),
-          const SizedBox(height: 6),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final s in subs)
-                    GestureDetector(
-                      onTap: () => onSelect((s as Map)['id'] as String),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedSubId == s['id']
-                              ? SQColor.lime
-                              : SQColor.fog,
-                          borderRadius: BorderRadius.circular(SQRadius.xs),
-                          border: Border.all(
-                            color: selectedSubId == s['id']
-                                ? SQColor.green
-                                : SQColor.line,
-                          ),
-                        ),
-                        child: Text(
-                          (s['name'] ?? '') as String,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                            color: selectedSubId == s['id']
-                                ? SQColor.greenDeep
-                                : SQColor.inkSoft,
-                          ),
-                        ),
+          : CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                // Subcategory chips ABOVE the grid (Blinkit pattern) — the
+                // old "Refine" grid cell broke the column rhythm and is gone.
+                if (subs.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 46,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                        itemCount: subs.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (context, i) {
+                          final sub = subs[i];
+                          final selected = _selectedSubId == sub['id'];
+                          return Pressable(
+                            onTap: () => setState(() {
+                              _selectedSubId =
+                                  _selectedSubId == sub['id'] ? null : sub['id'] as String;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? SQColor.green
+                                    : SQColor.card,
+                                borderRadius:
+                                    BorderRadius.circular(SQRadius.pill),
+                                border: Border.all(
+                                  color: selected
+                                      ? SQColor.green
+                                      : SQColor.line,
+                                ),
+                              ),
+                              child: Text(
+                                (sub['name'] ?? '') as String,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: selected
+                                      ? Colors.white
+                                      : SQColor.inkSoft,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                ],
-              ),
+                  ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 2, 12, SQSpace.xl),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      mainAxisExtent: 246,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => _AisleProductCard(
+                        product: products[i] as Map<String, dynamic>,
+                        cart: widget.cart,
+                        primary: widget.primary,
+                      ),
+                      childCount: products.length,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -408,15 +421,15 @@ class _AislesSkeleton extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 132,
+          width: 118,
           color: SQColor.card,
           padding: const EdgeInsets.all(SQSpace.md),
           child: Column(
             children: [
               for (int i = 0; i < 6; i++)
                 const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: SQSkeleton(height: 14, radius: 6),
+                  padding: EdgeInsets.only(bottom: 18),
+                  child: SQSkeleton(height: 44, radius: 22),
                 ),
             ],
           ),
@@ -426,13 +439,13 @@ class _AislesSkeleton extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.68,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
+              mainAxisExtent: 246,
             ),
             itemCount: 6,
-            itemBuilder: (_, _) => const SQSkeleton(
-                height: 220, radius: SQRadius.sm),
+            itemBuilder: (_, _) =>
+                const SQSkeleton(height: 246, radius: SQRadius.sm),
           ),
         ),
       ],
@@ -440,17 +453,17 @@ class _AislesSkeleton extends StatelessWidget {
   }
 }
 
-class _AisleProductTile extends StatelessWidget {
+/// Blinkit card: image block on top with the ADD disc overlaid, then
+/// unit → title → price row. Price and button never share a row.
+class _AisleProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final CartStore cart;
   final Color primary;
-  final Color accent;
 
-  const _AisleProductTile({
+  const _AisleProductCard({
     required this.product,
     required this.cart,
     required this.primary,
-    required this.accent,
   });
 
   @override
@@ -466,19 +479,23 @@ class _AisleProductTile extends StatelessWidget {
         ((product['stockCount'] ?? 0) as num) <= 0;
 
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: SQColor.card,
         borderRadius: BorderRadius.circular(SQRadius.sm),
         border: Border.all(color: SQColor.line),
       ),
-      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Image block + badges + ADD disc ──
           Expanded(
             child: Stack(
+              fit: StackFit.expand,
               children: [
-                Center(
+                Container(
+                  color: SQColor.fog,
+                  padding: const EdgeInsets.all(10),
                   child: imageUrl.startsWith('http')
                       ? Image.network(
                           imageUrl,
@@ -493,8 +510,8 @@ class _AisleProductTile extends StatelessWidget {
                 ),
                 if (discount > 0)
                   Positioned(
-                    top: 0,
-                    left: 0,
+                    top: 6,
+                    left: 6,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
@@ -511,122 +528,73 @@ class _AisleProductTile extends StatelessWidget {
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          if (unit.isNotEmpty)
-            Text(unit,
-                style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: SQColor.inkFaint)),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: SQColor.ink,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                '₹${salePrice.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: SQColor.ink,
-                ),
-              ),
-              if (mrp > salePrice) ...[
-                const SizedBox(width: 6),
-                Text(
-                  '₹${mrp.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: SQColor.inkFaint,
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              isOut
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: SQColor.fog,
-                        borderRadius: BorderRadius.circular(SQRadius.xs),
-                      ),
-                      child: const Text(
-                        'OUT',
-                        style: TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            color: SQColor.inkFaint),
-                      ),
-                    )
-                  : AnimatedBuilder(
+                if (!isOut)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: AnimatedBuilder(
                       animation: cart,
                       builder: (context, _) {
-                        final qty =
-                            cart.quantityOf(product['id'] as String);
+                        final qty = cart.quantityOf(product['id'] as String);
                         if (qty == 0) {
-                          return Pressable(
+                          return NeonPressable(
                             onTap: () => cart.add(product),
+                            glowColor: SQColor.lime,
                             child: Container(
-                              width: 34,
-                              height: 34,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: SQColor.lime,
-                                borderRadius:
-                                    BorderRadius.circular(SQRadius.xs),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 2.5),
                               ),
                               child: const Icon(Icons.add_rounded,
-                                  color: SQColor.ink, size: 19),
+                                  color: SQColor.ink, size: 22),
                             ),
                           );
                         }
                         return Container(
-                          height: 34,
+                          height: 40,
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
                             color: SQColor.green,
-                            borderRadius:
-                                BorderRadius.circular(SQRadius.xs),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white, width: 2.5),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Pressable(
+                              NeonPressable(
                                 scaleDown: 0.8,
-                                onTap: () => cart
-                                    .decrement(product['id'] as String),
+                                skewAmount: 0,
+                                glowColor: Colors.white24,
+                                onTap: () =>
+                                    cart.decrement(product['id'] as String),
                                 child: const SizedBox(
-                                  width: 30,
-                                  height: 34,
+                                  width: 26,
+                                  height: 36,
                                   child: Icon(Icons.remove_rounded,
-                                      color: Colors.white, size: 16),
+                                      color: Colors.white, size: 15),
                                 ),
                               ),
-                              Text('\$qty',
+                              Text('$qty',
                                   style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 13)),
-                              Pressable(
+                                      fontSize: 12.5)),
+                              NeonPressable(
                                 scaleDown: 0.8,
-                                onTap: () => cart
-                                    .increment(product['id'] as String),
+                                skewAmount: 0,
+                                glowColor: Colors.white24,
+                                onTap: () =>
+                                    cart.increment(product['id'] as String),
                                 child: const SizedBox(
-                                  width: 30,
-                                  height: 34,
+                                  width: 26,
+                                  height: 36,
                                   child: Icon(Icons.add_rounded,
-                                      color: Colors.white, size: 16),
+                                      color: Colors.white, size: 15),
                                 ),
                               ),
                             ],
@@ -634,7 +602,67 @@ class _AisleProductTile extends StatelessWidget {
                         );
                       },
                     ),
-            ],
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Details ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 7, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (unit.isNotEmpty)
+                  Text(
+                    unit,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: SQColor.inkFaint),
+                  ),
+                const SizedBox(height: 3),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: SQColor.ink,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    children: [
+                      Text(
+                        '₹${salePrice.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: SQColor.ink),
+                      ),
+                      if (mrp > salePrice) ...[
+                        const SizedBox(width: 5),
+                        Text(
+                          '₹${mrp.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: SQColor.inkFaint,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
