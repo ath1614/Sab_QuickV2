@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../cart_store.dart';
+import '../design/tokens.dart';
+import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 
 /// Cart + checkout: steppers, fee breakdown, address picker, order placement.
@@ -356,20 +358,13 @@ class _CartScreenState extends State<CartScreen> {
                       ),
 
                     const SizedBox(height: 12),
-                    Pressable(
+                    SQButton(
+                      label: _placing
+                          ? 'Placing order...'
+                          : 'Place Order • ₹${widget.cart.grandTotal.toStringAsFixed(0)}',
+                      icon: Icons.bolt_rounded,
+                      loading: _placing,
                       onTap: _placing ? null : _placeOrder,
-                      child: FilledButton(
-                        onPressed: null,
-                        child: _placing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(
-                                'Place Order • ₹${widget.cart.grandTotal.toStringAsFixed(0)}'),
-                      ),
                     ),
                   ],
                 ),

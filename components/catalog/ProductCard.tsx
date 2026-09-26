@@ -84,8 +84,8 @@ export function ProductCard({
 
           {/* Speed Pill positioned at bottom-left of image */}
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-            <div className="inline-flex items-center gap-1 bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-200 text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs">
-              <Zap className="w-2.5 h-2.5 fill-[#0B6E4F] text-[#0B6E4F]" />
+            <div className="inline-flex items-center gap-1 bg-slate-900/85 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs backdrop-blur-xs">
+              <Zap className="w-2.5 h-2.5 fill-[#C8F531] text-[#C8F531]" />
               <span>10 MINS</span>
             </div>
           </div>
@@ -111,13 +111,13 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Unit Quantity Pill (+ low-stock urgency hint) */}
+        {/* Unit Quantity Pill (+ low-stock urgency hint) — WCAG AA: #57534E on #F5F5F4 = 6.9:1 */}
         <div className="mt-2.5 flex items-center gap-1.5">
-          <span className="inline-block text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-mono">
+          <span className="inline-block text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md font-mono">
             {product.unitQuantity}
           </span>
           {isLowStock && (
-            <span className="text-[10px] font-black text-rose-600 uppercase tracking-wide">
+            <span className="text-[10px] font-black text-rose-700 uppercase tracking-wide">
               Only {product.stockCount} left
             </span>
           )}
@@ -136,7 +136,7 @@ export function ProductCard({
       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
         {/* Prices */}
         <div className="flex flex-col">
-          <span className="text-sm font-black text-surface-dark tracking-tight">
+          <span className="text-sm font-display font-bold text-surface-dark tracking-tight">
             ₹{product.salePrice}
           </span>
           {product.mrp > product.salePrice && (
@@ -146,33 +146,35 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Action Button / Stepper */}
+        {/* Action Button / Stepper — 40px hit area (Apple HIG minimum) */}
         <div className="w-24">
           {isOutOfStock ? (
             <Button
               disabled
               size="sm"
               variant="outline"
-              className="w-full h-8 text-[10px] font-bold text-slate-400 bg-slate-50 border-slate-200 rounded-lg select-none"
+              className="w-full h-10 text-[10px] font-bold text-slate-400 bg-slate-50 border-slate-200 rounded-lg select-none"
             >
               OUT OF STOCK
             </Button>
           ) : cartQuantity > 0 ? (
-            <div className="flex items-center justify-between h-8 bg-primary text-white rounded-lg px-1 shadow-sm font-bold text-xs select-none">
+            <div className="flex items-center justify-between h-10 bg-primary text-white rounded-lg px-1 shadow-sm font-bold text-xs select-none">
               <button
                 type="button"
                 onClick={() => onDecrement?.(product)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
+                className="w-9 h-9 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
+                aria-label={`Decrease ${product.title}`}
               >
-                <Minus className="w-3.5 h-3.5" />
+                <Minus className="w-4 h-4" />
               </button>
               <span className="font-mono text-xs">{cartQuantity}</span>
               <button
                 type="button"
                 onClick={() => onIncrement?.(product)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
+                className="w-9 h-9 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
+                aria-label={`Increase ${product.title}`}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
               </button>
             </div>
           ) : (
@@ -181,7 +183,7 @@ export function ProductCard({
               size="sm"
               variant="outline"
               onClick={() => onAddToCart?.(product)}
-              className="w-full h-8 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs rounded-lg transition-all active:scale-95 shadow-2xs"
+              className="w-full h-10 border-2 border-primary text-primary hover:bg-primary hover:text-white font-black text-xs rounded-lg transition-all active:scale-95 shadow-2xs"
             >
               + ADD
             </Button>

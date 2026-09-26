@@ -5,15 +5,22 @@ import '../cart_store.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/product_card.dart';
+import 'account_screen.dart';
 import 'aisles_screen.dart';
 import 'cart_screen.dart';
+import 'coupons_screen.dart';
+import 'ops_board_screen.dart';
 import 'orders_screen.dart';
-import 'account_screen.dart';
-import 'staff_orders_screen.dart';
 import 'rider_dashboard_screen.dart';
+import 'staff_screen.dart';
 
 /// Stage 3: skeleton "loading board" shown while catalog + theme resolve.
-/// Stage 4: the main board — role-aware, theme-aware storefront.
+/// Stage 4: the main board — role-aware, theme-aware, unified app:
+///   CUSTOMER → Home · Aisles · Cart · Orders · Account
+///   OWNER    → Everything · Manager · Staff · Coupons · Account
+///   MANAGER  → Everything · Manager · Account
+///   PACKER   → Packer · Account
+///   RIDER    → Deliveries · Account
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -90,20 +97,23 @@ class _HomeScreenState extends State<HomeScreen> {
     // Unrecoverable load failure (offline etc.)
     if (_loadError != null && _categories.isEmpty) {
       return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(SQSpace.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SQEmpty(
-                  icon: Icons.wifi_off_rounded,
-                  title: 'You appear to be offline',
-                  subtitle: 'Pull down to retry once you are connected.',
-                ),
-                const SizedBox(height: SQSpace.lg),
-                SQButton(label: 'Retry', icon: Icons.refresh_rounded, onTap: _loadAll),
-              ],
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(SQSpace.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SQEmpty(
+                    icon: Icons.wifi_off_rounded,
+                    title: 'You appear to be offline',
+                    subtitle: 'Pull down to retry once you are connected.',
+                  ),
+                  const SizedBox(height: SQSpace.lg),
+                  SQButton(
+                      label: 'Retry', icon: Icons.refresh_rounded, onTap: _loadAll),
+                ],
+              ),
             ),
           ),
         ),
@@ -113,95 +123,153 @@ class _HomeScreenState extends State<HomeScreen> {
     // Stage 4: main board (role-aware)
     final role = (ApiClient.instance.user?['role'] ?? 'CUSTOMER') as String;
 
-    if (role == 'RIDER') {
-      return _buildShell(
-        screens: [
-          RiderDashboardScreen(primary: _primary, accent: _accent),
-          AccountScreen(primary: _primary),
-        ],
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.two_wheeler_outlined),
-              selectedIcon: Icon(Icons.two_wheeler),
-              label: 'Deliveries'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Account'),
-        ],
-      );
+    switch (role) {
+      case 'OWNER':
+        return _buildShell(
+          screens: [
+            OpsBoardScreen(
+                primary: _primary, accent: _accent, mode: OpsMode.everything),
+            OpsBoardScreen(
+                primary: _primary, accent: _accent, mode: OpsMode.manager),
+            StaffScreen(primary: _primary, accent: _accent),
+            CouponsScreen(primary: _primary, accent: _accent),
+            AccountScreen(primary: _primary),
+          ],
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard),
+                label: 'Everything'),
+            NavigationDestination(
+                icon: Icon(Icons.view_kanban_outlined),
+                selectedIcon: Icon(Icons.view_kanban),
+                label: 'Manager'),
+            NavigationDestination(
+                icon: Icon(Icons.groups_2_outlined),
+                selectedIcon: Icon(Icons.groups_2),
+                label: 'Staff'),
+            NavigationDestination(
+                icon: Icon(Icons.confirmation_number_outlined),
+                selectedIcon: Icon(Icons.confirmation_number),
+                label: 'Coupons'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Account'),
+          ],
+        );
+      case 'MANAGER':
+        return _buildShell(
+          screens: [
+            OpsBoardScreen(
+                primary: _primary, accent: _accent, mode: OpsMode.everything),
+            OpsBoardScreen(
+                primary: _primary, accent: _accent, mode: OpsMode.manager),
+            AccountScreen(primary: _primary),
+          ],
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard),
+                label: 'Everything'),
+            NavigationDestination(
+                icon: Icon(Icons.view_kanban_outlined),
+                selectedIcon: Icon(Icons.view_kanban),
+                label: 'Manager'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Account'),
+          ],
+        );
+      case 'PACKER':
+        return _buildShell(
+          screens: [
+            OpsBoardScreen(
+                primary: _primary, accent: _accent, mode: OpsMode.packer),
+            AccountScreen(primary: _primary),
+          ],
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.inventory_2_outlined),
+                selectedIcon: Icon(Icons.inventory_2),
+                label: 'Packing'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Account'),
+          ],
+        );
+      case 'RIDER':
+        return _buildShell(
+          screens: [
+            RiderDashboardScreen(primary: _primary, accent: _accent),
+            AccountScreen(primary: _primary),
+          ],
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.two_wheeler_outlined),
+                selectedIcon: Icon(Icons.two_wheeler),
+                label: 'Deliveries'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Account'),
+          ],
+        );
+      default:
+        return _buildShell(
+          floatingCart: _tabIndex != 2,
+          screens: [
+            _buildHomeTab(),
+            AislesScreen(
+              categories: _categories,
+              primary: _primary,
+              accent: _accent,
+              cart: cart,
+              onNavigateToProducts: () => setState(() => _tabIndex = 0),
+            ),
+            CartScreen(cart: cart, primary: _primary, accent: _accent),
+            OrdersScreen(primary: _primary, accent: _accent),
+            AccountScreen(primary: _primary),
+          ],
+          destinations: [
+            const NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home'),
+            const NavigationDestination(
+                icon: Icon(Icons.grid_view_outlined),
+                selectedIcon: Icon(Icons.grid_view),
+                label: 'Aisles'),
+            NavigationDestination(
+              icon: Badge(
+                label: Text('${cart.totalQuantity}'),
+                isLabelVisible: cart.isNotEmpty,
+                backgroundColor: SQColor.lime,
+                textColor: SQColor.ink,
+                child: const Icon(Icons.shopping_bag_outlined),
+              ),
+              selectedIcon: Badge(
+                label: Text('${cart.totalQuantity}'),
+                isLabelVisible: cart.isNotEmpty,
+                backgroundColor: SQColor.lime,
+                textColor: SQColor.ink,
+                child: const Icon(Icons.shopping_bag),
+              ),
+              label: 'Cart',
+            ),
+            const NavigationDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long),
+                label: 'Orders'),
+            const NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Account'),
+          ],
+        );
     }
-
-    if (role == 'PACKER' || role == 'MANAGER' || role == 'OWNER') {
-      return _buildShell(
-        screens: [
-          StaffOrdersScreen(primary: _primary, accent: _accent),
-          AccountScreen(primary: _primary),
-        ],
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.inventory_2_outlined),
-              selectedIcon: Icon(Icons.inventory_2),
-              label: 'Queue'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Account'),
-        ],
-      );
-    }
-
-    return _buildShell(
-      floatingCart: _tabIndex != 2,
-      screens: [
-        _buildHomeTab(),
-        AislesScreen(
-          categories: _categories,
-          primary: _primary,
-          accent: _accent,
-          cart: cart,
-          onNavigateToProducts: () => setState(() => _tabIndex = 0),
-        ),
-        CartScreen(cart: cart, primary: _primary, accent: _accent),
-        OrdersScreen(primary: _primary, accent: _accent),
-        AccountScreen(primary: _primary),
-      ],
-      destinations: [
-        const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home'),
-        const NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view),
-            label: 'Aisles'),
-        NavigationDestination(
-          icon: Badge(
-            label: Text('${cart.totalQuantity}'),
-            isLabelVisible: cart.isNotEmpty,
-            backgroundColor: SQColor.lime,
-            textColor: SQColor.ink,
-            child: const Icon(Icons.shopping_bag_outlined),
-          ),
-          selectedIcon: Badge(
-            label: Text('${cart.totalQuantity}'),
-            isLabelVisible: cart.isNotEmpty,
-            backgroundColor: SQColor.lime,
-            textColor: SQColor.ink,
-            child: const Icon(Icons.shopping_bag),
-          ),
-          label: 'Cart',
-        ),
-        const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders'),
-        const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Account'),
-      ],
-    );
   }
 
   Widget _buildShell({
@@ -212,12 +280,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_tabIndex >= screens.length) _tabIndex = 0;
     return Scaffold(
       body: IndexedStack(index: _tabIndex, children: screens),
-      floatingActionButton: floatingCart && cart.isNotEmpty          ? _FloatingCartPill(
+      floatingActionButton: floatingCart && cart.isNotEmpty
+          ? _FloatingCartPill(
               cart: cart,
               primary: _primary,
               onOpenCart: () => setState(() => _tabIndex = 2),
             )
-              : null,
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
@@ -234,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // ── Brand header (logo asset, theme colors) ──
+          // ── Brand header (logo asset, theme colors, SafeArea) ──
           SliverAppBar(
             pinned: true,
             expandedHeight: 132,
@@ -246,6 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
               background: Container(
                 color: _primary,
                 child: SafeArea(
+                  bottom: false,
                   child: Padding(
                     padding:
                         const EdgeInsets.fromLTRB(SQSpace.md, 6, SQSpace.md, 0),
@@ -285,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '10–15 MIN',
                                     style: TextStyle(
                                       color: SQColor.lime,
-                                      fontWeight: FontWeight.w900,
+                                      fontWeight: FontWeight.w800,
                                       fontSize: 11,
                                       letterSpacing: 0.5,
                                     ),
@@ -303,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -556,7 +626,7 @@ class _CategoryTiles extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: SQColor.ink,
                           height: 1.15,
                         ),
@@ -647,10 +717,10 @@ class _FloatingCartPill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${cart.totalQuantity} items • ₹${cart.itemTotal.toStringAsFixed(0)}',
+                  '${cart.totalQuantity} item${cart.totalQuantity == 1 ? '' : 's'} • ₹${cart.itemTotal.toStringAsFixed(0)}',
                   style: const TextStyle(
                       color: SQColor.lime,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 13),
                 ),
                 const SizedBox(width: 10),

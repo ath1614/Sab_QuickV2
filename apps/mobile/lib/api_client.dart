@@ -6,12 +6,59 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config.dart';
 
+/// Splits a merged `Set-Cookie` header value (as returned by the `http`
+/// package when the server sends multiple cookies) into individual cookie
+/// strings WITHOUT being fooled by commas inside HTTP dates.
+///
+/// NextAuth sends its cookies comma-joined, e.g.
+/// ```
+/// csrf-token=abc; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT, next-auth.session-token=xyz; Path=/; ...
+/// ```
+/// A naive split on `,` or `, ` breaks the Expires value at "Wed," — the
+/// resulting corrupted header makes the server silently ignore the session
+/// token (the origin of "Login succeeded but session could not be loaded").
+///
+/// Rule: a comma starts a new cookie only when the text after it looks like
+/// a new cookie — an optional run of well-known attributes (Path=/, HttpOnly,
+/// Secure, SameSite=Lax, Expires=..., Max-Age=...) followed by a
+/// `name=` pair. Commas inside dates or quoted values never match.
+List<String> splitSetCookieHeader(String header) {
+  final result = <String>[];
+  int cookieStart = 0;
+
+  // True when the comma at [pos] is a cookie separator: the text after it
+  // looks like `attribute...; name=` (a new cookie definition) rather than
+  // the middle of an Expires date or a quoted value.
+  bool commaStartsNewCookie(int pos) {
+    int i = pos + 1;
+    while (i < header.length && (header[i] == ' ' || header[i] == '\t')) {
+      i++;
+    }
+    if (i >= header.length) return false;
+    return RegExp(
+      r'^(?:(?:Path|Domain|Expires|Max-Age|SameSite|HttpOnly|Secure|Partitioned)=[^,;]*|HttpOnly|Secure|Partitioned)[;,]\s*[^,;=\s]+=',
+      caseSensitive: false,
+    ).hasMatch(header.substring(i));
+  }
+
+  for (int i = 0; i < header.length; i++) {
+    if (header.codeUnitAt(i) == 0x2C /* , */ && commaStartsNewCookie(i)) {
+      result.add(header.substring(cookieStart, i).trim());
+      cookieStart = i + 1;
+    }
+  }
+  result.add(header.substring(cookieStart).trim());
+  return result;
+}
+
 /// API client for the SabQuick Next.js backend.
 ///
-/// Authentication mirrors the web exactly: NextAuth credentials flow over
-/// `POST /api/auth/callback/credentials`, with the session JWT returned as an
-/// `next-auth.session-token` httpOnly cookie. We persist that cookie and resend
-/// it on every request — no backend changes required.
+/// Authentication mirrors the web exactly: NextAuth v4 credentials flow over
+/// `POST /api/auth/callback/credentials`. That endpoint answers HTTP 302 and
+/// the `http` package transparently follows the redirect, so we re-send the
+/// request manually (redirects disabled) to capture the `Set-Cookie` headers
+/// from every hop. The session cookie(s) are persisted and resent on every
+/// request — no backend changes required.
 class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
@@ -75,15 +122,15 @@ class ApiClient {
     );
   }
 
-  /// Extracts the full cookie header from a response for session capture.
+  /// Extracts every cookie pair from a response's (possibly merged)
+  /// Set-Cookie header, safe against HTTP-date commas.
   String? _extractSessionCookie(http.Response response) {
-    final setCookies = response.headers['set-cookie'];
-    if (setCookies == null || setCookies.isEmpty) return null;
-    // http package merges cookies; keep every cookie pair.
+    final setCookie = response.headers['set-cookie'];
+    if (setCookie == null || setCookie.isEmpty) return null;
     final pairs = <String>[];
-    for (final part in setCookies.split(RegExp(r'(?<=;),(?= )'))) {
-      final firstSegment = part.split(';').first.trim();
-      if (firstSegment.isNotEmpty) pairs.add(firstSegment);
+    for (final cookie in splitSetCookieHeader(setCookie)) {
+      final pair = cookie.split(';').first.trim();
+      if (pair.isNotEmpty && pair.contains('=')) pairs.add(pair);
     }
     return pairs.isEmpty ? null : pairs.join('; ');
   }
@@ -133,33 +180,87 @@ class ApiClient {
     required String phone,
     required Map<String, String> fields,
   }) async {
-    final csrf = await _getCsrfToken();
-    final res = await _http.post(
-      _uri('/api/auth/callback/credentials'),
-      headers: _headers(extra: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      }),
-      body: {
-        'phone': phone,
-        ...fields,
-        'csrfToken': csrf,
-        'json': 'true',
-      },
-    );
+    return _nextAuthFormLogin({
+      'phone': phone,
+      ...fields,
+    }, 'Login failed. Please try again.');
+  }
 
-    final setCookie = _extractSessionCookie(res);
-    if (res.statusCode >= 400 || setCookie == null) {
-      String message = 'Login failed. Please try again.';
+  /// Shared NextAuth form exchange used by PIN / OTP / Google-token logins.
+  ///
+  /// NextAuth answers with HTTP 302 and puts the session cookie on that
+  /// redirect response. The `http` package follows redirects transparently
+  /// and DROPS those headers, so we send with redirects disabled, capture
+  /// every Set-Cookie ourselves, and follow the chain manually.
+  Future<Map<String, dynamic>> _nextAuthFormLogin(
+    Map<String, String> fields,
+    String failureMessage,
+  ) async {
+    final csrf = await _getCsrfToken();
+    final form = {
+      ...fields,
+      'csrfToken': csrf,
+      'json': 'true',
+    };
+
+    var res = await _sendNoRedirect('POST', _uri('/api/auth/callback/credentials'), form);
+    String? captured = _extractSessionCookie(res);
+
+    // Follow the redirect chain manually, collecting cookies at every hop.
+    int hops = 0;
+    while (res.statusCode >= 300 && res.statusCode < 400 && hops < 5) {
+      final location = res.headers['location'];
+      if (location == null) break;
+      res = await _sendNoRedirect('GET', _resolveRedirect(location), null);
+      final hopCookies = _extractSessionCookie(res);
+      if (hopCookies != null) {
+        captured = _mergeCookies(captured, hopCookies);
+      }
+      hops++;
+    }
+
+    if (res.statusCode >= 400 || captured == null) {
+      String message = failureMessage;
       try {
-        final body = jsonDecode(res.body);
-        if (body is Map && body['error'] != null) message = body['error'];
+        final errBody = jsonDecode(res.body);
+        if (errBody is Map && errBody['error'] != null) message = errBody['error'];
       } catch (_) {}
       throw ApiException(message);
     }
 
-    _sessionCookie = setCookie;
+    _sessionCookie = captured;
     await _fetchAndStoreSessionUser();
     return _user ?? {};
+  }
+
+  /// One HTTP exchange with redirects disabled so Set-Cookie stays readable.
+  Future<http.Response> _sendNoRedirect(
+    String method,
+    Uri url,
+    Map<String, String>? form,
+  ) async {
+    final request = http.Request(method, url)
+      ..followRedirects = false
+      ..maxRedirects = 0
+      ..headers['Accept'] = 'application/json';
+    if (form != null) {
+      request.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      request.bodyFields = form;
+    }
+    if (_sessionCookie != null) {
+      request.headers['Cookie'] = _sessionCookie!;
+    }
+    final streamed = await _http.send(request);
+    return http.Response.fromStream(streamed);
+  }
+
+  Uri _resolveRedirect(String location) {
+    final uri = Uri.parse(location);
+    if (uri.hasScheme && uri.host.isNotEmpty) return uri;
+    final base = AppConfig.baseUrl.endsWith('/')
+        ? AppConfig.baseUrl.substring(0, AppConfig.baseUrl.length - 1)
+        : AppConfig.baseUrl;
+    return Uri.parse('$base${location.startsWith('/') ? '' : '/'}$location');
   }
 
   Future<String> _getCsrfToken() async {
@@ -179,13 +280,23 @@ class ApiClient {
   }
 
   Future<void> _fetchAndStoreSessionUser() async {
-    final res = await _http.get(_uri('/api/auth/session'), headers: _headers());
-    if (res.statusCode == 200) {
-      final body = jsonDecode(res.body);
-      if (body is Map<String, dynamic> && body['user'] != null) {
-        _user = Map<String, dynamic>.from(body['user'] as Map);
-        await _persistSession();
-        return;
+    // Two attempts: NextAuth can finish rotating its cookie chunk on the
+    // request right after login; a single immediate retry removes that race
+    // without ever masking a genuinely failed session.
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      final res = await _http.get(_uri('/api/auth/session'), headers: _headers());
+      if (res.statusCode == 200) {
+        try {
+          final body = jsonDecode(res.body);
+          if (body is Map<String, dynamic> && body['user'] != null) {
+            _user = Map<String, dynamic>.from(body['user'] as Map);
+            await _persistSession();
+            return;
+          }
+        } catch (_) {}
+      }
+      if (attempt == 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
       }
     }
     throw ApiException('Login succeeded but session could not be loaded');
@@ -194,24 +305,9 @@ class ApiClient {
   /// Completes Google login after the external-browser deep-link handoff.
   /// [exchangeToken] comes from `sabquick://auth-callback?token=...`.
   Future<void> completeGoogleLogin(String exchangeToken) async {
-    final csrf = await _getCsrfToken();
-    final res = await _http.post(
-      _uri('/api/auth/callback/credentials'),
-      headers: _headers(extra: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      }),
-      body: {
-        'mobileExchangeToken': exchangeToken,
-        'csrfToken': csrf,
-        'json': 'true',
-      },
-    );
-    final setCookie = _extractSessionCookie(res);
-    if (res.statusCode >= 400 || setCookie == null) {
-      throw ApiException('Google sign-in could not be completed');
-    }
-    _sessionCookie = setCookie;
-    await _fetchAndStoreSessionUser();
+    await _nextAuthFormLogin({
+      'mobileExchangeToken': exchangeToken,
+    }, 'Google sign-in could not be completed');
   }
 
   Future<void> logout() async {
@@ -389,6 +485,160 @@ class ApiClient {
     if (res.statusCode >= 400) {
       final body = jsonDecode(res.body);
       throw ApiException(body['error'] ?? 'Failed to update order status');
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // OWNER: analytics, staff directory, coupons
+  // ------------------------------------------------------------------
+
+  /// Owner analytics payload (`/api/ops/analytics`) — OWNER only.
+  /// Throws [ApiException] with the server message when unauthorized.
+  Future<Map<String, dynamic>> fetchOpsAnalytics() async {
+    final res = await _http.get(_uri('/api/ops/analytics'), headers: _headers());
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to load analytics',
+      );
+    }
+    return body as Map<String, dynamic>;
+  }
+
+  /// Staff directory — OWNER only (`/api/owner/staff`).
+  Future<List<dynamic>> fetchStaff() async {
+    final res = await _http.get(_uri('/api/owner/staff'), headers: _headers());
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to load staff',
+      );
+    }
+    return (body['staff'] as List?) ?? [];
+  }
+
+  /// Create or update a staff member — OWNER only.
+  Future<void> saveStaff({
+    String? id,
+    required String name,
+    required String phone,
+    required String pin,
+    required List<String> roles,
+    String? email,
+    String? vehicleDetails,
+  }) async {
+    final res = await _http.post(
+      _uri('/api/owner/staff'),
+      headers: _headers(),
+      body: jsonEncode({
+        'id': ?id,
+        'name': name,
+        'phone': phone,
+        'pin': pin,
+        'roles': roles,
+        'role': roles.isNotEmpty ? roles.first : 'PACKER',
+        'email': ?(email != null && email.isNotEmpty ? email : null),
+        'vehicleDetails':
+            ?(vehicleDetails != null && vehicleDetails.isNotEmpty
+                ? vehicleDetails
+                : null),
+      }),
+    );
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to save staff member',
+      );
+    }
+  }
+
+  /// Deactivate a staff member — OWNER only.
+  Future<void> deleteStaff(String id) async {
+    final res = await _http.delete(
+      _uri('/api/owner/staff', {'id': id}),
+      headers: _headers(),
+    );
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to deactivate staff member',
+      );
+    }
+  }
+
+  /// Coupon list — OWNER only (`/api/owner/coupons`).
+  Future<List<dynamic>> fetchCoupons() async {
+    final res = await _http.get(_uri('/api/owner/coupons'), headers: _headers());
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to load coupons',
+      );
+    }
+    return (body['coupons'] as List?) ?? [];
+  }
+
+  /// Create a coupon — OWNER only.
+  Future<void> createCoupon({
+    required String code,
+    required String discountType,
+    required double discountValue,
+    double minOrderAmount = 0,
+    double? maxDiscount,
+    DateTime? validTill,
+    int? usageLimit,
+    String? description,
+  }) async {
+    final res = await _http.post(
+      _uri('/api/owner/coupons'),
+      headers: _headers(),
+      body: jsonEncode({
+        'code': code,
+        'description': description,
+        'discountType': discountType,
+        'discountValue': discountValue,
+        'minOrderAmount': minOrderAmount,
+        'maxDiscount': ?maxDiscount,
+        'validTill': (validTill ?? DateTime.now().add(const Duration(days: 30)))
+            .toIso8601String(),
+        'usageLimit': ?usageLimit,
+        'isActive': true,
+      }),
+    );
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to create coupon',
+      );
+    }
+  }
+
+  /// Toggle a coupon active/paused — OWNER only.
+  Future<void> toggleCoupon(String id, bool isActive) async {
+    final res = await _http.patch(
+      _uri('/api/owner/coupons'),
+      headers: _headers(),
+      body: jsonEncode({'id': id, 'isActive': isActive}),
+    );
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to update coupon',
+      );
     }
   }
 

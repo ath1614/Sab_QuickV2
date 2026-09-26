@@ -337,9 +337,10 @@ function StorefrontContent() {
         )}
 
         {/* Dynamic Seasonal Marketing Hero Banner — palette + image both resolve
-            from the theme engine (live campaign > manual pin > brand default) */}
+            from the theme engine (live campaign > manual pin > brand default).
+            Mobile diet: ~34% of viewport (was 46%) so products stay above the fold. */}
         <section
-          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-white/10 overflow-hidden"
+          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-4 sm:p-8 shadow-xl border border-white/10 overflow-hidden"
           style={
             theme.bannerImageUrl
               ? {
@@ -356,21 +357,21 @@ function StorefrontContent() {
             <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
           </div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-xl">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+            <div className="space-y-2 sm:space-y-3 max-w-xl">
               <div className="flex items-center gap-2.5">
                 <Badge
                   variant="accent"
-                  className="gap-1.5 uppercase font-black tracking-wider text-[11px] py-1 px-3 bg-primary-accent text-surface-dark shadow-sm"
+                  className="gap-1.5 uppercase font-black tracking-wider text-[10px] sm:text-[11px] py-0.5 sm:py-1 px-2 sm:px-3 bg-primary-accent text-surface-dark shadow-sm"
                 >
-                  <Zap className="w-3.5 h-3.5 fill-surface-dark" />
+                  <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-surface-dark" />
                   10-15 Min Delivery
                 </Badge>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
+              <h1 className="text-lg sm:text-3xl md:text-4xl font-display font-bold tracking-tight leading-tight text-white drop-shadow-md line-clamp-2">
                 {theme.saleTagText}
               </h1>
-              <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-medium drop-shadow-xs max-w-lg">
+              <p className="hidden sm:block text-xs md:text-sm text-emerald-100/90 leading-relaxed font-medium drop-shadow-xs max-w-lg">
                 Fresh milk, dairy staples, farm produce, and midnight munchies dispatched from our Ambikapur dark store within minutes.
               </p>
             </div>

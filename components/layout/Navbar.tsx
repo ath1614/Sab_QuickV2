@@ -148,15 +148,16 @@ export function Navbar({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-sm pt-[env(safe-area-inset-top,0px)] w-full overflow-x-hidden">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-sm pt-[env(safe-area-inset-top,0px)] w-full">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 w-full">
           {/* Logo & Interactive Geofence Address Trigger */}
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
             <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SabQuick Home">
+              {/* h-full inside the fixed-height row so the lockup never clips */}
               <img
                 src="/brand/navbar-logo.png"
                 alt="SabQuick"
-                className="h-8 sm:h-10 w-auto object-contain shrink-0"
+                className="h-9 sm:h-11 max-w-[150px] sm:max-w-none w-auto object-contain shrink-0"
               />
             </Link>
 

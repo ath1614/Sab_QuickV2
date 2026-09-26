@@ -145,11 +145,13 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     final available =
         (_status?['availableOrders'] ?? []) as List<dynamic>;
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: widget.primary,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        color: widget.primary,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
         children: [
           // Shift toggle banner
           Pressable(
@@ -271,7 +273,8 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

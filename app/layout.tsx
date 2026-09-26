@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeSync } from "@/components/theme/ThemeSync";
@@ -10,7 +10,21 @@ import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { MobileAuthBridge } from "@/components/auth/MobileAuthBridge";
 
-const inter = Inter({ subsets: ["latin"] });
+// Inter carries UI/body copy; Space Grotesk is the display face for
+// headlines, prices and big numbers (mirrors the Flutter app's type system).
+// Both load via CSS variables consumed in tailwind.config.ts fontFamily —
+// self-hosted by next/font (zero layout shift, no Google request at runtime).
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["500", "700"],
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   themeColor: [
@@ -79,7 +93,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
         <AuthProvider>
           <MobileAuthBridge />
           <PwaProvider>

@@ -17,6 +17,26 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        // Inter for UI/body; Space Grotesk display face for headlines/prices.
+        // The CSS variables come from next/font in app/layout.tsx.
+        sans: [
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif",
+        ],
+        display: [
+          "var(--font-display)",
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+      },
       colors: {
         // SabQuick Brand Tokens
         primary: {

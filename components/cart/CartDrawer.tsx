@@ -573,7 +573,7 @@ export function CartDrawer() {
                   <span>My Cart</span>
                   {items.length > 0 && (
                     <Badge variant="accent" className="text-xs px-2 py-0 shrink-0 font-bold">
-                      {totals.totalQuantity} items
+                      {totals.totalQuantity} item{totals.totalQuantity === 1 ? "" : "s"}
                     </Badge>
                   )}
                 </SheetTitle>
@@ -1208,7 +1208,7 @@ export function CartDrawer() {
 
                   <div className="border-t border-slate-100 pt-2 flex justify-between items-center font-bold text-sm text-surface-dark">
                     <span>Grand Total</span>
-                    <span className="font-black text-primary font-mono text-base">
+                    <span className="font-display font-bold text-primary text-base">
                       ₹{totals.grandTotal}
                     </span>
                   </div>
@@ -1350,7 +1350,9 @@ export function CartDrawer() {
                       ? "Placing Order..."
                       : paymentMethod === "CASHFREE"
                       ? "Pay Online"
-                      : "Place Order"}
+                      : paymentMethod === "UPI_DOORSTEP"
+                      ? "Pay via UPI on Delivery"
+                      : "Place Order · Pay on Delivery"}
                   </span>
                 </div>
 
