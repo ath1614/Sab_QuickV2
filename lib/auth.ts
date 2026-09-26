@@ -1,11 +1,18 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { Role } from "@prisma/client";
 import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import {
+  isMasterOtpEnabled,
+  isOtpLocked,
+  recordOtpFailure,
+  resetOtpAttempts,
+} from "@/lib/otp";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
@@ -108,9 +115,34 @@ export const authOptions: NextAuthOptions = {
 
         // 1. PIN / Passcode Authentication (For Owner and Staff)
         if (pin) {
-          // A. Owner Verification: Passcode 140974 for 9109066668
+          // A. Owner Verification: the owner passcode lives in the database
+          // (provisioned to 140974 for 9109066668 via seed/first-login) and is
+          // compared with a constant-time equality check.
           if (phone === "9109066668") {
-            if (pin !== "140974") {
+            const ownerRecord = await prisma.user.findUnique({
+              where: { phone: "9109066668" },
+              select: { id: true, pin: true },
+            });
+
+            let storedOwnerPin = ownerRecord?.pin ?? null;
+
+            // Self-heal: a fresh database may have the owner row without a PIN.
+            // Provision it from OWNER_PASSCODE (defaults to the documented passcode).
+            if (ownerRecord && !storedOwnerPin) {
+              const provisioned = process.env.OWNER_PASSCODE || "140974";
+              await prisma.user.update({
+                where: { id: ownerRecord.id },
+                data: { pin: provisioned },
+              });
+              storedOwnerPin = provisioned;
+            }
+
+            const ownerPinOk =
+              !!storedOwnerPin &&
+              storedOwnerPin.length === pin.length &&
+              crypto.timingSafeEqual(Buffer.from(storedOwnerPin), Buffer.from(pin));
+
+            if (!ownerPinOk) {
               throw new Error("Incorrect Owner Passcode. Access denied.");
             }
 
@@ -147,7 +179,11 @@ export const authOptions: NextAuthOptions = {
             throw new Error("No staff account found for this mobile number.");
           }
 
-          if (!staffUser.pin || staffUser.pin !== pin) {
+          if (
+            !staffUser.pin ||
+            staffUser.pin.length !== pin.length ||
+            !crypto.timingSafeEqual(Buffer.from(staffUser.pin), Buffer.from(pin))
+          ) {
             throw new Error("Incorrect Staff PIN. Please check with the store owner.");
           }
 
@@ -224,16 +260,25 @@ export const authOptions: NextAuthOptions = {
         const getOtp = async (p: string) => await redis.get(`otp:phone:${p}`);
         const deleteOtp = async (p: string) => await redis.del(`otp:phone:${p}`);
 
+        if (await isOtpLocked(phone)) {
+          throw new Error(
+            "Too many incorrect attempts. Please request a fresh OTP and try again."
+          );
+        }
+
         const validOtp = await getOtp(phone);
-        const isMasterTestOtp = otp === "1234";
+        const isMasterTestOtp = otp === "1234" && isMasterOtpEnabled();
 
         if (!isMasterTestOtp && (!validOtp || validOtp !== otp)) {
+          await recordOtpFailure(phone);
           throw new Error("Invalid or expired OTP. Please request a new one.");
         }
 
         if (!isMasterTestOtp) {
           await deleteOtp(phone);
         }
+
+        await resetOtpAttempts(phone);
 
         let dbUser = await prisma.user.findUnique({
           where: { phone },

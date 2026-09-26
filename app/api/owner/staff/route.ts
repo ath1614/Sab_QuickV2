@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
         email: true,
         role: true,
         roles: true,
-        pin: true,
         phoneVerified: true,
         createdAt: true,
         riderProfile: {
@@ -133,7 +132,6 @@ export async function POST(req: NextRequest) {
           email: true,
           role: true,
           roles: true,
-          pin: true,
         },
       });
     } else {
@@ -164,7 +162,6 @@ export async function POST(req: NextRequest) {
           email: true,
           role: true,
           roles: true,
-          pin: true,
         },
       });
     }
@@ -197,7 +194,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Staff member ${staffUser.name} [${assignedRoles.join(", ")}] saved successfully with PIN ${pin}.`,
+      message: `Staff member ${staffUser.name} [${assignedRoles.join(", ")}] saved successfully. Share the shift PIN with them directly.`,
       staff: staffUser,
     });
   } catch (error: any) {

@@ -9,26 +9,16 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   LayoutGrid,
   Search,
-  Zap,
   ChevronRight,
-  Milk,
-  Cookie,
-  CupSoda,
-  UtensilsCrossed,
-  Apple,
-  Coffee,
-  Heart,
-  Baby,
-  Flame,
-  Layers,
   ShoppingBag,
+  Layers,
 } from "lucide-react";
-import { ParentCategoryItem } from "./CategoryNav";
+import { CATEGORY_ICONS, ParentCategoryItem } from "./CategoryNav";
+import { cn } from "@/lib/utils";
 
 interface AislesDirectorySheetProps {
   isOpen: boolean;
@@ -38,18 +28,14 @@ interface AislesDirectorySheetProps {
   activeSubSlug?: string;
 }
 
-const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  "dairy-and-breakfast": Milk,
-  "snacks-and-munchies": Cookie,
-  "cold-drinks-and-juices": CupSoda,
-  "instant-foods": UtensilsCrossed,
-  "fruits-and-vegetables": Apple,
-  "tea-coffee-health-drinks": Coffee,
-  "personal-care": Heart,
-  "baby-care": Baby,
-  "atta-rice-dal": Flame,
-};
-
+/**
+ * Blinkit-style LEFT-DRAWER aisle explorer.
+ *
+ * Layout: a full-height drawer sliding in from the left with
+ *   - a sticky left rail of parent aisles (active aisle highlighted),
+ *   - a right pane showing the selected parent's subcategories as a
+ *     responsive tile grid (3 columns), plus "Shop all {parent}".
+ */
 export function AislesDirectorySheet({
   isOpen,
   onOpenChange,
@@ -61,6 +47,10 @@ export function AislesDirectorySheet({
   const [categories, setCategories] = React.useState<ParentCategoryItem[]>(initialCategories || []);
   const [searchFilter, setSearchFilter] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+
+  // Track the parent being previewed in the right pane. Defaults to the
+  // currently-active parent (or the first one).
+  const [previewSlug, setPreviewSlug] = React.useState<string | null>(null);
 
   // Fetch categories if not passed or empty
   React.useEffect(() => {
@@ -80,6 +70,19 @@ export function AislesDirectorySheet({
         .finally(() => setIsLoading(false));
     }
   }, [isOpen, initialCategories, categories.length]);
+
+  // (Re)select the previewed parent whenever the drawer opens.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const active =
+      categories.find((c) => c.slug === activeCategorySlug) ||
+      categories.find((c) => c.slug === previewSlug) ||
+      categories[0];
+    setPreviewSlug(active ? active.slug : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, categories]);
+
+  const previewedParent = categories.find((c) => c.slug === previewSlug) || null;
 
   const handleSelectAisle = (categorySlug: string, subCategorySlug?: string) => {
     onOpenChange(false);
@@ -118,173 +121,147 @@ export function AislesDirectorySheet({
     });
   }, [categories, searchFilter]);
 
+  // Keep the preview valid when the filter hides the previewed parent.
+  React.useEffect(() => {
+    if (previewSlug && !filteredCategories.some((c) => c.slug === previewSlug)) {
+      setPreviewSlug(filteredCategories[0]?.slug ?? null);
+    }
+  }, [filteredCategories, previewSlug]);
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
-        side="bottom"
-        className="h-[85vh] sm:h-[80vh] rounded-t-[32px] p-0 flex flex-col bg-slate-50 border-t border-slate-200 overflow-hidden shadow-2xl"
+        side="left"
+        className="w-[88%] sm:max-w-md p-0 flex flex-col bg-white border-r border-slate-200 overflow-hidden shadow-2xl"
       >
-        {/* Grab Handle */}
-        <div className="pt-3 pb-1 flex justify-center shrink-0">
-          <div className="w-12 h-1.5 bg-slate-300 rounded-full" />
-        </div>
+        {/* Drawer Header */}
+        <SheetHeader className="px-4 pt-5 pb-3 border-b border-slate-100 shrink-0 space-y-3">
+          <SheetTitle className="text-lg font-black text-slate-950 flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5 text-primary" />
+            <span>All Aisles</span>
+          </SheetTitle>
+          <SheetDescription className="text-xs text-slate-500 sr-only">
+            Browse the full SabQuick dark store inventory by aisle
+          </SheetDescription>
 
-        {/* Sheet Header */}
-        <div className="px-5 pb-3 border-b border-slate-200 bg-white shrink-0 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle className="text-lg font-black text-slate-950 flex items-center gap-2">
-                <LayoutGrid className="w-5 h-5 text-primary" />
-                <span>Store Aisles & Categories</span>
-              </SheetTitle>
-              <SheetDescription className="text-xs text-slate-500 mt-0.5">
-                Quickly browse our full Ambikapur dark store inventory
-              </SheetDescription>
-            </div>
-            <Badge
-              variant="accent"
-              className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border-emerald-300"
-            >
-              <Zap className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
-              10-15m
-            </Badge>
-          </div>
-
-          {/* Quick Filter Search Input inside Aisle Sheet */}
+          {/* Quick Filter Search Input */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Filter aisles (e.g. Dairy, Snacks, Cold Drinks)..."
+              placeholder="Search aisles (e.g. Dairy, Snacks)..."
               className="w-full h-10 pl-10 pr-4 bg-slate-50 border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary"
             />
           </div>
-        </div>
+        </SheetHeader>
 
-        {/* Scrollable Aisles List & Subcategory Chips */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pb-20">
-          {/* Top All-Catalog Option */}
-          <button
-            type="button"
-            onClick={() => handleSelectAisle("all")}
-            className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all group ${
-              activeCategorySlug === "all" || !activeCategorySlug
-                ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                : "bg-white text-slate-900 border-slate-200 hover:border-primary/50 hover:bg-emerald-50/40"
-            }`}
+        {/* Two-Pane Explorer Body */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Rail: Parent Aisles */}
+          <nav
+            aria-label="Parent aisles"
+            className="w-[38%] max-w-[190px] shrink-0 bg-slate-50 border-r border-slate-100 overflow-y-auto py-2"
           >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
-                  activeCategorySlug === "all" || !activeCategorySlug
-                    ? "bg-white/20 text-white"
-                    : "bg-emerald-100 text-emerald-800"
-                }`}
-              >
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-sm font-black tracking-tight">All Catalog Aisles</div>
-                <div
-                  className={`text-xs ${
-                    activeCategorySlug === "all" || !activeCategorySlug
-                      ? "text-emerald-100"
-                      : "text-slate-500"
-                  }`}
+            {/* All Catalog option */}
+            <button
+              type="button"
+              onClick={() => handleSelectAisle("all")}
+              className={cn(
+                "w-full flex items-center gap-2.5 px-3 py-3 text-left border-l-4 transition-all",
+                activeCategorySlug === "all" || !activeCategorySlug
+                  ? "bg-white border-primary text-slate-950"
+                  : "border-transparent text-slate-600 hover:bg-white/60"
+              )}
+            >
+              <ShoppingBag className="w-5 h-5 text-primary shrink-0" />
+              <span className="text-xs font-bold leading-tight">All Products</span>
+            </button>
+
+            {isLoading &&
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-14 mx-2 my-1 bg-white rounded-xl animate-pulse" />
+              ))}
+
+            {filteredCategories.map((cat) => {
+              const IconComponent = CATEGORY_ICONS[cat.slug] || Layers;
+              const isActive = previewSlug === cat.slug || activeCategorySlug === cat.slug;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setPreviewSlug(cat.slug)}
+                  onDoubleClick={() => handleSelectAisle(cat.slug)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-3 text-left border-l-4 transition-all",
+                    isActive
+                      ? "bg-white border-primary text-slate-950"
+                      : "border-transparent text-slate-600 hover:bg-white/60"
+                  )}
                 >
-                  Browse all 18+ dark store items without filter
+                  <IconComponent
+                    className={cn("w-5 h-5 shrink-0", isActive ? "text-primary" : "text-slate-400")}
+                  />
+                  <span className="text-xs font-bold leading-tight line-clamp-2">{cat.name}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Right Pane: Subcategory Tile Grid */}
+          <div className="flex-1 overflow-y-auto p-4 pb-24">
+            {!previewedParent ? (
+              <div className="text-center py-12 text-slate-400">
+                <Layers className="w-8 h-8 mx-auto mb-2" />
+                <p className="text-xs font-semibold">Select an aisle to browse</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Shop-all-parent card */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectAisle(previewedParent.slug)}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-primary text-white shadow-md shadow-primary/20 active:scale-[0.98] transition-all"
+                >
+                  <div className="text-left">
+                    <div className="text-sm font-black tracking-tight">
+                      Shop all {previewedParent.name}
+                    </div>
+                    <div className="text-[11px] text-emerald-100">
+                      {previewedParent.subCategories?.length || 0} sub-aisles
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Subcategory tiles (3-col grid, Blinkit style) */}
+                <div className="grid grid-cols-3 gap-2">
+                  {previewedParent.subCategories?.map((sub) => {
+                    const isSubActive =
+                      activeCategorySlug === previewedParent.slug && activeSubSlug === sub.slug;
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => handleSelectAisle(previewedParent.slug, sub.slug)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1.5 aspect-square rounded-2xl border p-2 text-center transition-all active:scale-[0.96]",
+                          isSubActive
+                            ? "border-primary bg-emerald-50 ring-1 ring-primary/30"
+                            : "border-slate-200 bg-white hover:border-primary/40 hover:bg-emerald-50/40"
+                        )}
+                      >
+                        <span className="text-[11px] font-bold text-slate-800 leading-tight line-clamp-3">
+                          {sub.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-            <ChevronRight
-              className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${
-                activeCategorySlug === "all" || !activeCategorySlug
-                  ? "text-white"
-                  : "text-slate-400"
-              }`}
-            />
-          </button>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-24 bg-white rounded-2xl border border-slate-200 animate-pulse" />
-              ))}
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
-              <Layers className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-700">No matching aisles found</p>
-              <p className="text-xs text-slate-400 mt-1">Try another search keyword</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {filteredCategories.map((cat) => {
-                const IconComponent = CATEGORY_ICONS[cat.slug] || Layers;
-                const isCatActive = activeCategorySlug === cat.slug;
-
-                return (
-                  <div
-                    key={cat.id}
-                    className={`rounded-2xl border bg-white p-4 transition-all shadow-xs ${
-                      isCatActive
-                        ? "border-primary ring-2 ring-primary/20 bg-emerald-50/20"
-                        : "border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    {/* Parent Category Header */}
-                    <div
-                      onClick={() => handleSelectAisle(cat.slug)}
-                      className="flex items-center justify-between cursor-pointer group pb-2"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
-                            {cat.name}
-                          </div>
-                          <div className="text-[11px] text-slate-400 font-medium">
-                            {cat.subCategories?.length || 0} Sub-aisles
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-primary transition-all" />
-                    </div>
-
-                    {/* Subcategories Chip List */}
-                    {cat.subCategories && cat.subCategories.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 mt-2">
-                        {cat.subCategories.map((sub) => {
-                          const isSubActive = isCatActive && activeSubSlug === sub.slug;
-                          return (
-                            <button
-                              key={sub.id}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectAisle(cat.slug, sub.slug);
-                              }}
-                              className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                                isSubActive
-                                  ? "bg-primary text-white border-primary shadow-xs"
-                                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-950"
-                              }`}
-                            >
-                              {sub.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </SheetContent>
     </Sheet>

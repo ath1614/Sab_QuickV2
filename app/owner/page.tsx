@@ -21,8 +21,6 @@ import {
   Sliders,
   Check,
   AlertCircle,
-  Eye,
-  EyeOff,
   Store,
   LayoutDashboard,
   FolderTree,
@@ -57,6 +55,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Logo } from "@/components/brand/Logo";
+import { THEME_PRESETS as SHARED_THEME_PRESETS } from "@/components/theme/themePresets";
 import { OwnerOrdersTab } from "@/components/owner/OwnerOrdersTab";
 import { OwnerCustomersTab } from "@/components/owner/OwnerCustomersTab";
 
@@ -82,7 +81,6 @@ interface StaffMember {
   email: string | null;
   role: "OWNER" | "MANAGER" | "PACKER" | "RIDER";
   roles?: ("OWNER" | "MANAGER" | "PACKER" | "RIDER")[];
-  pin: string | null;
   phoneVerified: Date | null;
   createdAt: string;
   riderProfile?: {
@@ -118,36 +116,15 @@ interface CouponItem {
   };
 }
 
-const THEME_PRESETS = [
-  {
-    name: "Forest Speed (Standard)",
-    primary: "#0B6E4F",
-    accent: "#00C853",
-    saleTag: "⚡ 10-15 Min Delivery Guarantee",
-    bannerUrl: "/banners/forest-speed-hero.webp",
-  },
-  {
-    name: "Diwali Gold Dhamaka",
-    primary: "#B45309",
-    accent: "#F59E0B",
-    saleTag: "🪔 Diwali Dhamaka: 15-Min Festival Express",
-    bannerUrl: "/banners/diwali-express.webp",
-  },
-  {
-    name: "Midnight Flash",
-    primary: "#1E1B4B",
-    accent: "#6366F1",
-    saleTag: "🌙 Midnight Flash: Late-Night Snacks & Drinks",
-    bannerUrl: "/banners/midnight-flash.webp",
-  },
-  {
-    name: "Summer Citrus Coolers",
-    primary: "#EA580C",
-    accent: "#FBBF24",
-    saleTag: "☀️ Summer Coolers: Chilled In 10 Mins",
-    bannerUrl: "/banners/summer-coolers.webp",
-  },
-];
+// Single source of truth for palettes lives in components/theme/themePresets.ts —
+// this adapter keeps the legacy { primary, accent, saleTag, bannerUrl } shape.
+const THEME_PRESETS = SHARED_THEME_PRESETS.map((p) => ({
+  name: p.name,
+  primary: p.primaryColor,
+  accent: p.accentColor,
+  saleTag: p.saleTagText,
+  bannerUrl: p.key === "standard" ? "/banners/forest-speed-hero.webp" : "",
+}));
 
 export default function OwnerControlPage() {
   const { data: session, status: authStatus } = useSession();
@@ -178,7 +155,6 @@ export default function OwnerControlPage() {
   });
   const [staffFormSubmitting, setStaffFormSubmitting] = React.useState(false);
   const [staffFormError, setStaffFormError] = React.useState<string | null>(null);
-  const [revealedPins, setRevealedPins] = React.useState<Record<string, boolean>>({});
   const [deletingStaffId, setDeletingStaffId] = React.useState<string | null>(null);
 
   // Coupon Management State
@@ -217,6 +193,34 @@ export default function OwnerControlPage() {
   const [bannerImageUrl, setBannerImageUrl] = React.useState("/banners/forest-speed-hero.webp");
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
+
+  // Scheduled Theme Campaigns (Phase 5 theme engine)
+  interface ThemeCampaignItem {
+    id: string;
+    name: string;
+    primaryColor: string;
+    accentColor: string;
+    saleTagText: string | null;
+    bannerImageUrl: string | null;
+    validFrom: string;
+    validUntil: string;
+    priority: number;
+    isActive: boolean;
+  }
+  const [campaigns, setCampaigns] = React.useState<ThemeCampaignItem[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = React.useState(false);
+  const [campaignForm, setCampaignForm] = React.useState({
+    name: "",
+    primaryColor: "#0B6E4F",
+    accentColor: "#00C853",
+    saleTagText: "",
+    validFrom: "",
+    validUntil: "",
+    priority: 0,
+    isActive: true,
+  });
+  const [campaignSaving, setCampaignSaving] = React.useState(false);
+  const [campaignMsg, setCampaignMsg] = React.useState<string | null>(null);
 
   // Fetch initial analytics & catalog
   const fetchOperationsData = React.useCallback(async (silent = false) => {
@@ -280,7 +284,7 @@ export default function OwnerControlPage() {
       email: staff.email || "",
       roles: assignedRoles.length > 0 ? assignedRoles : ["PACKER"],
       role: assignedRoles[0] || "PACKER",
-      pin: staff.pin || "",
+      pin: "",
       vehicleDetails: staff.riderProfile?.vehicleDetails || "",
     });
     setIsEditingStaff(true);
@@ -375,10 +379,6 @@ export default function OwnerControlPage() {
     } finally {
       setDeletingStaffId(null);
     }
-  };
-
-  const togglePinReveal = (staffId: string) => {
-    setRevealedPins((prev) => ({ ...prev, [staffId]: !prev[staffId] }));
   };
 
   // Fetch Coupons directory
@@ -639,13 +639,120 @@ export default function OwnerControlPage() {
     }
   };
 
-  // Apply Theme Preset
+  // ---------- Scheduled Theme Campaigns (Phase 5) ----------
+  const fetchCampaigns = React.useCallback(async () => {
+    try {
+      setCampaignsLoading(true);
+      const res = await fetch("/api/ops/theme/campaigns");
+      if (!res.ok) throw new Error("Failed to load campaigns");
+      const data = await res.json();
+      setCampaigns(data.campaigns || []);
+    } catch (err) {
+      console.error("Campaign fetch error:", err);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeOwnerTab === "theme") {
+      fetchCampaigns();
+    }
+  }, [activeOwnerTab, fetchCampaigns]);
+
+  const nowIso = new Date().toISOString().slice(0, 16);
+  const campaignStatus = (c: { validFrom: string; validUntil: string; isActive: boolean }) => {
+    if (!c.isActive) return "PAUSED";
+    const now = Date.now();
+    const from = new Date(c.validFrom).getTime();
+    const until = new Date(c.validUntil).getTime();
+    if (now < from) return "SCHEDULED";
+    if (now > until) return "ENDED";
+    return "LIVE";
+  };
+
+  const handleSaveCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCampaignMsg(null);
+    if (!campaignForm.name.trim() || !campaignForm.validFrom || !campaignForm.validUntil) {
+      setCampaignMsg("Campaign name and both dates are required.");
+      return;
+    }
+    if (new Date(campaignForm.validUntil) <= new Date(campaignForm.validFrom)) {
+      setCampaignMsg("Campaign end must be after its start.");
+      return;
+    }
+
+    try {
+      setCampaignSaving(true);
+      const res = await fetch("/api/ops/theme/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: campaignForm.name.trim(),
+          primaryColor: campaignForm.primaryColor,
+          accentColor: campaignForm.accentColor,
+          saleTagText: campaignForm.saleTagText || undefined,
+          validFrom: new Date(campaignForm.validFrom).toISOString(),
+          validUntil: new Date(campaignForm.validUntil).toISOString(),
+          priority: campaignForm.priority,
+          isActive: campaignForm.isActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save campaign");
+      }
+      setCampaignMsg("Campaign scheduled successfully!");
+      setCampaignForm({
+        name: "",
+        primaryColor: "#0B6E4F",
+        accentColor: "#00C853",
+        saleTagText: "",
+        validFrom: "",
+        validUntil: "",
+        priority: 0,
+        isActive: true,
+      });
+      fetchCampaigns();
+      setTimeout(() => setCampaignMsg(null), 4000);
+    } catch (err: any) {
+      setCampaignMsg(err.message || "Failed to save campaign");
+    } finally {
+      setCampaignSaving(false);
+    }
+  };
+
+  const handleDeleteCampaign = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ops/theme/campaigns?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete campaign");
+      }
+      fetchCampaigns();
+    } catch (err: any) {
+      console.error("Delete campaign error:", err);
+      setCampaignMsg(err.message || "Failed to delete campaign");
+    }
+  };
+
+  // Apply Theme Preset (fills both the manual form and the campaign scheduler)
   const handleApplyPreset = (preset: typeof THEME_PRESETS[0]) => {
     setThemeName(preset.name);
     setPrimaryColor(preset.primary);
     setAccentColor(preset.accent);
     setSaleTagText(preset.saleTag);
     setBannerImageUrl(preset.bannerUrl);
+    setCampaignForm((prev) => ({
+      ...prev,
+      name: preset.name,
+      primaryColor: preset.primary,
+      accentColor: preset.accent,
+      saleTagText: preset.saleTag,
+    }));
   };
 
   // RBAC Authentication Guard
@@ -1034,6 +1141,172 @@ export default function OwnerControlPage() {
             </div>
           </div>
 
+          {/* ---------- Scheduled Theme Campaigns (Phase 5) ---------- */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-black text-surface-dark uppercase tracking-wider">
+                  Scheduled Campaigns
+                </h3>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Auto-activate palettes by date — overrides the manual theme while live
+                </span>
+              </div>
+              {campaignsLoading && <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />}
+            </div>
+
+            {/* Campaign list */}
+            <div className="space-y-2">
+              {campaigns.length === 0 && !campaignsLoading && (
+                <p className="text-xs text-slate-500 bg-white rounded-xl border border-slate-200 p-3">
+                  No campaigns scheduled yet. Use a preset below, pick dates, and schedule it.
+                </p>
+              )}
+              {campaigns.map((c) => {
+                const status = campaignStatus(c);
+                const statusStyles: Record<string, string> = {
+                  LIVE: "bg-emerald-100 text-emerald-800 border-emerald-300",
+                  SCHEDULED: "bg-blue-100 text-blue-800 border-blue-300",
+                  ENDED: "bg-slate-200 text-slate-600 border-slate-300",
+                  PAUSED: "bg-amber-100 text-amber-800 border-amber-300",
+                };
+                return (
+                  <div
+                    key={c.id}
+                    className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 p-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex gap-1 shrink-0">
+                        <span
+                          className="w-6 h-6 rounded-lg border border-black/10"
+                          style={{ backgroundColor: c.primaryColor }}
+                        />
+                        <span
+                          className="w-6 h-6 rounded-lg border border-black/10"
+                          style={{ backgroundColor: c.accentColor }}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-surface-dark truncate">{c.name}</span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[9px] font-black px-1.5 py-0 ${statusStyles[status] || ""}`}
+                          >
+                            {status}
+                          </Badge>
+                          {c.priority > 0 && (
+                            <span className="text-[9px] font-bold text-slate-400">P{c.priority}</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {new Date(c.validFrom).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          {" "}
+                          → {" "}
+                          {new Date(c.validUntil).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteCampaign(c.id)}
+                      className="h-8 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-bold gap-1 rounded-xl"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Schedule form */}
+            <form onSubmit={handleSaveCampaign} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-white rounded-xl border border-slate-200 p-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Campaign</label>
+                <Input
+                  value={campaignForm.name}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, name: e.target.value })}
+                  placeholder="e.g. Diwali Dhamaka"
+                  className="h-9 text-xs rounded-lg"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Colors (from presets)</label>
+                <div className="flex items-center gap-2 h-9">
+                  <input
+                    type="color"
+                    value={campaignForm.primaryColor}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, primaryColor: e.target.value })}
+                    className="w-9 h-9 rounded-lg cursor-pointer border border-slate-300 p-0.5 bg-white"
+                    title="Primary color"
+                  />
+                  <input
+                    type="color"
+                    value={campaignForm.accentColor}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, accentColor: e.target.value })}
+                    className="w-9 h-9 rounded-lg cursor-pointer border border-slate-300 p-0.5 bg-white"
+                    title="Accent color"
+                  />
+                  <span className="text-[10px] text-slate-400 font-mono truncate">
+                    {campaignForm.primaryColor}/{campaignForm.accentColor}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Starts</label>
+                <Input
+                  type="datetime-local"
+                  value={campaignForm.validFrom}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, validFrom: e.target.value })}
+                  className="h-9 text-xs rounded-lg"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Ends</label>
+                <Input
+                  type="datetime-local"
+                  value={campaignForm.validUntil}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, validUntil: e.target.value })}
+                  className="h-9 text-xs rounded-lg"
+                  required
+                />
+              </div>
+              <div className="md:col-span-2 lg:col-span-3 space-y-1">
+                <label className="text-[11px] font-bold text-slate-600">Hero tag text (optional)</label>
+                <Input
+                  value={campaignForm.saleTagText}
+                  onChange={(e) => setCampaignForm({ ...campaignForm, saleTagText: e.target.value })}
+                  placeholder="e.g. 🪔 Diwali Dhamaka — Festive Deals Live"
+                  className="h-9 text-xs rounded-lg"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <Button
+                  type="submit"
+                  disabled={campaignSaving}
+                  className="h-9 px-4 rounded-lg font-black text-xs gap-1.5 bg-primary hover:bg-primary/90 text-white"
+                >
+                  {campaignSaving ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Calendar className="w-3.5 h-3.5" />
+                  )}
+                  <span>Schedule</span>
+                </Button>
+              </div>
+              {campaignMsg && (
+                <p className="md:col-span-2 lg:col-span-4 text-[11px] font-bold text-slate-600">
+                  {campaignMsg}
+                </p>
+              )}
+            </form>
+          </div>
+
           <form onSubmit={handleSaveTheme} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Theme Controls (2 columns on large screens) */}
             <div className="lg:col-span-2 space-y-4">
@@ -1258,7 +1531,6 @@ export default function OwnerControlPage() {
             ) : (
               staffList.map((staff) => {
                 const isOwnerAccount = staff.role === "OWNER" || staff.phone === "9109066668";
-                const isRevealed = Boolean(revealedPins[staff.id]);
 
                 return (
                   <div
@@ -1325,16 +1597,8 @@ export default function OwnerControlPage() {
                         <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200">
                           <Lock className="w-3 h-3 text-slate-400" />
                           <span className="font-mono font-bold text-xs tracking-wider text-surface-dark">
-                            {isRevealed ? (staff.pin || "None") : "••••"}
+                            ••••
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => togglePinReveal(staff.id)}
-                            className="text-slate-400 hover:text-slate-600 ml-0.5"
-                            title={isRevealed ? "Hide PIN" : "Reveal PIN"}
-                          >
-                            {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          </button>
                         </div>
                       </div>
 
@@ -1398,7 +1662,6 @@ export default function OwnerControlPage() {
                 ) : (
                   staffList.map((staff) => {
                     const isOwnerAccount = staff.role === "OWNER" || staff.phone === "9109066668";
-                    const isRevealed = Boolean(revealedPins[staff.id]);
 
                     return (
                       <tr key={staff.id} className="hover:bg-slate-50/60 transition-colors">
@@ -1460,21 +1723,13 @@ export default function OwnerControlPage() {
                           </div>
                         </td>
 
-                        {/* Shift PIN */}
+                        {/* Shift PIN (masked — PINs are never sent to the client) */}
                         <td className="py-3 px-4">
                           <div className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                             <KeyRound className="w-3.5 h-3.5 text-slate-400" />
                             <span className="font-mono font-black text-xs tracking-wider text-surface-dark">
-                              {isRevealed ? (staff.pin || "None") : "••••"}
+                              ••••
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => togglePinReveal(staff.id)}
-                              className="text-slate-400 hover:text-slate-600 ml-1"
-                              title={isRevealed ? "Hide PIN" : "Reveal PIN"}
-                            >
-                              {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
                           </div>
                         </td>
 

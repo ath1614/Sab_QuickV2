@@ -40,7 +40,7 @@ interface CategoryNavProps {
   onSelectCategory: (catSlug: string, subSlug?: string) => void;
 }
 
-const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+export const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "dairy-and-breakfast": Milk,
   "snacks-and-munchies": Cookie,
   "cold-drinks-and-juices": CupSoda,

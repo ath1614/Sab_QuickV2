@@ -50,6 +50,7 @@ export function ProductCard({
       : 0;
 
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
+  const isLowStock = !isOutOfStock && product.stockCount <= 5;
 
   const handleCardClick = () => {
     onProductClick?.(product);
@@ -110,11 +111,16 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Unit Quantity Pill */}
-        <div className="mt-2.5">
+        {/* Unit Quantity Pill (+ low-stock urgency hint) */}
+        <div className="mt-2.5 flex items-center gap-1.5">
           <span className="inline-block text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-mono">
             {product.unitQuantity}
           </span>
+          {isLowStock && (
+            <span className="text-[10px] font-black text-rose-600 uppercase tracking-wide">
+              Only {product.stockCount} left
+            </span>
+          )}
         </div>
 
         {/* Product Title */}
@@ -156,7 +162,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={() => onDecrement?.(product)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded transition-colors"
+                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
@@ -164,7 +170,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={() => onIncrement?.(product)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded transition-colors"
+                className="w-6 h-6 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -175,7 +181,7 @@ export function ProductCard({
               size="sm"
               variant="outline"
               onClick={() => onAddToCart?.(product)}
-              className="w-full h-8 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs rounded-lg transition-colors shadow-2xs"
+              className="w-full h-8 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs rounded-lg transition-all active:scale-95 shadow-2xs"
             >
               + ADD
             </Button>

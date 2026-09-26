@@ -1,23 +1,11 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { resolveActiveTheme, DEFAULT_THEME } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const theme = await prisma.themeConfig.findUnique({
-      where: { id: "active_theme" },
-    });
-
-    if (!theme) {
-      return NextResponse.json({
-        themeName: "Forest Speed (Standard)",
-        primaryColor: "#0B6E4F",
-        accentColor: "#00C853",
-        saleTagText: "⚡ 10-15 Min Delivery Guarantee",
-        bannerImageUrl: "/banners/forest-speed-hero.webp",
-      });
-    }
+    const theme = await resolveActiveTheme();
 
     return NextResponse.json({
       themeName: theme.themeName,
@@ -25,18 +13,19 @@ export async function GET() {
       accentColor: theme.accentColor,
       saleTagText: theme.saleTagText,
       bannerImageUrl: theme.bannerImageUrl,
+      source: theme.source,
+      campaignId: theme.campaignId ?? null,
     });
   } catch (error) {
     console.error("[GET /api/theme error]:", error);
-    return NextResponse.json(
-      {
-        themeName: "Forest Speed (Standard)",
-        primaryColor: "#0B6E4F",
-        accentColor: "#00C853",
-        saleTagText: "⚡ 10-15 Min Delivery Guarantee",
-        bannerImageUrl: "/banners/forest-speed-hero.webp",
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      themeName: DEFAULT_THEME.themeName,
+      primaryColor: DEFAULT_THEME.primaryColor,
+      accentColor: DEFAULT_THEME.accentColor,
+      saleTagText: DEFAULT_THEME.saleTagText,
+      bannerImageUrl: DEFAULT_THEME.bannerImageUrl,
+      source: "default",
+      campaignId: null,
+    });
   }
 }

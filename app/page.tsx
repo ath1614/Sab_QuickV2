@@ -20,12 +20,14 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
+import { CategoryGrid } from "@/components/catalog/CategoryGrid";
 import { CategoryNav, ParentCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 import { AisleProductRow } from "@/components/catalog/AisleProductRow";
 import { SearchBar } from "@/components/catalog/SearchBar";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { FloatingCartPill } from "@/components/cart/FloatingCartPill";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
 import { SplashScreen } from "@/components/brand/SplashScreen";
@@ -42,6 +44,10 @@ interface ThemeInfo {
   saleTagText: string;
   bannerImageUrl?: string | null;
 }
+
+// Maximum cards mounted per rail on the home feed (per-card images dominate
+// initial payload; longer lists are available via "See All").
+const MAX_RAIL_PRODUCTS = 10;
 
 function StorefrontContent() {
   const router = useRouter();
@@ -85,6 +91,19 @@ function StorefrontContent() {
     });
     return qMap;
   }, [cartItems]);
+
+  // Live product counts per parent category (for the 3x3 category grid tiles)
+  const categoryProductCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    categories.forEach((cat) => {
+      counts[cat.id] = products.filter(
+        (p) =>
+          p.category?.id === cat.id ||
+          (p.category?.id && cat.subCategories?.some((s) => s.id === p.category?.id))
+      ).length;
+    });
+    return counts;
+  }, [categories, products]);
 
   // Grouped Aisles for "All Fresh Dark Store Catalog"
   const groupedAisles = React.useMemo(() => {
@@ -142,7 +161,9 @@ function StorefrontContent() {
       }
     });
 
-    return Array.from(map.values()).filter((g) => g.products.length > 0);
+    return Array.from(map.values())
+      .map((g) => ({ ...g, products: g.products.slice(0, MAX_RAIL_PRODUCTS) }))
+      .filter((g) => g.products.length > 0);
   }, [categories, products, categoryParam, activeSearch]);
 
   // Cold-start splash screen runs only once per session
@@ -315,8 +336,20 @@ function StorefrontContent() {
           </div>
         )}
 
-        {/* Dynamic Seasonal Marketing Hero Banner */}
-        <section className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-white/10">
+        {/* Dynamic Seasonal Marketing Hero Banner — palette + image both resolve
+            from the theme engine (live campaign > manual pin > brand default) */}
+        <section
+          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-white/10 overflow-hidden"
+          style={
+            theme.bannerImageUrl
+              ? {
+                  backgroundImage: `linear-gradient(to right, rgba(4,36,28,0.86), rgba(4,36,28,0.55) 55%, rgba(4,36,28,0.35)), url(${theme.bannerImageUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : undefined
+          }
+        >
           {/* Background Ambient Circles (Clipped within card bounds) */}
           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
             <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-accent/20 rounded-full blur-3xl" />
@@ -353,6 +386,15 @@ function StorefrontContent() {
             </div>
           </div>
         </section>
+
+        {/* Blinkit-Style 3x3 Category Grid (home feed only) */}
+        {categoryParam === "all" && !activeSearch && (
+          <CategoryGrid
+            categories={categories}
+            productCounts={categoryProductCounts}
+            onSelectCategory={handleSelectCategory}
+          />
+        )}
 
         {/* Active Search / Category Filter Header */}
         <div id="product-grid" className="flex items-center justify-between border-b border-border-subtle pb-3 scroll-mt-24">
@@ -420,7 +462,7 @@ function StorefrontContent() {
               onClick={() => handleSelectCategory("all")}
               className="rounded-xl font-bold"
             >
-              View All 18 Catalog Items
+              Browse the Full Catalog
             </Button>
           </div>
         ) : groupedAisles.length > 0 ? (
@@ -466,6 +508,9 @@ function StorefrontContent() {
 
       {/* Slide-Over Quick Cart Drawer */}
       <CartDrawer />
+
+      {/* Blinkit-Style Floating Cart Pill (appears when cart is non-empty) */}
+      <FloatingCartPill />
 
       {/* Product Detail Modal */}
       <ProductDetailModal

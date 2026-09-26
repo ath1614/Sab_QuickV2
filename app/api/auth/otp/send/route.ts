@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
+import { resetOtpAttempts } from "@/lib/otp";
 
 const sendOtpSchema = z.object({
   phone: z
@@ -80,6 +81,9 @@ export async function POST(req: NextRequest) {
     // 5. Set 60-second cooldown in Redis
     await redis.set(cooldownKey, "1", "EX", 60);
 
+    // A fresh OTP invalidates any previous failed-attempt lockout.
+    await resetOtpAttempts(phone);
+
     const isNewUser = !existingUser || !existingUser.name;
 
     // 6. Direct SMS Dispatch Gateway Integration (Fast2SMS / 2Factor / MSG91)
@@ -125,8 +129,20 @@ export async function POST(req: NextRequest) {
     // Zero-Captcha Policy:
     // We permanently disable client-side reCAPTCHA (useFirebase: false) so customers
     // never encounter fire-hydrant/traffic-light captcha challenges or WebView freezes.
+    //
+    // OTP DELIVERY MODES (OTP_DELIVERY_MODE env):
+    //   - "auto" (default): if an SMS gateway is configured -> send real SMS and
+    //     never reflect the code in the response. Without a gateway -> "display"
+    //     mode (below) so login keeps working.
+    //   - "display": the code is returned and shown in the app UI. This is the
+    //     current production login mechanism (no SMS provider configured yet).
+    //     Trade-off: possession of the endpoint = ability to request a code for
+    //     any number. Documented in AUTH_FLOWS.md. Configure FAST2SMS_API_KEY or
+    //     TWOFACTOR_API_KEY and login automatically upgrades to real SMS OTP.
     const hasSmsGateway = Boolean(fast2smsKey || twoFactorKey);
-    const exposeDevCode = !hasSmsGateway || process.env.ENABLE_DEV_OTP_BANNER === "true";
+    const otpDeliveryMode = process.env.OTP_DELIVERY_MODE || "auto";
+    const exposeDevCode =
+      otpDeliveryMode === "display" || (otpDeliveryMode === "auto" && !hasSmsGateway);
 
     return NextResponse.json({
       success: true,

@@ -219,3 +219,22 @@ model ThemeConfig {
   saleTagText    String?
   updatedAt      DateTime @updatedAt
 }
+
+/// Scheduled seasonal theme campaign (Diwali, Holi, Summer Sale, ...).
+/// Resolution order: live campaign (highest priority) -> manual pin (ThemeConfig) -> defaults.
+model ThemeCampaign {
+  id             String   @id @default(cuid())
+  name           String
+  primaryColor   String
+  accentColor    String
+  saleTagText    String?
+  bannerImageUrl String?
+  validFrom      DateTime
+  validUntil     DateTime
+  priority       Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive, validFrom, validUntil])
+}

@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Release signing credentials are loaded from android/key.properties which is
+// GITIGNORED. Never commit real keystore passwords to version control.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.sabquick.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,15 +26,19 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('sabquick-release.keystore')
-            storePassword 'sabquick2026'
-            keyAlias 'sabquick'
-            keyPassword 'sabquick2026'
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            // Signed with the release keystore when key.properties exists;
+            // otherwise falls back to debug signing for local smoke builds.
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -11,7 +11,8 @@ interface SplashScreenProps {
 
 export function SplashScreen({
   onComplete,
-  durationMs = 1800,
+  // Blinkit-style fast splash: brief brand flash, out before the catalog renders.
+  durationMs = 900,
   forceShow = false,
 }: SplashScreenProps) {
   const [stage, setStage] = React.useState<"animating" | "exiting" | "hidden">("animating");
@@ -19,7 +20,7 @@ export function SplashScreen({
   React.useEffect(() => {
     const exitTimer = setTimeout(() => {
       setStage("exiting");
-    }, Math.max(durationMs - 350, 1000));
+    }, Math.max(durationMs - 350, 200));
 
     const finishTimer = setTimeout(() => {
       setStage("hidden");

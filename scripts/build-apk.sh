@@ -39,6 +39,17 @@ fi
 # Ensure local.properties contains sdk.dir
 echo "sdk.dir=$ANDROID_HOME" > "$PROJECT_ROOT/android/local.properties"
 
+# Guard: release builds must be signed with the gitignored keystore credentials.
+# See android/key.example.properties. Fallback = debug-signed local smoke build.
+if [ ! -f "$PROJECT_ROOT/android/key.properties" ]; then
+  echo ""
+  echo "⚠️  WARNING: android/key.properties not found — the APK will be DEBUG-SIGNED."
+  echo "   For a production release APK, create android/key.properties (gitignored)"
+  echo "   pointing at your release keystore. See android/key.example.properties."
+  echo ""
+  sleep 2
+fi
+
 # 2. Sync Capacitor Web Assets & Plugins
 echo ""
 echo "🔄 [Step 1/3] Syncing Capacitor plugins and native assets..."

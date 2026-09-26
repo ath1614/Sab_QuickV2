@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
         phoneVerified: true,
         role: true,
         roles: true,
-        pin: true,
       },
     });
 

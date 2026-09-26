@@ -20,6 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
+import { useCartStore } from "@/store/useCartStore";
+import { ProductData } from "@/components/catalog/ProductCard";
 import { Logo } from "@/components/brand/Logo";
 
 interface OrderItem {
@@ -28,9 +30,17 @@ interface OrderItem {
   unitPrice: number;
   product: {
     id: string;
-    name: string;
+    name?: string;
+    title?: string;
+    slug?: string;
+    mrp?: number;
+    salePrice?: number;
+    unitQuantity?: string;
+    unit?: string;
+    stockCount?: number;
+    isAvailable?: boolean;
+    tags?: string[];
     imageUrl: string;
-    unit: string;
   };
 }
 
@@ -66,9 +76,35 @@ const ACTIVE_STATUSES = [
 export default function OrdersPage() {
   const { data: session, status: authStatus } = useSession();
   const { openAuthModal } = useAuthModalStore();
+  const { addItem, openCart } = useCartStore();
   const [orders, setOrders] = React.useState<OrderData[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
+
+  /** Adds every line of a past order back into the cart (Buy Again). */
+  const handleBuyAgain = (order: OrderData) => {
+    (order.items || []).forEach((item) => {
+      if (!item?.product) return;
+      const p = item.product;
+      const product: ProductData = {
+        id: p.id,
+        title: p.title || p.name || "Item",
+        slug: p.slug || p.id,
+        description: null,
+        mrp: p.mrp ?? item.unitPrice,
+        salePrice: p.salePrice ?? item.unitPrice,
+        unitQuantity: p.unitQuantity || p.unit || "1 pc",
+        stockCount: p.stockCount ?? 99,
+        isAvailable: p.isAvailable ?? true,
+        imageUrl: p.imageUrl,
+        tags: p.tags || [],
+      };
+      for (let i = 0; i < item.quantity; i++) {
+        addItem(product);
+      }
+    });
+    openCart();
+  };
 
   const fetchOrders = React.useCallback(async () => {
     try {
@@ -327,9 +363,19 @@ export default function OrdersPage() {
                         year: "numeric",
                       }) : "Recent"} • {(order.items || []).length} items
                     </span>
-                    <div className="flex items-center gap-1 font-bold text-surface-dark group-hover:text-primary transition-colors">
-                      <span>₹{order.totalAmount || 0}</span>
-                      <ChevronRight className="w-4 h-4" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleBuyAgain(order);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[11px] font-black hover:bg-primary hover:text-white active:scale-95 transition-all"
+                      >
+                        <RotateCw className="w-3 h-3" /> Buy Again
+                      </button>
+                      <span className="font-bold text-surface-dark group-hover:text-primary transition-colors">₹{order.totalAmount || 0}</span>
                     </div>
                   </div>
                 </Link>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import crypto from "crypto";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
 
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-      // Verify all products exist and have sufficient stock
+      // Verify all products exist and look serviceable
       for (const item of items) {
         const product = productMap.get(item.productId);
         if (!product) {
@@ -130,26 +131,58 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 5b. Decrement stock atomically (and flip isAvailable to false if 0)
+      // 5b. Decrement stock ATOMICALLY: the conditional update re-checks the
+      // stock level at write time, so two concurrent orders can never oversell
+      // the same unit (fixes the check-then-decrement race).
       for (const item of items) {
         const product = productMap.get(item.productId)!;
-        const remainingStock = product.stockCount - item.quantity;
-
-        await tx.product.update({
-          where: { id: item.productId },
+        const claimed = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            isAvailable: true,
+            stockCount: { gte: item.quantity },
+          },
           data: {
-            stockCount: remainingStock,
-            isAvailable: remainingStock > 0,
+            stockCount: { decrement: item.quantity },
           },
         });
+
+        if (claimed.count === 0) {
+          throw new Error(`Insufficient stock for product ${product.title}`);
+        }
       }
 
-      // 5c. Generate unique Order Number (e.g. SQ-1082 or SQ-XXXX)
-      const randomOrderNum = Math.floor(1000 + Math.random() * 9000);
-      const orderNumber = `SQ-${randomOrderNum}`;
+      // Flip availability off for any product that just hit zero stock.
+      await tx.product.updateMany({
+        where: {
+          id: { in: productIds },
+          stockCount: { lte: 0 },
+        },
+        data: { isAvailable: false },
+      });
 
-      // 5d. Generate secure 4-digit Delivery OTP
-      const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      // 5c. Generate a collision-checked unique Order Number (e.g. SQ-108233).
+      // A 6-digit pool with uniqueness verification removes the old 4-digit
+      // collision risk.
+      let orderNumber = "";
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = `SQ-${crypto.randomInt(100000, 1000000)}`;
+        const exists = await tx.order.findUnique({
+          where: { orderNumber: candidate },
+          select: { id: true },
+        });
+        if (!exists) {
+          orderNumber = candidate;
+          break;
+        }
+      }
+      if (!orderNumber) {
+        throw new Error("Could not allocate a unique order number. Please retry.");
+      }
+
+      // 5d. Generate a cryptographically random 4-digit Delivery OTP
+      // (1000-9999 — no leading-zero ambiguity, no predictability)
+      const deliveryOtp = crypto.randomInt(1000, 10000).toString();
 
       // 5e. Financial calculations & Coupon validation
       const subtotal = items.reduce((sum, item) => {
@@ -198,15 +231,25 @@ export async function POST(req: NextRequest) {
         discountAmount = Math.round(discountAmount * 100) / 100;
         couponId = coupon.id;
 
-        // Atomically increment Coupon.usedCount
-        await tx.coupon.update({
-          where: { id: coupon.id },
+        // Atomically increment Coupon.usedCount with a conditional claim so
+        // concurrent checkouts cannot exceed the usage limit (race fixed).
+        const couponClaim = await tx.coupon.updateMany({
+          where: {
+            id: coupon.id,
+            ...(coupon.usageLimit !== null
+              ? { usedCount: { lt: coupon.usageLimit } }
+              : {}),
+          },
           data: {
             usedCount: {
               increment: 1,
             },
           },
         });
+
+        if (couponClaim.count === 0) {
+          throw new Error("Coupon usage limit has been reached.");
+        }
       }
 
       const discountedSubtotal = Math.max(0, subtotal - discountAmount);

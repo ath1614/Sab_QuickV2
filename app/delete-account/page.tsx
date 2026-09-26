@@ -3,16 +3,27 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { ArrowLeft, Trash2, AlertTriangle, CheckCircle2, ShieldAlert, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  ShieldAlert,
+  Loader2,
+  MessageSquareCode,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function DeleteAccountPage() {
   const { data: session } = useSession();
+  const [step, setStep] = React.useState<"confirm" | "otp">("confirm");
   const [phone, setPhone] = React.useState("");
   const [confirmText, setConfirmText] = React.useState("");
+  const [otp, setOtp] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
 
   React.useEffect(() => {
@@ -21,9 +32,11 @@ export default function DeleteAccountPage() {
     }
   }, [session?.user?.phone]);
 
-  const handleDelete = async (e: React.FormEvent) => {
+  // STEP 1: verify typed confirmation, then request the deletion OTP.
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setInfoMsg(null);
 
     if (confirmText.trim().toUpperCase() !== "DELETE") {
       setErrorMsg("Please type 'DELETE' in all caps to confirm.");
@@ -35,7 +48,37 @@ export default function DeleteAccountPage() {
       const res = await fetch("/api/user/delete-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ action: "request", phone }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification code");
+      }
+
+      setInfoMsg(
+        data.message ||
+          "Verification code sent to your registered mobile number."
+      );
+      setStep("otp");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to send verification code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // STEP 2: confirm the OTP, which permanently purges the account.
+  const handleConfirmDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/user/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm", phone, otp }),
       });
 
       const data = await res.json();
@@ -98,8 +141,8 @@ export default function DeleteAccountPage() {
                 Your profile, phone number, and saved addresses have been permanently purged from our servers. Redirecting to storefront...
               </p>
             </div>
-          ) : (
-            <form onSubmit={handleDelete} className="space-y-5">
+          ) : step === "confirm" ? (
+            <form onSubmit={handleRequestOtp} className="space-y-5">
               <div className="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-900 text-xs space-y-2">
                 <div className="font-bold flex items-center gap-1.5 text-rose-950">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -109,6 +152,7 @@ export default function DeleteAccountPage() {
                   <li>Your phone number, name, and login credentials will be erased immediately.</li>
                   <li>All saved doorstep delivery addresses and map pins will be deleted.</li>
                   <li>Active cart items and coupons will be removed.</li>
+                  <li>We will text a verification code to your registered number to confirm it&apos;s really you.</li>
                   <li>This action is <strong>irreversible</strong>.</li>
                 </ul>
               </div>
@@ -160,6 +204,67 @@ export default function DeleteAccountPage() {
                 type="submit"
                 variant="default"
                 disabled={isLoading || confirmText.trim().toUpperCase() !== "DELETE" || phone.length !== 10}
+                className="w-full h-11 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white gap-2 shadow-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Sending Verification Code...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquareCode className="w-4 h-4" /> Send Verification Code
+                  </>
+                )}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleConfirmDelete} className="space-y-5">
+              {infoMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                  {infoMsg}
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  4-Digit Verification Code sent to +91 {phone}
+                </label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="••••"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  required
+                  disabled={isLoading}
+                  className="h-14 rounded-xl font-mono font-black text-2xl tracking-[0.5em] text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("confirm");
+                    setOtp("");
+                    setErrorMsg(null);
+                    setInfoMsg(null);
+                  }}
+                  className="text-[11px] text-slate-500 hover:text-primary font-semibold"
+                >
+                  Wrong number? Go back
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                variant="default"
+                disabled={isLoading || otp.length !== 4}
                 className="w-full h-11 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white gap-2 shadow-sm"
               >
                 {isLoading ? (

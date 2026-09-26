@@ -38,6 +38,11 @@ pgdata/
 redisdata/
 backups/
 
+# Android signing credentials (NEVER commit)
+android/key.properties
+*.keystore
+*.jks
+
 # vercel
 .vercel
 
