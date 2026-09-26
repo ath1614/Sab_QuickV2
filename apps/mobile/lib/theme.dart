@@ -1,3 +1,5 @@
+// ignore: unnecessary_import
+import 'package:flutter/cupertino.dart'; // CupertinoPageTransitionsBuilder on CI's Flutter
 import 'package:flutter/material.dart';
 
 import 'design/tokens.dart';

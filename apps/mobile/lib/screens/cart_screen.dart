@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../cart_store.dart';
-import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 
