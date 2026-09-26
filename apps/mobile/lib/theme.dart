@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 /// SabQuick brand + Material 3 theme with shared-axis page transitions.
@@ -71,11 +72,11 @@ ThemeData buildSabQuickTheme({
         borderSide: BorderSide(color: primary, width: 1.6),
       ),
     ),
-    pageTransitionsTheme: const PageTransitionsTheme(
+    pageTransitionsTheme: PageTransitionsTheme(
       builders: {
         // Forward: slide+fade (shared-axis X). Back: iOS-style swipe gesture.
-        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.android: const CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
       },
     ),
     snackBarTheme: SnackBarThemeData(
