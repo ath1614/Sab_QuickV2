@@ -92,8 +92,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    // Font CSS variables must live on <html>: Tailwind's preflight applies
+    // font-family: var(--font-inter) at the html level, and an undefined var
+    // there would make the whole document fall back to the browser serif.
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <body>
         <AuthProvider>
           <MobileAuthBridge />
           <PwaProvider>
