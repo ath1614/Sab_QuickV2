@@ -39,6 +39,10 @@ dependencies:
   # Policy pages & support links open in the system browser
   url_launcher: ^6.3.0
 
+  # Google sign-in handoff: catch sabquick://auth-callback deep links
+  # (warm returns AND cold starts) from the system browser.
+  app_links: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

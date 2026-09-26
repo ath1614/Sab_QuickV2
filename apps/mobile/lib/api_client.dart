@@ -10,35 +10,32 @@ import 'config.dart';
 /// package when the server sends multiple cookies) into individual cookie
 /// strings WITHOUT being fooled by commas inside HTTP dates.
 ///
-/// NextAuth sends its cookies comma-joined, e.g.
+/// NextAuth sends its cookies comma-joined:
 /// ```
-/// csrf-token=abc; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT, next-auth.session-token=xyz; Path=/; ...
+/// __Host-next-auth.csrf-token=abc; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT, __Secure-next-auth.session-token=eyJ..; Path=/; HttpOnly; Secure
 /// ```
-/// A naive split on `,` or `, ` breaks the Expires value at "Wed," — the
-/// resulting corrupted header makes the server silently ignore the session
-/// token (the origin of "Login succeeded but session could not be loaded").
-///
-/// Rule: a comma starts a new cookie only when the text after it looks like
-/// a new cookie — an optional run of well-known attributes (Path=/, HttpOnly,
-/// Secure, SameSite=Lax, Expires=..., Max-Age=...) followed by a
-/// `name=` pair. Commas inside dates or quoted values never match.
+/// NOTE the boundary: the next cookie's NAME comes directly after the comma
+/// ("GMT, __Secure-..."), with NO leading attribute. A comma therefore starts
+/// a new cookie exactly when the text after it (ignoring whitespace) matches
+/// `token=` — a run of cookie-name characters immediately followed by '='.
+/// Date commas never match ("Wed, 21 Oct..." / "Thu, 01 Jan..." have a space
+/// after the day, never '='), and quoted values are protected too.
 List<String> splitSetCookieHeader(String header) {
   final result = <String>[];
   int cookieStart = 0;
 
-  // True when the comma at [pos] is a cookie separator: the text after it
-  // looks like `attribute...; name=` (a new cookie definition) rather than
-  // the middle of an Expires date or a quoted value.
+  // A name token: cookie-name chars only (no space/comma/semicolon/equals)
+  // immediately followed by '='. "__Secure-next-auth.session-token" matches;
+  // "21" in "Wed, 21 Oct" does not (next char is a space, not '=').
+  final nameEq = RegExp(r'^[^,;=\s]+=');
+
   bool commaStartsNewCookie(int pos) {
     int i = pos + 1;
     while (i < header.length && (header[i] == ' ' || header[i] == '\t')) {
       i++;
     }
     if (i >= header.length) return false;
-    return RegExp(
-      r'^(?:(?:Path|Domain|Expires|Max-Age|SameSite|HttpOnly|Secure|Partitioned)=[^,;]*|HttpOnly|Secure|Partitioned)[;,]\s*[^,;=\s]+=',
-      caseSensitive: false,
-    ).hasMatch(header.substring(i));
+    return nameEq.hasMatch(header.substring(i));
   }
 
   for (int i = 0; i < header.length; i++) {
@@ -220,12 +217,7 @@ class ApiClient {
     }
 
     if (res.statusCode >= 400 || captured == null) {
-      String message = failureMessage;
-      try {
-        final errBody = jsonDecode(res.body);
-        if (errBody is Map && errBody['error'] != null) message = errBody['error'];
-      } catch (_) {}
-      throw ApiException(message);
+      throw ApiException(_extractAuthError(res, fallback: failureMessage));
     }
 
     _sessionCookie = captured;
@@ -252,6 +244,27 @@ class ApiClient {
     }
     final streamed = await _http.send(request);
     return http.Response.fromStream(streamed);
+  }
+
+  /// NextAuth reports credential failures as HTTP 401 with the body
+  /// `{"url":".../api/auth/error?error=<urlencoded message>"}` — there is no
+  /// `error` FIELD in the JSON. Parse every shape so the user sees the real
+  /// server reason (expired code, wrong PIN, cooldown lock) instead of a
+  /// generic "Login failed. Please try again."
+  String _extractAuthError(http.Response res, {required String fallback}) {
+    // Shape 1: query param — ?error=Invalid%20or%20expired%20OTP...
+    final urlMatch = RegExp(r'[?&]error=([^"&\\s]+)').firstMatch(res.body);
+    if (urlMatch != null) {
+      final decoded = Uri.decodeComponent(urlMatch.group(1)!);
+      if (decoded.trim().isNotEmpty) return decoded;
+    }
+    // Shape 2: plain JSON {"error": "..."}
+    try {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['error'] is String) return body['error'] as String;
+    } catch (_) {}
+    // Shape 3: {"url": "...error=..."} already covered above; else fallback.
+    return fallback;
   }
 
   Uri _resolveRedirect(String location) {

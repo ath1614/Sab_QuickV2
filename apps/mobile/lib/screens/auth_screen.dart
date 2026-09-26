@@ -1,9 +1,16 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api_client.dart';
+import '../app.dart' show authStateController;
+import '../config.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
+import '../widgets/pressable.dart';
 import 'home_screen.dart';
 
 /// Stage 2 of the launch flow: authentication.
@@ -34,11 +41,19 @@ class _AuthScreenState extends State<AuthScreen>
     vsync: this,
     duration: const Duration(milliseconds: 650),
   );
+  StreamSubscription<bool>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _stagger.forward();
+    // A Google handoff completes OUTSIDE this widget's own login calls —
+    // the app-level deep-link listener broadcasts it here so we can
+    // navigate to the storefront the moment the session is established.
+    _authSub = authStateController.stream.listen((loggedIn) {
+      if (!loggedIn || !mounted) return;
+      Navigator.of(context).pushReplacement(_fadeRoute(const HomeScreen()));
+    });
   }
 
   @override
@@ -46,8 +61,35 @@ class _AuthScreenState extends State<AuthScreen>
     _phoneController.dispose();
     _codeController.dispose();
     _nameController.dispose();
+    _authSub?.cancel();
     _stagger.dispose();
     super.dispose();
+  }
+
+  /// Mirrors the web's AuthModal: open the provider sign-in in the system
+  /// browser with callbackUrl=/auth/mobile-return. That page mints a
+  /// single-use token and deep-links back to
+  /// sabquick://auth-callback?token=... which the app-level listener
+  /// exchanges for a session.
+  Future<void> _loginWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final uri = Uri.parse(
+        '${AppConfig.baseUrl}/api/auth/signin/google?callbackUrl=%2Fauth%2Fmobile-return');
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        setState(() => _error = 'Could not open the browser for Google sign-in.');
+      }
+      // While the browser is away, the app_links listener takes over; on
+      // return with a token the whole app switches to Home automatically.
+    } catch (_) {
+      setState(() => _error = 'Could not open the browser for Google sign-in.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _sendCode() async {
@@ -139,21 +181,48 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Short-screen safe: LayoutBuilder + minHeight keeps the form vertically
+    // centered on tall phones, but lets it grow and scroll on small ones
+    // (or when the keyboard opens) instead of clipping.
     return Scaffold(
       backgroundColor: SQColor.fog,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: SQSpace.lg),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: !_codeStep
-                  ? _buildPhoneStep()
-                  : _buildCodeStep(),
-            ),
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: SQSpace.lg),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                  maxWidth: 420,
+                ),
+                child: Center(
+                  widthFactor: 1,
+                  child:
+                      !_codeStep ? _buildPhoneStep() : _buildCodeStep(),
+                ),
+              ),
+            );
+          },
         ),
       ),
+    );
+  }
+
+  /// Tappable inline policy link (opens the production page in the browser).
+  TextSpan _termsLink(String label, String path) {
+    return TextSpan(
+      text: label,
+      style: const TextStyle(
+          color: SQColor.green,
+          fontWeight: FontWeight.w900,
+          decoration: TextDecoration.underline),
+      recognizer: TapGestureRecognizer()
+        ..onTap = () => launchUrl(
+              Uri.parse('${AppConfig.baseUrl}$path'),
+              mode: LaunchMode.externalApplication,
+            ),
     );
   }
 
@@ -254,10 +323,102 @@ class _AuthScreenState extends State<AuthScreen>
                   fontSize: 12,
                   fontWeight: FontWeight.w700)),
         ],
-        const SizedBox(height: SQSpace.xl),
-        Text(
-          'By proceeding you agree to our Terms & Privacy Policy.',
-          style: SQType.micro,
+
+        // ── Google sign-in (parity with the web AuthModal) ──
+        const SizedBox(height: SQSpace.lg),
+        Row(
+          children: [
+            const Expanded(child: Divider(color: SQColor.line)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text('or', style: SQType.micro),
+            ),
+            const Expanded(child: Divider(color: SQColor.line)),
+          ],
+        ),
+        const SizedBox(height: SQSpace.md),
+        Pressable(
+          onTap: _loading ? null : _loginWithGoogle,
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: SQColor.card,
+              borderRadius: BorderRadius.circular(SQRadius.md),
+              border: Border.all(color: SQColor.green.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                // Multicolor Google "G" (gradient-shaded, asset-free)
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: SQColor.line),
+                  ),
+                  alignment: Alignment.center,
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [
+                        Color(0xFF4285F4),
+                        Color(0xFFEA4335),
+                        Color(0xFFFBBC05),
+                        Color(0xFF34A853),
+                      ],
+                    ).createShader(bounds),
+                    child: const Text(
+                      'G',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: SQColor.ink),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: SQColor.lime.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(SQRadius.pill),
+                  ),
+                  child: const Text(
+                    '⚡ Instant',
+                    style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        color: SQColor.greenDeep),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: SQSpace.lg),
+        Text.rich(
+          TextSpan(
+            text: 'By proceeding you agree to our ',
+            style: SQType.micro,
+            children: [
+              _termsLink('Terms', '/terms'),
+              const TextSpan(text: ' & '),
+              _termsLink('Privacy Policy', '/privacy'),
+              const TextSpan(text: '.'),
+            ],
+          ),
           textAlign: TextAlign.center,
         ),
       ],
