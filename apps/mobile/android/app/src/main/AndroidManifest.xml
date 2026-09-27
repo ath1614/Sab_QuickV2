@@ -26,14 +26,10 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- SabQuick Google-login deep link: browser -> app handoff.
-                 Mirrors the existing Capacitor APK bridge (sabquick://auth-callback). -->
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="sabquick" android:host="auth-callback" />
-            </intent-filter>
+            <!-- Google sign-in is NATIVE and in-app (google_sign_in plugin):
+                 no browser handoff, so no sabquick:// deep-link filter.
+                 The plugin registers its own Calendar/Contacts permissions
+                 only when requested; nothing else is needed here. -->
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

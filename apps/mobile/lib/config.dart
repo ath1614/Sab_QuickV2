@@ -10,10 +10,16 @@ class AppConfig {
     defaultValue: 'https://srv1985371.hstgr.cloud',
   );
 
-  /// Deep-link scheme for the Google login browser handoff. Must match the
-  /// intent-filter in AndroidManifest.xml and the web `mobile-return` page.
-  static const String authCallbackScheme = 'sabquick';
-  static const String authCallbackHost = 'auth-callback';
+  /// Google OAuth **Web** client ID (public identifier — safe to ship).
+  ///
+  /// Passed as `serverClientId` to google_sign_in so the native consent sheet
+  /// mints an ID token whose audience is the server's GOOGLE_CLIENT_ID; the
+  /// backend verifies it in lib/auth.ts before issuing the NextAuth session.
+  /// Native Android/iOS OAuth clients (by package name / bundle ID + SHA-1)
+  /// must also exist in the same Google Cloud project — see
+  /// apps/mobile/GOOGLE_SIGNIN_SETUP.md for the one-time console steps.
+  static const String googleWebClientId =
+      '49479543811-b4cigo43ujtpekok0mpb9dfe8fa9tchm.apps.googleusercontent.com';
 
   /// Storefront brand constants (mirrors the web useCartStore constants).
   static const int freeDeliveryThreshold = 199;

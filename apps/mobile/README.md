@@ -47,9 +47,14 @@ Tracking (animated status stepper, delivery OTP, 6s poll) → Account.
 (fatal infos) + `flutter test` + release APK build, artifact uploaded. It runs
 after web validation and does not gate the VPS deploy.
 
-## Google login (unchanged bridge)
+## Google login (native, in-app — no website involvement)
 
-External browser → `/auth/mobile-return` → 90s single-use Redis token →
-`sabquick://auth-callback?token=...` deep link (intent-filter already in the
-manifest) → `ApiClient.completeGoogleLogin(token)` exchanges it for a session
-cookie. Same flow the Capacitor APK uses today.
+The Google consent sheet opens INSIDE the app via the `google_sign_in`
+plugin. The app sends the returned ID token to
+`POST /api/auth/callback/credentials` as `googleIdToken`; `lib/auth.ts`
+verifies it server-side (signature, expiry, audience = `GOOGLE_CLIENT_ID`,
+verified email) and issues the NextAuth session cookie. No system browser,
+no deep links, no dependency on the website.
+
+One-time Google Cloud Console setup (Android + iOS OAuth clients in the
+project that owns `GOOGLE_CLIENT_ID`): see `GOOGLE_SIGNIN_SETUP.md`.

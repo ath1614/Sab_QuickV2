@@ -7,7 +7,7 @@ import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 import 'auth_screen.dart';
-import 'web_console_screen.dart';
+import 'console_placeholder_screen.dart';
 
 /// Account: profile, saved addresses (add + list), policies, app info.
 /// Parity with the website's account sheet: everything a customer or staff
@@ -371,7 +371,7 @@ class _ConsoleTile extends StatelessWidget {
           ? () {
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) =>
-                    WebConsoleScreen(title: title, path: path),
+                    ConsolePlaceholderScreen(title: title, path: path),
               ));
             }
           : null,

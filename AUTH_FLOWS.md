@@ -59,14 +59,19 @@ role, across the deployed website and the Flutter app. Both consume the
 Web: `signIn("google")` → NextAuth Google provider → `jwt` callback upserts the
 User by email.
 
-Flutter app (and the legacy APK): the app opens the system browser to
-`/api/auth/signin/google?callbackUrl=/auth/mobile-return`. After consent, the
-`mobile-return` page mints a **90-second single-use exchange token** in Redis
-(`auth:mobile-exchange:*`), then deep-links back into the app:
-`sabquick://auth-callback?token=...`. The app posts that token to the
-credentials callback as `mobileExchangeToken`, which resolves/creates the user
-and issues the session cookie. The Flutter manifest already declares the
-`sabquick://auth-callback` intent filter.
+Flutter app (standalone since the native-auth round): the app shows the
+Google consent sheet **in-app** via the `google_sign_in` plugin
+(`serverClientId` = the web `GOOGLE_CLIENT_ID`) and posts the returned ID
+token to the credentials callback as `googleIdToken`, which is verified with
+`google-auth-library` (signature, expiry, audience, verified email) before
+the user is resolved-or-created by email. No system browser, no deep links,
+no dependency on the website. One-time console setup:
+`apps/mobile/GOOGLE_SIGNIN_SETUP.md`.
+
+The legacy browser handoff (`/auth/mobile-return` → 90s single-use Redis
+token → `sabquick://auth-callback` → `mobileExchangeToken`) is dormant: the
+web page and the `mobileExchangeToken` branch still exist, but the app never
+invokes them anymore.
 
 ## 5. Delivery OTP (order hand-off — not login)
 

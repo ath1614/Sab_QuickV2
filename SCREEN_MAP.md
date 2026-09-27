@@ -16,7 +16,7 @@ Legend: ✅ parity shipped · 🟡 partial (gap noted) · ❌ missing (planned)
 
 | Web (phone) `AuthModal` (bottom sheet ≤640px) | App `AuthScreen` | Status |
 |---|---|---|
-| Google button → native Google consent (Capacitor handoff via `/auth/mobile-return` → `sabquick://auth-callback`) | Google button → system browser → `/auth/mobile-return` → `app_links` deep-link exchange (`completeGoogleLogin`) | ✅ |
+| Google button → native Google consent (Capacitor handoff via `/auth/mobile-return` → `sabquick://auth-callback`) | Google button → **in-app** native consent sheet (`google_sign_in`) → ID token verified server-side (`loginWithGoogleIdToken`) — no browser, no deep links, fully standalone from the website | ✅ |
 | Phone step: 🇮🇳 +91 field, 10-digit validation `^[6-9]\d{9}$` | Same field + validation | ✅ |
 | Owner branch: `requirePin`+`isOwner` → 6-digit passcode step | Same branch, `loginWithPin` (`pin` field), masked | ✅ |
 | Staff branch: `requirePin` → 4-digit PIN step with role chip | Same branch | ✅ |

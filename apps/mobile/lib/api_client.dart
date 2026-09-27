@@ -318,11 +318,14 @@ class ApiClient {
     throw ApiException('Login succeeded but session could not be loaded');
   }
 
-  /// Completes Google login after the external-browser deep-link handoff.
-  /// [exchangeToken] comes from `sabquick://auth-callback?token=...`.
-  Future<void> completeGoogleLogin(String exchangeToken) async {
+  /// Completes native Google sign-in: exchanges the ID token minted by the
+  /// in-app Google consent sheet (google_sign_in plugin) for a NextAuth
+  /// session cookie. The backend verifies the token server-side in
+  /// lib/auth.ts — no browser, no deep links, fully standalone from the
+  /// website.
+  Future<void> loginWithGoogleIdToken(String idToken) async {
     await _nextAuthFormLogin({
-      'mobileExchangeToken': exchangeToken,
+      'googleIdToken': idToken,
     }, 'Google sign-in could not be completed');
   }
 
