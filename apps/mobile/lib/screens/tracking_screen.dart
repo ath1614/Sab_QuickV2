@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../widgets/route_map.dart';
 
-/// Live order tracker: animated status stepper + ETA + delivery OTP display.
+/// Live order tracker: animated status stepper + live OSM route map (store
+/// hub → doorstep, rider marker in transit) + ETA + delivery OTP display.
 /// Polls the orders list (SSE stream can replace this in a later iteration).
 class TrackingScreen extends StatefulWidget {
   final String orderNumber;
@@ -78,6 +80,7 @@ class _TrackingScreenState extends State<TrackingScreen>
   Widget build(BuildContext context) {
     final status = (_order?['status'] ?? 'PENDING') as String;
     final currentIndex = _flow.indexOf(status);
+    final address = (_order?['address'] ?? {}) as Map<String, dynamic>;
 
     return Scaffold(
       appBar: AppBar(title: Text('Order #${widget.orderNumber}')),
@@ -132,6 +135,20 @@ class _TrackingScreenState extends State<TrackingScreen>
               ),
             ),
             const SizedBox(height: 20),
+
+            // ── Live route map (mirrors the website's tracker map) ──
+            if (address['latitude'] != null && address['longitude'] != null) ...[
+              RouteMapCard(
+                customerLat: (address['latitude'] as num).toDouble(),
+                customerLng: (address['longitude'] as num).toDouble(),
+                customerAddressLabel:
+                    (address['label'] ?? 'Delivery Location') as String,
+                orderStatus: status,
+                primary: widget.primary,
+                accent: widget.accent,
+              ),
+              const SizedBox(height: 20),
+            ],
 
             // Animated status stepper
             ...List.generate(_flow.length, (i) {

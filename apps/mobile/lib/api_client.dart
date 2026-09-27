@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,10 +62,18 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
+  /// Test hook: inject a mock [http.Client] (e.g. MockClient from
+  /// package:http/testing) before exercising code that calls the network.
+  /// Real builds always use the default IO client.
+  @visibleForTesting
+  static void injectHttpClientForTests(http.Client client) {
+    instance._http = client;
+  }
+
   static const _cookieKey = 'sq_session_cookie';
   static const _userKey = 'sq_session_user';
 
-  final http.Client _http = http.Client();
+  http.Client _http = http.Client();
 
   String? _sessionCookie;
   Map<String, dynamic>? _user;
