@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api_client.dart';
-import '../config.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 import 'auth_screen.dart';
-import 'console_placeholder_screen.dart';
+import 'catalog_screen.dart';
+import 'manager_kanban_screen.dart';
+import 'owner_hub_screen.dart';
+import 'packer_station_screen.dart';
+import 'policy_screen.dart';
 
 /// Account: profile, saved addresses (add + list), policies, app info.
 /// Parity with the website's account sheet: everything a customer or staff
@@ -65,15 +68,40 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _openPolicy(String path, String fallbackUrl) async {
-    final uri = Uri.parse('${AppConfig.baseUrl}$path');
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Open $fallbackUrl in your browser'),
-      ));
-    }
+    final kind = switch (path) {
+      '/terms' => PolicyKind.terms,
+      '/refund' => PolicyKind.refund,
+      _ => PolicyKind.privacy,
+    };
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PolicyScreen(kind: kind)),
+    );
+  }
+
+  void _openOwnerHub() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => OwnerHubScreen(primary: SQColor.green, accent: SQColor.lime),
+    ));
+  }
+
+  void _openCatalog() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => CatalogScreen(primary: SQColor.green, accent: SQColor.lime),
+    ));
+  }
+
+  void _openKanban() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ManagerKanbanScreen(
+          primary: SQColor.green, accent: SQColor.lime),
+    ));
+  }
+
+  void _openPacker() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PackerStationScreen(
+          primary: SQColor.green, accent: SQColor.lime),
+    ));
   }
 
   @override
@@ -183,36 +211,36 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             const SizedBox(height: SQSpace.md),
 
-            // ── Web consoles (same pages the website links between) ──
+            // ── Consoles — fully native screens (no website) ──
             if (role == 'OWNER' || role == 'MANAGER') ...[
-              _SectionLabel('Web consoles — full site tools'),
+              _SectionLabel('Consoles — native, in-app'),
               _ConsoleTile(
                 icon: Icons.trending_up_rounded,
                 title: 'Owner Hub',
                 subtitle: 'GMV, inventory toggles, theme engine',
-                path: '/owner',
                 allowed: role == 'OWNER',
+                onTap: _openOwnerHub,
               ),
               _ConsoleTile(
                 icon: Icons.category_rounded,
                 title: 'Catalog & Pricing',
                 subtitle: 'SKUs, categories, dual pricing',
-                path: '/owner/catalog',
                 allowed: true,
+                onTap: _openCatalog,
               ),
               _ConsoleTile(
                 icon: Icons.view_kanban_rounded,
                 title: 'Manager Dispatch Kanban',
                 subtitle: 'Live floor orchestration & SLA',
-                path: '/manager',
                 allowed: true,
+                onTap: _openKanban,
               ),
               _ConsoleTile(
                 icon: Icons.inventory_rounded,
                 title: 'Packer Floor Station',
                 subtitle: 'Aisle-by-aisle bagging queue',
-                path: '/packer',
                 allowed: true,
+                onTap: _openPacker,
               ),
               const SizedBox(height: SQSpace.md),
             ],
@@ -268,8 +296,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     title: 'Delete Account',
                     subtitle: 'Permanently erase your data',
                     destructive: true,
-                    onTap: () => _openPolicy(
-                        '/delete-account', 'the Delete Account page'),
+                    onTap: () => showDeleteAccountSheet(context),
                   ),
                 ],
               ),
@@ -352,29 +379,22 @@ class _ConsoleTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final String path;
   final bool allowed;
+  final VoidCallback onTap;
 
   const _ConsoleTile({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.path,
     required this.allowed,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return NeonPressable(
       skewAmount: -0.02,
-      onTap: allowed
-          ? () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) =>
-                    ConsolePlaceholderScreen(title: title, path: path),
-              ));
-            }
-          : null,
+      onTap: allowed ? onTap : null,
       glowColor: SQColor.lime.withValues(alpha: 0.3),
       child: Opacity(
         opacity: allowed ? 1 : 0.55,

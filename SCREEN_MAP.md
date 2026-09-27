@@ -16,7 +16,15 @@ Legend: ✅ parity shipped · 🟡 partial (gap noted) · ❌ missing (planned)
 
 | Web (phone) `AuthModal` (bottom sheet ≤640px) | App `AuthScreen` | Status |
 |---|---|---|
-| Google button → native Google consent (Capacitor handoff via `/auth/mobile-return` → `sabquick://auth-callback`) | Google button → **in-app** native consent sheet (`google_sign_in`) → ID token verified server-side (`loginWithGoogleIdToken`) — no browser, no deep links, fully standalone from the website | ✅ |
+| Google button → native Google consent (web redirect) | Google button → **in-app** native consent sheet (`google_sign_in`) → ID token verified server-side (`loginWithGoogleIdToken`) — no browser, no deep links, fully standalone from the website | ✅ |
+| Post-login redirect → store for every role; panels open from tabs | Same shells in Flutter: OWNER → Owner Hub · Storefront · Manager · Staff · Account; MANAGER → Dispatch · Storefront · Account; PACKER → Packing · Account; RIDER → Deliveries · Account | ✅ |
+| `/owner` Owner Hub (web) | `owner_hub_screen.dart` — KPI grid, low-stock list, entry cards to Catalog / Theme Studio / Customers / Coupons | ✅ |
+| `/owner/catalog` (web) | `catalog_screen.dart` — search, create/edit/delete SKU, dual pricing, image capture+compress+upload, availability toggle, aisle manager | ✅ |
+| `/manager` dispatch kanban (web) | `manager_kanban_screen.dart` — upstream queue + Ready/Transit/Delivered columns, rider assignment sheet (online dots), SLA urgency, tap-to-call | ✅ |
+| `/packer` floor station (web) | `packer_station_screen.dart` — aisle-grouped bagging checklist with pick progress, CONFIRMED→PACKING→READY | ✅ |
+| Owner theme engine (web) | `theme_studio_screen.dart` — 16 seasonal presets, live badge, one-tap apply | ✅ |
+| Owner customers CRM (web) | `customers_screen.dart` — stats strip, search, expandable recent orders, tap-to-call | ✅ |
+| `/privacy` `/terms` `/refund` (web) | `policy_screen.dart` — native screens; Delete Account is an in-app OTP flow (`showDeleteAccountSheet`) | ✅ |
 | Phone step: 🇮🇳 +91 field, 10-digit validation `^[6-9]\d{9}$` | Same field + validation | ✅ |
 | Owner branch: `requirePin`+`isOwner` → 6-digit passcode step | Same branch, `loginWithPin` (`pin` field), masked | ✅ |
 | Staff branch: `requirePin` → 4-digit PIN step with role chip | Same branch | ✅ |

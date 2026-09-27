@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'config.dart';
+import 'session_bus.dart';
 
 /// Splits a merged `Set-Cookie` header value (as returned by the `http`
 /// package when the server sends multiple cookies) into individual cookie
@@ -71,6 +72,20 @@ class ApiClient {
 
   Map<String, dynamic>? get user => _user;
   bool get isLoggedIn => _sessionCookie != null && _user != null;
+
+  /// A protected call came back 401: the 30-day session JWT has expired (or
+  /// was revoked). Wipe the stored session and broadcast logged-out so the
+  /// app shell swaps to the auth screen instead of dead-ending on errors.
+  Future<void> _handleSessionExpired() async {
+    _sessionCookie = null;
+    _user = null;
+    await _persistSession();
+    authStateController.add(false);
+  }
+
+  /// True when [statusCode] is an auth failure on a protected endpoint.
+  bool _isSessionExpired(int statusCode) =>
+      statusCode == 401 && _sessionCookie != null;
 
   /// Raw Cookie header for the in-app WebView console (name=value pairs).
   String? get sessionCookieHeader => _sessionCookie;
@@ -488,19 +503,36 @@ class ApiClient {
   /// Operations queue (grouped by status) — requires PACKER/MANAGER/OWNER.
   Future<Map<String, dynamic>> fetchOpsOrders() async {
     final res = await _http.get(_uri('/api/ops/orders'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
     if (res.statusCode != 200) {
       throw ApiException('Failed to load operations queue');
     }
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
-  /// Advance an order through the fulfillment flow.
-  Future<void> updateOrderStatus(String orderId, String status) async {
+  /// Advance an order through the fulfillment flow. [riderId] assigns a
+  /// rider (dispatch) when transitioning to OUT_FOR_DELIVERY.
+  Future<void> updateOrderStatus(
+    String orderId,
+    String status, {
+    String? riderId,
+  }) async {
     final res = await _http.post(
       _uri('/api/ops/orders/status'),
       headers: _headers(),
-      body: jsonEncode({'orderId': orderId, 'status': status}),
+      body: jsonEncode({
+        'orderId': orderId,
+        'status': status,
+        'riderId': ?riderId,
+      }),
     );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
     if (res.statusCode >= 400) {
       final body = jsonDecode(res.body);
       throw ApiException(body['error'] ?? 'Failed to update order status');
@@ -515,6 +547,10 @@ class ApiClient {
   /// Throws [ApiException] with the server message when unauthorized.
   Future<Map<String, dynamic>> fetchOpsAnalytics() async {
     final res = await _http.get(_uri('/api/ops/analytics'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
     final body = jsonDecode(res.body);
     if (res.statusCode >= 400) {
       throw ApiException(
@@ -540,6 +576,10 @@ class ApiClient {
   /// Staff directory — OWNER only (`/api/owner/staff`).
   Future<List<dynamic>> fetchStaff() async {
     final res = await _http.get(_uri('/api/owner/staff'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
     final body = jsonDecode(res.body);
     if (res.statusCode >= 400) {
       throw ApiException(
@@ -673,6 +713,347 @@ class ApiClient {
   }
 
   // ------------------------------------------------------------------
+  // OWNER/MANAGER: catalog & pricing (native Catalog console)
+  // ------------------------------------------------------------------
+
+  /// Multipart image upload (`/api/ops/upload`). Returns the public URL.
+  Future<String> uploadProductImage(String filePath) async {
+    final request = http.MultipartRequest('POST', _uri('/api/ops/upload'))
+      ..headers.addAll(_headers())
+      ..files.add(await http.MultipartFile.fromPath('file', filePath));
+    final streamed = await _http.send(request);
+    final res = await http.Response.fromStream(streamed);
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Image upload failed',
+      );
+    }
+    return (body['url'] ?? '') as String;
+  }
+
+  /// Create a product — OWNER/MANAGER (`POST /api/ops/products`).
+  Future<void> createProduct({
+    required String title,
+    required String categoryId,
+    required double mrp,
+    required double salePrice,
+    required String unitQuantity,
+    required int stockCount,
+    required String imageUrl,
+    String? description,
+  }) async {
+    final res = await _http.post(
+      _uri('/api/ops/products'),
+      headers: _headers(),
+      body: jsonEncode({
+        'title': title,
+        'slug': _slugify(title),
+        'categoryId': categoryId,
+        'mrp': mrp,
+        'salePrice': salePrice,
+        'unitQuantity': unitQuantity,
+        'stockCount': stockCount,
+        'imageUrl': imageUrl,
+        'tags': <String>[],
+        if (description != null && description.isNotEmpty)
+          'description': description,
+      }),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to create product',
+      );
+    }
+  }
+
+  /// Update a product (partial) — OWNER/MANAGER (`PUT /api/ops/products/[id]`).
+  Future<void> updateProduct(
+    String id, {
+    String? title,
+    String? categoryId,
+    double? mrp,
+    double? salePrice,
+    String? unitQuantity,
+    int? stockCount,
+    bool? isAvailable,
+    String? imageUrl,
+    String? description,
+  }) async {
+    final res = await _http.put(
+      _uri('/api/ops/products/$id'),
+      headers: _headers(),
+      body: jsonEncode({
+        if (title != null) ...{
+          'title': title,
+          'slug': _slugify(title),
+        },
+        'categoryId': ?categoryId,
+        'mrp': ?mrp,
+        'salePrice': ?salePrice,
+        'unitQuantity': ?unitQuantity,
+        'stockCount': ?stockCount,
+        'isAvailable': ?isAvailable,
+        'imageUrl': ?imageUrl,
+        'description': ?((description != null && description.isNotEmpty) ? description : null),
+      }),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to update product',
+      );
+    }
+  }
+
+  /// Delete a product — OWNER/MANAGER (`DELETE /api/ops/products/[id]`).
+  Future<void> deleteProduct(String id) async {
+    final res = await _http.delete(_uri('/api/ops/products/$id'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to delete product',
+      );
+    }
+  }
+
+  /// Toggle product availability — MANAGER/OWNER quick action.
+  Future<void> toggleProductStock(String productId, bool isAvailable) async {
+    final res = await _http.post(
+      _uri('/api/ops/inventory/toggle-stock'),
+      headers: _headers(),
+      body: jsonEncode({'productId': productId, 'isAvailable': isAvailable}),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to toggle stock',
+      );
+    }
+  }
+
+  /// Hierarchical category tree with product counts — OWNER/MANAGER.
+  Future<List<dynamic>> fetchOpsCategories() async {
+    final res = await _http.get(_uri('/api/ops/categories'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      throw ApiException('Failed to load category tree');
+    }
+    final body = jsonDecode(res.body);
+    return (body['categories'] as List?) ?? [];
+  }
+
+  /// Create an aisle (parentId null) or sub-aisle.
+  Future<void> createCategory({
+    required String name,
+    String? parentId,
+  }) async {
+    final res = await _http.post(
+      _uri('/api/ops/categories'),
+      headers: _headers(),
+      body: jsonEncode({
+        'name': name,
+        'slug': _slugify(name),
+        'parentId': ?parentId,
+      }),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to create aisle',
+      );
+    }
+  }
+
+  /// Rename an aisle/sub-aisle.
+  Future<void> renameCategory({required String id, required String name}) async {
+    final res = await _http.patch(
+      _uri('/api/ops/categories'),
+      headers: _headers(),
+      body: jsonEncode({'id': id, 'name': name}),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to rename aisle',
+      );
+    }
+  }
+
+  /// Delete an aisle. When [force] is false the server answers with
+  /// `requiresConfirmation` if SKUs exist — surface that to the UI first.
+  Future<void> deleteCategory(String id, {bool force = false}) async {
+    final res = await _http.delete(
+      _uri('/api/ops/categories', {'id': id, 'force': '$force'}),
+      headers: _headers(),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['requiresConfirmation'] == true) {
+        throw ApiException(
+          'This aisle contains ${body['productCount']} SKU(s). Delete again to confirm.',
+          requiresConfirmation: true,
+        );
+      }
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to delete aisle',
+      );
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // OWNER: customers CRM
+  // ------------------------------------------------------------------
+
+  /// Customer CRM payload (`/api/owner/customers`) — OWNER only.
+  Future<Map<String, dynamic>> fetchCustomers() async {
+    final res = await _http.get(_uri('/api/owner/customers'), headers: _headers());
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to load customers',
+      );
+    }
+    return body as Map<String, dynamic>;
+  }
+
+  // ------------------------------------------------------------------
+  // OWNER/MANAGER: theme engine
+  // ------------------------------------------------------------------
+
+  /// Apply a seasonal theme (`POST /api/ops/theme/update`).
+  Future<void> updateTheme({
+    required String themeName,
+    required String primaryColor,
+    required String accentColor,
+    String? saleTagText,
+  }) async {
+    final res = await _http.post(
+      _uri('/api/ops/theme/update'),
+      headers: _headers(),
+      body: jsonEncode({
+        'themeName': themeName,
+        'primaryColor': primaryColor,
+        'accentColor': accentColor,
+        'saleTagText': ?saleTagText,
+      }),
+    );
+    if (_isSessionExpired(res.statusCode)) {
+      await _handleSessionExpired();
+      throw SessionExpiredException();
+    }
+    if (res.statusCode >= 400) {
+      final body = jsonDecode(res.body);
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Failed to update theme',
+      );
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // ACCOUNT: in-app deletion (DPDP/GDPR)
+  // ------------------------------------------------------------------
+
+  /// Request the deletion OTP for [phone] (must be the account's phone).
+  Future<void> requestAccountDeletion(String phone) async {
+    final res = await _http.post(
+      _uri('/api/user/delete-account'),
+      headers: _headers(),
+      body: jsonEncode({'action': 'request', 'phone': phone}),
+    );
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Could not send the deletion code',
+      );
+    }
+  }
+
+  /// Confirm deletion with the OTP. On success the server purges PII; the
+  /// local session is cleared as well. Owner/staff accounts are rejected.
+  Future<void> confirmAccountDeletion(String phone, String otp) async {
+    final res = await _http.post(
+      _uri('/api/user/delete-account'),
+      headers: _headers(),
+      body: jsonEncode({'action': 'confirm', 'phone': phone, 'otp': otp}),
+    );
+    final body = jsonDecode(res.body);
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        (body is Map && body['error'] != null)
+            ? body['error'] as String
+            : 'Could not delete the account',
+      );
+    }
+    _sessionCookie = null;
+    _user = null;
+    await _persistSession();
+    authStateController.add(false);
+  }
+
+  // ------------------------------------------------------------------
   // STAFF: RIDER
   // ------------------------------------------------------------------
 
@@ -725,11 +1106,37 @@ class ApiClient {
   void dispose() {
     _http.close();
   }
+
+  /// URL-slug form of [input] — mirrors the server's own normalization
+  /// (lowercase, non-alphanumerics collapsed to single dashes).
+  static String _slugify(String input) {
+    return input
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+  }
 }
 
 class ApiException implements Exception {
   final String message;
-  ApiException(this.message);
+
+  /// Set when the server asked for explicit confirmation (aisle deletion
+  /// with SKUs) — the UI shows a confirm dialog instead of a plain error.
+  final bool requiresConfirmation;
+
+  ApiException(this.message, {this.requiresConfirmation = false});
+
   @override
   String toString() => message;
+}
+
+/// Thrown when a protected endpoint answers 401: the stored session is no
+/// longer valid. The client has already wiped it and broadcast logged-out;
+/// screens should treat this as "navigate home / stop retrying", not as an
+/// error to display.
+class SessionExpiredException implements Exception {
+  @override
+  String toString() => 'Session expired';
 }

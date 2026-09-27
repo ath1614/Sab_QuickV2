@@ -162,6 +162,33 @@ jobs:
           path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
 
+  build-ios-app:
+    name: Flutter iOS App (compile check)
+    needs: validate-and-build
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter (pinned to local dev version)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.4
+          cache: true
+
+      - name: Resolve Dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      # No Apple Developer account/certificate in CI yet: build the iOS app
+      # unsigned against the simulator SDK. This proves the scaffold, pod
+      # integration and Dart/ObjC glue compile; device/TestFlight builds are
+      # a later milestone once an Apple Developer account exists.
+      - name: Build iOS (simulator, unsigned)
+        working-directory: apps/mobile
+        run: flutter build ios --simulator --debug
+
   deploy-to-vps:
     name: Auto-Deploy to Hostinger VPS
     needs: validate-and-build
