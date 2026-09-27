@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
@@ -38,10 +39,64 @@ export const authOptions: NextAuthOptions = {
         name: { label: "Name", type: "text" },
         idToken: { label: "Firebase ID Token", type: "text" },
         mobileExchangeToken: { label: "Mobile Exchange Token", type: "text" },
+        googleIdToken: { label: "Google ID Token (native sign-in)", type: "text" },
       },
       async authorize(credentials) {
         // Self-heal: Guarantee columns like "pin" exist in PostgreSQL before queries execute
         await ensureDatabaseSchema();
+
+        // 0b. Native in-app Google sign-in (Flutter google_sign_in plugin).
+        // The app obtains an ID token from the native Google consent sheet and
+        // exchanges it here for a NextAuth session cookie — no browser, no
+        // deep-link round-trip. Mirrors the mobileExchangeToken user
+        // resolution below (resolve-or-create by email).
+        if (credentials?.googleIdToken) {
+          const idToken = credentials.googleIdToken.trim();
+
+          const clientId = process.env.GOOGLE_CLIENT_ID;
+          if (!clientId) {
+            throw new Error("Google sign-in is not configured on the server.");
+          }
+
+          // Verifies signature, expiry, audience AND issuer.
+          const oauthClient = new OAuth2Client(clientId);
+          let ticket;
+          try {
+            ticket = await oauthClient.verifyIdToken({ idToken, audience: clientId });
+          } catch {
+            throw new Error("Invalid or expired Google token. Please try again.");
+          }
+
+          const payload = ticket.getPayload();
+          if (!payload?.email || payload.email_verified === false) {
+            throw new Error("Google account has no verified email address.");
+          }
+
+          let dbUser = await prisma.user.findUnique({
+            where: { email: payload.email },
+          });
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: payload.email,
+                name: payload.name || "Customer",
+                role: Role.CUSTOMER,
+                roles: [Role.CUSTOMER],
+                phoneVerified: false,
+              },
+            });
+          }
+
+          return {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: dbUser.role,
+            roles: dbUser.roles?.length ? dbUser.roles : [dbUser.role],
+            phone: dbUser.phone,
+            phoneVerified: dbUser.phoneVerified,
+          };
+        }
 
         // 0. Mobile Deep Link Exchange Token (Return from External Chrome Browser to SabQuick APK)
         if (credentials?.mobileExchangeToken) {

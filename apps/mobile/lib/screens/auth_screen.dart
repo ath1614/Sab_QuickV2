@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api_client.dart';
@@ -66,29 +67,63 @@ class _AuthScreenState extends State<AuthScreen>
     super.dispose();
   }
 
-  /// Mirrors the web's AuthModal: open the provider sign-in in the system
-  /// browser with callbackUrl=/auth/mobile-return. That page mints a
-  /// single-use token and deep-links back to
-  /// sabquick://auth-callback?token=... which the app-level listener
-  /// exchanges for a session.
+  /// Native, in-app Google sign-in (google_sign_in plugin): the Google
+  /// consent sheet opens INSIDE the app — no system browser, no deep-link
+  /// round-trip through the website. The returned ID token is verified
+  /// server-side (lib/auth.ts `googleIdToken` field) and exchanged for a
+  /// NextAuth session cookie; authStateController then swaps to Home.
+  ///
+  /// One-time Google Cloud Console requirement: an Android OAuth client for
+  /// `com.sabquick.sabquick_app` (SHA-1 of the signing key) and an iOS client
+  /// for the bundle ID, in the same project as `googleWebClientId` — see
+  /// GOOGLE_SIGNIN_SETUP.md.
   Future<void> _loginWithGoogle() async {
     setState(() {
       _loading = true;
       _error = null;
     });
-    final uri = Uri.parse(
-        '${AppConfig.baseUrl}/api/auth/signin/google?callbackUrl=%2Fauth%2Fmobile-return');
     try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!ok) {
-        setState(() => _error = 'Could not open the browser for Google sign-in.');
+      await GoogleSignIn.instance.initialize(
+        serverClientId: AppConfig.googleWebClientId,
+      );
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw ApiException('Google did not return a sign-in token. Try again.');
       }
-      // While the browser is away, the app_links listener takes over; on
-      // return with a token the whole app switches to Home automatically.
+      await ApiClient.instance.loginWithGoogleIdToken(idToken);
+      // Best-effort: clear the Google session so a future sign-in always
+      // presents the account chooser instead of silently reusing this one.
+      unawaited(GoogleSignIn.instance.signOut());
+      if (!mounted) return;
+      // Keep the spinner until the authStateController listener swaps the
+      // whole app to Home.
+      authStateController.add(true);
+    } on GoogleSignInException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        // User closed the consent sheet — not an error, just reset.
+        _error = e.code == GoogleSignInExceptionCode.canceled
+            ? null
+            : 'Google sign-in failed. Please try again.';
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
     } catch (_) {
-      setState(() => _error = 'Could not open the browser for Google sign-in.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      // Unexpected platform failure: most commonly a missing OAuth client
+      // registration in Google Cloud Console (see GOOGLE_SIGNIN_SETUP.md) or
+      // a device without Google Play services.
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error =
+            'Google sign-in is unavailable right now. Use your phone number to log in.';
+      });
     }
   }
 
