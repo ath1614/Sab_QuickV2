@@ -13,6 +13,29 @@
     --brand-light: #FFFFFF;
     --brand-border: #E5E7EB;
 
+    /* ── Neon Market design system (ported from the Flutter app) ──
+       Warm fog canvas, stepped ink neutrals, one electric lime accent,
+       soft shadows over borders, 8pt grid. Applied via .sq-skin on <body>. */
+    --sq-fog: #F7F6F2;
+    --sq-card: #FFFFFF;
+    --sq-ink: #0D0F12;
+    --sq-ink-soft: #545A63;
+    --sq-ink-faint: #9AA0A8;
+    --sq-line: #EBE9E2;
+    --sq-lime: #C8F531;
+    --sq-lime-soft: #EFFCC4;
+    --sq-green: #0B6E4F;
+    --sq-green-deep: #05372A;
+    --sq-danger: #E5484D;
+    --sq-success: #12A150;
+    --sq-amber: #F5A623;
+    --sq-radius-xs: 10px;
+    --sq-radius-sm: 14px;
+    --sq-radius-md: 20px;
+    --sq-radius-lg: 28px;
+    --sq-shadow-card: 0 1px 2px rgba(13, 15, 18, 0.04), 0 4px 16px rgba(13, 15, 18, 0.05);
+    --sq-shadow-pop: 0 8px 30px rgba(13, 15, 18, 0.12);
+
     /* Semantic design tokens */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -102,6 +125,80 @@
     /* Prevent pull-to-refresh overscroll bounce on mobile PWA */
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     Neon Market skin — the app's design language on the web.
+     Scoped to body (always on), driven by the --sq-* tokens.
+     ───────────────────────────────────────────────────────── */
+  .sq-skin body,
+  body.sq-skin {
+    background-color: var(--sq-fog);
+    color: var(--sq-ink);
+  }
+
+  /* Cards float on soft shadows instead of hard borders */
+  .sq-card {
+    background: var(--sq-card);
+    border-radius: var(--sq-radius-md);
+    box-shadow: var(--sq-shadow-card);
+    border: 1px solid var(--sq-line);
+  }
+
+  .sq-card-flat {
+    background: var(--sq-card);
+    border-radius: var(--sq-radius-md);
+    border: 1px solid var(--sq-line);
+  }
+
+  /* Electric lime CTA — the app's signature button */
+  .sq-cta {
+    background: var(--sq-lime);
+    color: var(--sq-ink);
+    border-radius: var(--sq-radius-sm);
+    font-weight: 800;
+    box-shadow: 0 2px 10px rgba(200, 245, 49, 0.35);
+    transition: transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 150ms ease;
+  }
+  .sq-cta:hover {
+    box-shadow: 0 4px 18px rgba(200, 245, 49, 0.5);
+  }
+  .sq-cta:active {
+    transform: scale(0.97);
+  }
+
+  /* Electric lime marker highlight for section titles (app motif) */
+  .sq-marker {
+    position: relative;
+    display: inline-block;
+  }
+  .sq-marker::after {
+    content: "";
+    position: absolute;
+    left: -4px;
+    right: -4px;
+    bottom: 2px;
+    height: 38%;
+    background: var(--sq-lime);
+    opacity: 0.45;
+    border-radius: 4px;
+    z-index: -1;
+  }
+
+  /* Section header row used across storefront surfaces */
+  .sq-section-title {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--sq-ink);
+  }
+
+  /* Neon pressable feel for interactive tiles */
+  .sq-pressable {
+    transition: transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 150ms ease;
+  }
+  .sq-pressable:active {
+    transform: scale(0.96);
   }
 }
 

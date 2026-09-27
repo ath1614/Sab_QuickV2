@@ -96,7 +96,7 @@ export default function RootLayout({
     // font-family: var(--font-inter) at the html level, and an undefined var
     // there would make the whole document fall back to the browser serif.
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>
+      <body className="sq-skin">
         <AuthProvider>
           <MobileAuthBridge />
           <PwaProvider>
