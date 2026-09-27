@@ -4,7 +4,6 @@ import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../api_client.dart';
 import '../app.dart' show authStateController;
@@ -13,6 +12,7 @@ import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../widgets/pressable.dart';
 import 'home_screen.dart';
+import 'policy_screen.dart';
 
 /// Stage 2 of the launch flow: authentication.
 /// Phone → OTP (customers) / PIN (staff & owner). Mirrors the website's
@@ -245,8 +245,8 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  /// Tappable inline policy link (opens the production page in the browser).
-  TextSpan _termsLink(String label, String path) {
+  /// Tappable inline policy link — opens the NATIVE policy screen.
+  TextSpan _termsLink(String label, PolicyKind kind) {
     return TextSpan(
       text: label,
       style: const TextStyle(
@@ -254,10 +254,11 @@ class _AuthScreenState extends State<AuthScreen>
           fontWeight: FontWeight.w900,
           decoration: TextDecoration.underline),
       recognizer: TapGestureRecognizer()
-        ..onTap = () => launchUrl(
-              Uri.parse('${AppConfig.baseUrl}$path'),
-              mode: LaunchMode.externalApplication,
-            ),
+        ..onTap = () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => PolicyScreen(kind: kind)),
+          );
+        },
     );
   }
 
@@ -457,9 +458,9 @@ class _AuthScreenState extends State<AuthScreen>
             text: 'By proceeding you agree to our ',
             style: SQType.micro,
             children: [
-              _termsLink('Terms', '/terms'),
+              _termsLink('Terms', PolicyKind.terms),
               const TextSpan(text: ' & '),
-              _termsLink('Privacy Policy', '/privacy'),
+              _termsLink('Privacy Policy', PolicyKind.privacy),
               const TextSpan(text: '.'),
             ],
           ),

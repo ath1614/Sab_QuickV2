@@ -9,18 +9,19 @@ import '../widgets/product_card.dart';
 import 'account_screen.dart';
 import 'aisles_screen.dart';
 import 'cart_screen.dart';
-import 'coupons_screen.dart';
-import 'ops_board_screen.dart';
+import 'manager_kanban_screen.dart';
 import 'orders_screen.dart';
+import 'owner_hub_screen.dart';
+import 'packer_station_screen.dart';
 import 'rider_dashboard_screen.dart';
 import 'staff_screen.dart';
 
 /// Stage 3: skeleton "loading board" shown while catalog + theme resolve.
-/// Stage 4: the main board — role-aware, theme-aware, unified app:
-///   CUSTOMER → Home · Aisles · Cart · Orders · Account
-///   OWNER    → Everything · Manager · Staff · Coupons · Account
-///   MANAGER  → Everything · Manager · Account
-///   PACKER   → Packer · Account
+/// Stage 4: the main board — role-aware, theme-aware, website parity:
+///   CUSTOMER → Home · Aisles · Cart · Orders · Account  (store first)
+///   OWNER    → Owner Hub · Storefront · Manager · Staff · Account
+///   MANAGER  → Dispatch Kanban · Storefront · Account
+///   PACKER   → Packer Station · Account  (job device)
 ///   RIDER    → Deliveries · Account
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -129,19 +130,21 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'OWNER':
         return _buildShell(
           screens: [
-            OpsBoardScreen(
-                primary: _primary, accent: _accent, mode: OpsMode.everything),
-            OpsBoardScreen(
-                primary: _primary, accent: _accent, mode: OpsMode.manager),
+            OwnerHubScreen(primary: _primary, accent: _accent),
+            _buildStorefrontForStaff(),
+            ManagerKanbanScreen(primary: _primary, accent: _accent),
             StaffScreen(primary: _primary, accent: _accent),
-            CouponsScreen(primary: _primary, accent: _accent),
             AccountScreen(primary: _primary),
           ],
           destinations: const [
             NavigationDestination(
                 icon: Icon(Icons.dashboard_outlined),
                 selectedIcon: Icon(Icons.dashboard),
-                label: 'Everything'),
+                label: 'Owner Hub'),
+            NavigationDestination(
+                icon: Icon(Icons.storefront_outlined),
+                selectedIcon: Icon(Icons.storefront),
+                label: 'Storefront'),
             NavigationDestination(
                 icon: Icon(Icons.view_kanban_outlined),
                 selectedIcon: Icon(Icons.view_kanban),
@@ -151,10 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 selectedIcon: Icon(Icons.groups_2),
                 label: 'Staff'),
             NavigationDestination(
-                icon: Icon(Icons.confirmation_number_outlined),
-                selectedIcon: Icon(Icons.confirmation_number),
-                label: 'Coupons'),
-            NavigationDestination(
                 icon: Icon(Icons.person_outline),
                 selectedIcon: Icon(Icons.person),
                 label: 'Account'),
@@ -163,21 +162,19 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'MANAGER':
         return _buildShell(
           screens: [
-            OpsBoardScreen(
-                primary: _primary, accent: _accent, mode: OpsMode.everything),
-            OpsBoardScreen(
-                primary: _primary, accent: _accent, mode: OpsMode.manager),
+            ManagerKanbanScreen(primary: _primary, accent: _accent),
+            _buildStorefrontForStaff(),
             AccountScreen(primary: _primary),
           ],
           destinations: const [
             NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: 'Everything'),
-            NavigationDestination(
                 icon: Icon(Icons.view_kanban_outlined),
                 selectedIcon: Icon(Icons.view_kanban),
-                label: 'Manager'),
+                label: 'Dispatch'),
+            NavigationDestination(
+                icon: Icon(Icons.storefront_outlined),
+                selectedIcon: Icon(Icons.storefront),
+                label: 'Storefront'),
             NavigationDestination(
                 icon: Icon(Icons.person_outline),
                 selectedIcon: Icon(Icons.person),
@@ -187,8 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'PACKER':
         return _buildShell(
           screens: [
-            OpsBoardScreen(
-                primary: _primary, accent: _accent, mode: OpsMode.packer),
+            PackerStationScreen(primary: _primary, accent: _accent),
             AccountScreen(primary: _primary),
           ],
           destinations: const [
@@ -346,6 +342,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  /// Staff storefront tab: the same catalog home customers get — the web
+  /// lands staff roles on the store and opens panels from tabs, and so do
+  /// we. Shopping from a staff account is allowed (COD / staff pickup).
+  Widget _buildStorefrontForStaff() => _buildHomeTab();
 
   /// Flat brand header: green block with logo, ETA chip, sale tag and the
   /// white search pill. A plain box (no SliverAppBar/FlexibleSpaceBar) so

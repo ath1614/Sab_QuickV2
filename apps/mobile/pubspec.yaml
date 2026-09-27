@@ -44,6 +44,11 @@ dependencies:
   # round-trip, no deep links, fully standalone from the website.
   google_sign_in: ^7.1.2
 
+  # Catalog console: capture/compress product images on-device, then upload
+  # via /api/ops/upload (multipart). Keeps image work fully in-app.
+  image_picker: ^1.2.1
+  flutter_image_compress: ^2.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

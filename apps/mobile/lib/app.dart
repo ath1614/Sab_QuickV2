@@ -11,12 +11,12 @@ import 'screens/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme.dart';
 
-/// Broadcast whenever the app switches between logged-out (Auth) and
-/// logged-in (Home). AuthScreen listens so a successful native Google
-/// sign-in — which completes outside its own login calls — can navigate to
-/// Home.
-final StreamController<bool> authStateController =
-    StreamController<bool>.broadcast();
+export 'session_bus.dart' show authStateController;
+
+/// The auth-state broadcast lives in `session_bus.dart` (shared with the
+/// API client for 401 session-expiry handling) and is re-exported here.
+/// The AuthScreen listens so a successful native Google sign-in — which
+/// completes outside its own login calls — can navigate to Home.
 
 /// Launch flow: stage 1 splash (brand, min 1.2s) → session bootstrap →
 /// stage 2 auth or stage 3/4 home (loading board → main board).

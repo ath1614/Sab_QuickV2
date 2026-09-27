@@ -41,11 +41,46 @@ Tracking (animated status stepper, delivery OTP, 6s poll) → Account.
 - Pulsing ETA banner, animated status stepper dots in tracking.
 - Floating cart pill that appears/disappears with cart contents.
 
+## Consoles — all native, zero website
+
+The app is standalone from the website: no WebViews, no external URLs. Every
+console the website hosts has a purpose-built Flutter screen:
+
+| Screen | Role | Backed by |
+|---|---|---|
+| `owner_hub_screen.dart` | OWNER tab 1 | `/api/ops/analytics` + `/api/ops/orders` |
+| `catalog_screen.dart` | OWNER/MANAGER | `/api/ops/products*`, `/api/ops/categories`, `/api/ops/upload`, `/api/ops/inventory/toggle-stock` |
+| `manager_kanban_screen.dart` | MANAGER (tab 1) / OWNER | `/api/ops/orders` (+ rider assignment via `/api/ops/orders/status`) |
+| `packer_station_screen.dart` | PACKER (tab 1) | `/api/ops/orders` (aisle-grouped bagging checklist) |
+| `theme_studio_screen.dart` | OWNER | `/api/ops/theme/update` (presets mirrored in `lib/data/theme_presets.dart`) |
+| `customers_screen.dart` | OWNER | `/api/owner/customers` |
+| `policy_screen.dart` | everyone | Native Privacy/Terms/Refund + OTP-confirmed delete-account |
+
+Role shells (post-login landing, mirroring the website):
+CUSTOMER → Home · Aisles · Cart · Orders · Account ·
+OWNER → Owner Hub · Storefront · Manager · Staff · Account ·
+MANAGER → Dispatch · Storefront · Account ·
+PACKER → Packing · Account ·
+RIDER → Deliveries · Account.
+
+A 401 on any protected call wipes the session and broadcasts logged-out
+(`lib/session_bus.dart`), so an expired 30-day JWT lands the user on the auth
+screen instead of dead error screens.
+
+## iOS
+
+`ios/` is scaffolded (bundle ID `com.sabquick.sabquick_app`, brand icon set,
+photo/camera usage strings). Local builds need full Xcode (this Mac only has
+Command Line Tools); CI compiles the app unsigned against the simulator SDK
+(`build-ios-app` job, macOS runner). Device/TestFlight distribution is a
+later milestone — it needs an Apple Developer account.
+
 ## CI
 
-`.github/workflows/ci.yml` has a `build-android-app` job: `flutter analyze`
-(fatal infos) + `flutter test` + release APK build, artifact uploaded. It runs
-after web validation and does not gate the VPS deploy.
+`.github/workflows/ci.yml` has a `build-android-app` job (`flutter analyze`
+--no-fatal-infos + `flutter test` + release APK, artifact uploaded) and a
+`build-ios-app` job (unsigned simulator compile on macOS). Neither gates the
+VPS deploy.
 
 ## Google login (native, in-app — no website involvement)
 
