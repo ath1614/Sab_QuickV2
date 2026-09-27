@@ -6,45 +6,21 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  THEME_PRESETS as SHARED_THEME_PRESETS,
+} from "@/components/theme/themePresets";
 import { Sparkles, Palette, Zap, CheckCircle2, ArrowLeft, RefreshCw, X } from "lucide-react";
 
-export const THEME_PRESETS = [
-  {
-    name: "Forest Speed (Standard)",
-    primary: "#0B6E4F",
-    accent: "#00C853",
-    saleTag: "10-15 Min Delivery Guarantee",
-    bannerUrl: "/banners/forest-speed-hero.webp",
-  },
-  {
-    name: "Diwali Gold Dhamaka",
-    primary: "#B45309",
-    accent: "#F59E0B",
-    saleTag: "Diwali Dhamaka: 15-Min Festival Express",
-    bannerUrl: "/banners/diwali-express.webp",
-  },
-  {
-    name: "Midnight Flash",
-    primary: "#1E1B4B",
-    accent: "#6366F1",
-    saleTag: "Midnight Flash: Late-Night Snacks & Drinks",
-    bannerUrl: "/banners/midnight-flash.webp",
-  },
-  {
-    name: "Summer Citrus Coolers",
-    primary: "#EA580C",
-    accent: "#FBBF24",
-    saleTag: "Summer Coolers: Ice Creams & Beverages",
-    bannerUrl: "/banners/summer-coolers.webp",
-  },
-  {
-    name: "Holi Colors & Treats",
-    primary: "#BE185D",
-    accent: "#F43F5E",
-    saleTag: "Holi Utsav: Gulal, Sweets & Thandai",
-    bannerUrl: "/banners/holi-sweets.webp",
-  },
-];
+// Adapter: the shared 16-preset gallery (single source of truth, also used
+// by the Owner page) mapped to this modal's legacy shape. Banner URLs stay
+// only on the standard preset, exactly like the owner page's adapter.
+const THEME_PRESETS = SHARED_THEME_PRESETS.map((p) => ({
+  name: p.name,
+  primary: p.primaryColor,
+  accent: p.accentColor,
+  saleTag: p.saleTagText,
+  bannerUrl: p.key === "standard" ? "/banners/forest-speed-hero.webp" : "",
+}));
 
 interface SeasonalThemeModalProps {
   isOpen: boolean;
@@ -57,10 +33,10 @@ export function SeasonalThemeModal({
   onClose,
   onThemeUpdated,
 }: SeasonalThemeModalProps) {
-  const [themeName, setThemeName] = React.useState("Forest Speed (Standard)");
+  const [themeName, setThemeName] = React.useState("Standard Green");
   const [primaryColor, setPrimaryColor] = React.useState("#0B6E4F");
   const [accentColor, setAccentColor] = React.useState("#00C853");
-  const [saleTagText, setSaleTagText] = React.useState("⚡ 10-15 Min Delivery Guarantee");
+  const [saleTagText, setSaleTagText] = React.useState("10-15 Min Delivery Guarantee");
   const [bannerImageUrl, setBannerImageUrl] = React.useState("");
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
