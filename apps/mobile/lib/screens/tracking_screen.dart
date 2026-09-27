@@ -66,7 +66,11 @@ class _TrackingScreenState extends State<TrackingScreen>
         (o) => o['orderNumber'] == widget.orderNumber,
         orElse: () => null,
       );
-      setState(() => _order = match as Map<String, dynamic>?);
+      if (match != null || _order == null) {
+        // A transient empty response must never wipe a known live order —
+        // only overwrite when we actually found it (or have nothing yet).
+        setState(() => _order = match as Map<String, dynamic>?);
+      }
     } catch (_) {
       if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +84,8 @@ class _TrackingScreenState extends State<TrackingScreen>
   Widget build(BuildContext context) {
     final status = (_order?['status'] ?? 'PENDING') as String;
     final currentIndex = _flow.indexOf(status);
-    final address = (_order?['address'] ?? {}) as Map<String, dynamic>;
+    final address = (_order?['address'] as Map<String, dynamic>?) ??
+        const <String, dynamic>{};
 
     return Scaffold(
       appBar: AppBar(title: Text('Order #${widget.orderNumber}')),

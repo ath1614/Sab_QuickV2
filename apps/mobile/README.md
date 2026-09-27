@@ -82,6 +82,24 @@ later milestone — it needs an Apple Developer account.
 `build-ios-app` job (unsigned simulator compile on macOS). Neither gates the
 VPS deploy.
 
+## Emulator smoke pass (release APK, Android 16.1 arm64)
+
+Both role flows were driven end-to-end on a headless arm64 emulator against
+production (`SCREEN_MAP.md` → "Verified on emulator" has the details):
+
+- **Customer**: OTP login (display-mode quick code) → storefront → cart → COD
+  order → tracking screen with the live OSM route map (ETA chip, geofence
+  pill, delivery OTP).
+- **Owner**: passcode login → Owner Hub → Catalog → Theme Studio → Manager
+  Kanban, including a native PENDING→CONFIRMED status advance.
+- **Fixes that came out of it**: a `Map<String, dynamic>` cast crash in
+  `TrackingScreen` when a poll returned no match (also keeps the last known
+  order on transient empty responses) and cart persistence
+  (`SharedPreferences`) to survive app restarts.
+
+Reproduce locally: build the release APK, install via `adb install -r`, and
+drive the UI with `adb shell uiautomator dump` + `adb shell input tap`.
+
 ## Google login (native, in-app — no website involvement)
 
 The Google consent sheet opens INSIDE the app via the `google_sign_in`

@@ -66,6 +66,7 @@ Back/exit: web = sheet drag/Close; app = "Wrong number? Go back" resets to phone
 |---|---|---|
 | Free-delivery progress bar (₹199 threshold) | Same banner text + thresholds from `config.dart` | ✅ |
 | Itemized list with steppers (40px hit areas) | Itemized list with steppers | ✅ |
+| Cart persists across browser sessions (localStorage) | Cart persists across app restarts (`SharedPreferences`, debounced JSON save; corrupt blob degrades to empty) — verified on emulator via force-stop relaunch | ✅ |
 | Cross-sell "Frequently Bought Together" rail (`/api/products/recommendations`) | Not present in app cart | ❌ planned |
 | Address pill → `LocationPickerModal` (map, geofence) | Address chips (select saved) + "Add a delivery address" sheet (no map pin yet) | 🟡 map pin picker planned |
 | Tip selector (0/10/20/30) | Not present in app cart | ❌ planned |
@@ -81,6 +82,7 @@ Back/exit: web = sheet drag/Close; app = "Wrong number? Go back" resets to phone
 |---|---|---|
 | `/orders` list: active + past, order numbers, totals | Live section + history, same fields | ✅ |
 | `/orders/[orderNumber]` tracker: stepper, ETA, delivery OTP | `TrackingScreen` push with back arrow: animated stepper, ETA pulse, OTP card | ✅ |
+| Tracker route map (`OrderRouteMap`, Leaflet/OSM) | Native `RouteMapCard` (flutter_map/OSM): store + home pins, dashed route, ETA chip, geofence pill, interpolated rider marker while OUT_FOR_DELIVERY — no API key. Polls keep the last known order on transient empty responses (cast-crash fixed, verified 25s+ on emulator) | ✅ |
 | Cancel order (where allowed) | `cancelOrder` API present; UI entry on tracker planned | 🟡 |
 
 ## 8. Account
@@ -119,9 +121,14 @@ Back/exit: web = sheet drag/Close; app = "Wrong number? Go back" resets to phone
 - All scrollables use `AlwaysScrollableScrollPhysics` where pull-to-refresh exists.
 - Notch/status bar: `SafeArea` on every tab body; NavigationBar handles bottom inset automatically.
 
+## Verified on emulator (Android 16.1 arm64, release APK)
+
+Customer: OTP login (display-mode quick code) → storefront → add to cart → COD order `#SQ-829578` → tracking with live OSM route map, ETA chip, geofence pill, delivery OTP. Owner: PIN login → Owner Hub KPIs (GMV/active orders/low stock) → Catalog (280 SKUs, dual pricing, live stock decrement) → Theme Studio (16 shared presets, LIVE badge) → Manager Kanban (both live orders, native CONFIRM advanced PENDING→CONFIRMED). Findings fixed during the pass: tracking-screen cast crash on poll rebuild + cart not persisting across restarts.
+
 ## Remaining gaps (tracked)
 
 1. Cart: cross-sell rail, tips, coupon UI, UPI/online payment methods, celebration animation.
 2. Map-based address pin (LocationPicker parity).
-3. Web-first owner tools: theme engine + catalog CRUD + customers CRM.
-4. Resend-cooldown widget on app OTP step.
+3. No in-app logout/switch-account control on the customer Account tab (cleared via app data during testing).
+4. Web-first owner tools: theme engine + catalog CRUD + customers CRM.
+5. Resend-cooldown widget on app OTP step.
