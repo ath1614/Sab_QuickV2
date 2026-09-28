@@ -250,8 +250,9 @@ export default function CategoriesPage() {
                     onAddToCart={addItem}
                     onIncrement={addItem}
                     onDecrement={(item) => removeItem(item.id)}
-                    onProductClick={() => {
-                      /* detail modal lives on the storefront */
+                    onProductClick={(item) => {
+                      // Detail modal lives on the storefront — deep-link to it.
+                      router.push(`/?product=${item.id}`);
                     }}
                   />
                 ))}

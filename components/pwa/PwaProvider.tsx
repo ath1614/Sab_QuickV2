@@ -28,7 +28,10 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   const [isInstalled, setIsInstalled] = React.useState(false);
   const [isOnline, setIsOnline] = React.useState(true);
 
-  // 1. Service Worker Registration & Online/Offline detection
+  // 1. Service Worker Registration & Online/Offline detection.
+  // navigator.onLine is unreliable inside Capacitor WebViews (it can read
+  // false while data flows fine), so the online decision is confirmed by a
+  // lightweight fetch probe; offline events always win immediately.
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -40,11 +43,41 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
 
     setIsOnline(navigator.onLine);
 
-    const handleOnline = () => setIsOnline(true);
+    let probeAbort: AbortController | null = null;
+    const probeConnectivity = async () => {
+      if (!navigator.onLine) {
+        setIsOnline(false);
+        return;
+      }
+      probeAbort?.abort();
+      probeAbort = new AbortController();
+      try {
+        await fetch("/api/theme", {
+          method: "HEAD",
+          cache: "no-store",
+          signal: probeAbort.signal,
+        });
+        setIsOnline(true);
+      } catch {
+        // A cancelled probe is not an outage — keep the current state.
+        if (probeAbort?.signal.aborted) return;
+        setIsOnline(false);
+      }
+    };
+
+    const handleOnline = () => {
+      void probeConnectivity();
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+
+    // Re-verify periodically — catches stale navigator.onLine states.
+    const interval = setInterval(() => {
+      void probeConnectivity();
+    }, 30000);
+    void probeConnectivity();
 
     // Register Service Worker in production & staging
     if ("serviceWorker" in navigator) {
@@ -61,6 +94,8 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      clearInterval(interval);
+      probeAbort?.abort();
     };
   }, []);
 
@@ -120,7 +155,7 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     >
       {/* Offline Toast Banner */}
       {!isOnline && (
-        <div className="fixed top-0 inset-x-0 z-50 bg-amber-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow-md animate-in slide-in-from-top duration-300">
+        <div className="fixed top-[env(safe-area-inset-top,0px)] inset-x-0 z-50 bg-amber-600 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow-md animate-in slide-in-from-top duration-300">
           <span className="w-2 h-2 rounded-full bg-white animate-ping" />
           <span>You are currently offline. Showing cached products & local cart.</span>
         </div>

@@ -26,8 +26,6 @@ import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 import { AisleProductRow } from "@/components/catalog/AisleProductRow";
 import { SearchBar } from "@/components/catalog/SearchBar";
-import { CartDrawer } from "@/components/cart/CartDrawer";
-import { FloatingCartPill } from "@/components/cart/FloatingCartPill";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
 import { SplashScreen } from "@/components/brand/SplashScreen";
@@ -78,6 +76,23 @@ function StorefrontContent() {
     setSelectedProduct(product);
     setProductDetailModalOpen(true);
   };
+
+  // Deep link: /?product=<id> opens the detail modal (used by the
+  // Categories page so "View details" works from there).
+  const productParam = searchParams.get("product");
+  const productParamHandled = React.useRef(false);
+  React.useEffect(() => {
+    if (!productParam || productParamHandled.current) return;
+    if (products.length === 0) return;
+    const target = products.find((p) => p.id === productParam);
+    if (target) {
+      productParamHandled.current = true;
+      handleProductClick(target);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("product");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [productParam, products]);
 
   // Cart store
   const { items: cartItems, addItem, removeItem, openCart } = useCartStore();
@@ -513,11 +528,9 @@ function StorefrontContent() {
         )}
       </main>
 
-      {/* Slide-Over Quick Cart Drawer */}
-      <CartDrawer />
+      {/* Slide-Over Quick Cart Drawer — now global (layout.tsx) */}
 
-      {/* Blinkit-Style Floating Cart Pill (appears when cart is non-empty) */}
-      <FloatingCartPill />
+      {/* Blinkit-Style Floating Cart Pill — now global (layout.tsx) */}
 
       {/* Product Detail Modal */}
       <ProductDetailModal

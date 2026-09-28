@@ -9,6 +9,7 @@ import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { MobileAuthBridge } from "@/components/auth/MobileAuthBridge";
+import { GlobalOverlays } from "@/app/providers/GlobalOverlays";
 
 // Inter carries UI/body copy; Space Grotesk is the display face for
 // headlines, prices and big numbers (mirrors the Flutter app's type system).
@@ -105,6 +106,7 @@ export default function RootLayout({
               {children}
             </div>
             <ActiveOrderFloatingBar />
+            <GlobalOverlays />
             <PwaInstallPrompt />
             <Suspense fallback={null}>
               <MobileBottomNav />
