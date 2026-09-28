@@ -31,7 +31,7 @@ export function FloatingCartPill() {
 
   return (
     <div
-      className={`fixed inset-x-4 bottom-[76px] md:inset-x-auto md:right-8 md:bottom-8 z-40 transition-all duration-300 ease-out ${
+      className={`fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:inset-x-auto md:right-8 md:bottom-8 z-40 transition-all duration-300 ease-out ${
         isVisible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-6 pointer-events-none"

@@ -150,6 +150,12 @@ export default function OwnerCatalogPage() {
   const [editProdImage, setEditProdImage] = React.useState("");
   const [editProdDesc, setEditProdDesc] = React.useState("");
 
+  // Delete Product Confirmation
+  const [deleteProductModalOpen, setDeleteProductModalOpen] = React.useState<boolean>(false);
+  const [deleteProdId, setDeleteProdId] = React.useState<string>("");
+  const [deleteProdName, setDeleteProdName] = React.useState<string>("");
+  const [isDeletingProduct, setIsDeletingProduct] = React.useState<boolean>(false);
+
   // Auto-slug generator helper
   const slugify = (text: string) => {
     return text
@@ -538,6 +544,32 @@ export default function OwnerCatalogPage() {
     setEditProductModalOpen(true);
   };
 
+  // Open Delete Product Confirmation + confirm handler
+  const openDeleteProductModal = (prod: ProductData) => {
+    setDeleteProdId(prod.id);
+    setDeleteProdName(prod.title);
+    setDeleteProductModalOpen(true);
+  };
+
+  const handleConfirmDeleteProduct = async () => {
+    try {
+      setIsDeletingProduct(true);
+      const res = await fetch(`/api/ops/products/${deleteProdId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete product.");
+
+      setSuccessMsg(data.message || `Deleted "${deleteProdName}".`);
+      setDeleteProductModalOpen(false);
+      fetchCatalogData();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to delete product.");
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  };
+
   // Live discount calculation for Product Add Modal
   const liveAddMrp = parseFloat(prodMrp) || 0;
   const liveAddSalePrice = parseFloat(prodSalePrice) || 0;
@@ -771,6 +803,26 @@ export default function OwnerCatalogPage() {
               })
               .map((parent) => {
               const isExpanded = !!expandedParents[parent.id] || Boolean(searchQuery.trim());
+              // While searching, show only the subcategories that actually
+              // match (previously every subcategory of a matching parent
+              // appeared in results).
+              const visibleSubCategories = searchQuery.trim()
+                ? parent.subCategories.filter((s) => {
+                    const q = searchQuery.toLowerCase().trim();
+                    return (
+                      s.name.toLowerCase().includes(q) ||
+                      s.slug.toLowerCase().includes(q) ||
+                      (s.products || []).some(
+                        (p) =>
+                          p.title.toLowerCase().includes(q) ||
+                          p.slug.toLowerCase().includes(q) ||
+                          (p.description && p.description.toLowerCase().includes(q)) ||
+                          p.unitQuantity.toLowerCase().includes(q) ||
+                          p.tags.some((t) => t.toLowerCase().includes(q))
+                      )
+                    );
+                  })
+                : parent.subCategories;
               const totalParentSkus = parent.subCategories.reduce(
                 (sum, s) => sum + (s.products?.length || 0),
                 0
@@ -903,7 +955,7 @@ export default function OwnerCatalogPage() {
                   {/* EXPANDED SUBCATEGORIES TREE SECTION */}
                   {isExpanded && (
                     <div className="p-4 sm:p-6 pt-2 border-t-2 border-slate-800 bg-slate-950 space-y-5">
-                      {parent.subCategories.length === 0 ? (
+                      {visibleSubCategories.length === 0 ? (
                         <div className="p-6 text-center rounded-2xl border-2 border-dashed border-slate-700 bg-slate-900/80 flex flex-col items-center justify-center gap-3">
                           <Layers className="w-8 h-8 text-emerald-400" />
                           <div>
@@ -925,7 +977,7 @@ export default function OwnerCatalogPage() {
                           </Button>
                         </div>
                       ) : (
-                        parent.subCategories.map((sub) => {
+                        visibleSubCategories.map((sub) => {
                           const filteredProducts = (sub.products || []).filter((p) => {
                             if (!searchQuery.trim()) return true;
                             const q = searchQuery.toLowerCase().trim();
@@ -1107,14 +1159,24 @@ export default function OwnerCatalogPage() {
                                               )}
                                             </div>
 
-                                            <Button
-                                              size="sm"
-                                              onClick={() => openEditModal(prod)}
-                                              className="h-7 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-slate-700"
-                                            >
-                                              <Edit2 className="w-3 h-3 mr-1 text-emerald-400" />
-                                              Edit
-                                            </Button>
+                                            <div className="flex items-center gap-1.5">
+                                              <Button
+                                                size="sm"
+                                                onClick={() => openEditModal(prod)}
+                                                className="h-7 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg border border-slate-700"
+                                              >
+                                                <Edit2 className="w-3 h-3 mr-1 text-emerald-400" />
+                                                Edit
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                onClick={() => openDeleteProductModal(prod)}
+                                                className="h-7 px-2.5 text-xs font-bold bg-slate-800 hover:bg-rose-500/20 text-white rounded-lg border border-slate-700 hover:border-rose-500/40"
+                                                title={`Delete ${prod.title}`}
+                                              >
+                                                <Trash2 className="w-3 h-3 text-rose-400" />
+                                              </Button>
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
@@ -2309,6 +2371,67 @@ export default function OwnerCatalogPage() {
                   className="h-10 px-5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white gap-2 shadow-lg"
                 >
                   {isDeletingCategory ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  <span>Delete Permanently</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DELETE PRODUCT CONFIRMATION */}
+      {deleteProductModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <h3 className="text-sm font-black flex items-center gap-2 text-rose-400">
+                <Trash2 className="w-4 h-4 text-rose-500" />
+                Delete Product
+              </h3>
+              <button
+                onClick={() => setDeleteProductModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <p className="text-slate-200 text-sm">
+                Are you sure you want to permanently delete{" "}
+                <strong className="text-white font-black">&quot;{deleteProdName}&quot;</strong>?
+              </p>
+              <div className="p-3.5 rounded-2xl bg-rose-950/80 border-2 border-rose-500/50 text-rose-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 font-black text-rose-200 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>This cannot be undone</span>
+                </div>
+                <p className="text-xs leading-relaxed text-rose-200">
+                  The product and its past order line items will be permanently removed from the catalog. Storefront customers will no longer see this item.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-700">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteProductModalOpen(false)}
+                  disabled={isDeletingProduct}
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmDeleteProduct}
+                  disabled={isDeletingProduct}
+                  className="h-10 px-5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white gap-2 shadow-lg"
+                >
+                  {isDeletingProduct ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <Trash2 className="w-4 h-4" />
