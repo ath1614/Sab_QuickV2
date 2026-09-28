@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
             riderProfile: true,
           },
         },
+        offlineCollector: {
+          select: { id: true, name: true, role: true },
+        },
         address: true,
         items: {
           include: {
@@ -82,6 +85,13 @@ export async function GET(req: NextRequest) {
         totalAmount: order.totalAmount,
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
+        offlineCollectionMethod: order.offlineCollectionMethod,
+        offlineCollectedAt: order.offlineCollectedAt
+          ? order.offlineCollectedAt.toISOString()
+          : null,
+        offlineCollector: order.offlineCollector
+          ? { id: order.offlineCollector.id, name: order.offlineCollector.name }
+          : null,
         createdAt: order.createdAt.toISOString(),
         packedAt: order.packedAt ? order.packedAt.toISOString() : null,
         deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,

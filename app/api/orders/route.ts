@@ -377,6 +377,9 @@ export async function GET(req: NextRequest) {
             riderProfile: true,
           },
         },
+        offlineCollector: {
+          select: { id: true, name: true },
+        },
       },
     });
 

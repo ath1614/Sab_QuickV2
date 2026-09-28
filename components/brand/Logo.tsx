@@ -85,7 +85,7 @@ export function Logo({
           letterSpacing="3"
           textAnchor="middle"
         >
-          HYPER-LOCAL 10-15 MIN DISPATCH
+          HYPER-LOCAL SUPERFAST DISPATCH
         </text>
 
         {/* Speed Cut Left Angled Solid */}

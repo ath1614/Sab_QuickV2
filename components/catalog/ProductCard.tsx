@@ -221,7 +221,7 @@ export function ProductCard({
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
             <div className="inline-flex items-center gap-1 bg-slate-900/85 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs backdrop-blur-xs">
               <Zap className="w-2.5 h-2.5 fill-[#C8F531] text-[#C8F531]" />
-              <span>10 MINS</span>
+              <span>EXPRESS</span>
             </div>
           </div>
 

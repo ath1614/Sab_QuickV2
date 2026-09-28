@@ -85,7 +85,7 @@ export function PwaInstallPrompt() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 leading-tight mt-0.5">
-                Faster 10-15 min ordering & instant rider GPS tracking.
+                Superfast ordering & instant rider GPS tracking.
               </p>
             </div>
           </div>

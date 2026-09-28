@@ -38,6 +38,11 @@ export async function ensureDatabaseSchema() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentId" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentStatus" TEXT;`);
 
+    // 4b. Rider doorstep collection bookkeeping (UPI / Cash on delivery)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "offlineCollectionMethod" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "offlineCollectedAt" TIMESTAMP(3);`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "offlineCollectedBy" TEXT;`);
+
     // 5. Ensure OrderItem.productId foreign key cascades on delete
     await prisma.$executeRawUnsafe(`
       DO $$

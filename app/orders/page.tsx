@@ -51,6 +51,10 @@ interface OrderData {
   totalAmount: number;
   deliveryOtp: string;
   createdAt: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  offlineCollectionMethod?: string | null;
+  offlineCollector?: { id: string; name: string | null } | null;
   items: OrderItem[];
   address?: {
     flatBuilding: string;
@@ -183,7 +187,7 @@ export default function OrdersPage() {
             </div>
             <div className="space-y-2 max-w-sm mx-auto">
               <h2 className="text-xl font-black text-surface-dark">
-                Track Live 10-15 Min Deliveries
+                Track Live Deliveries
               </h2>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Sign in with your mobile number to view active orders, delivery OTPs, and past purchase receipts.
@@ -225,7 +229,7 @@ export default function OrdersPage() {
                     </h2>
                   </div>
                   <Badge variant="accent" className="text-[10px] uppercase font-bold py-0.5 px-2">
-                    10-15 Min SLA
+                    Superfast SLA
                   </Badge>
                 </div>
 
@@ -289,6 +293,11 @@ export default function OrdersPage() {
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-xs font-semibold text-muted-foreground">
                         {(order.items || []).reduce((s, it) => s + (it?.quantity || 1), 0)} Items • ₹{order.totalAmount || 0}
+                        {order.offlineCollectionMethod && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black">
+                            ✓ Paid via {order.offlineCollectionMethod === "CASH_ON_DELIVERY" ? "Cash" : "UPI"} on delivery
+                          </span>
+                        )}
                       </span>
 
                       <Link href={`/orders/${order.orderNumber}`}>
@@ -323,7 +332,7 @@ export default function OrdersPage() {
                       No Orders Yet
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Explore fresh groceries, dairy, and snacks delivered in 10-15 minutes.
+                      Explore fresh groceries, dairy, and snacks delivered superfast.
                     </p>
                   </div>
                   <Link href="/">

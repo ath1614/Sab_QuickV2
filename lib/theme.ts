@@ -30,7 +30,7 @@ export const DEFAULT_THEME: ResolvedTheme = {
   themeName: "Forest Speed (Standard)",
   primaryColor: "#0B6E4F",
   accentColor: "#00C853",
-  saleTagText: "⚡ 10-15 Min Delivery Guarantee",
+  saleTagText: "⚡ Superfast Delivery Guarantee",
   bannerImageUrl: "/banners/forest-speed-hero.webp",
   source: "default",
 };

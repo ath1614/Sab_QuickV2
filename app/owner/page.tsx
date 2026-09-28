@@ -127,6 +127,18 @@ export default function OwnerControlPage() {
   const [activeOwnerTab, setActiveOwnerTab] = React.useState<
     "overview" | "orders" | "customers" | "staff" | "coupons" | "theme"
   >("overview");
+  // Managers get the Orders Hub by default (their primary console).
+  React.useEffect(() => {
+    const r: string[] =
+      (session?.user as any)?.roles?.length
+        ? (session?.user as any).roles
+        : session?.user?.role
+          ? [session.user.role]
+          : [];
+    if (r.includes("MANAGER") && !r.includes("OWNER")) {
+      setActiveOwnerTab("orders");
+    }
+  }, [session?.user]);
 
   // Staff Hub State
   const [staffList, setStaffList] = React.useState<StaffMember[]>([]);
@@ -179,7 +191,7 @@ export default function OwnerControlPage() {
   const [themeName, setThemeName] = React.useState("Forest Speed (Standard)");
   const [primaryColor, setPrimaryColor] = React.useState("#0B6E4F");
   const [accentColor, setAccentColor] = React.useState("#00C853");
-  const [saleTagText, setSaleTagText] = React.useState("10-15 Min Delivery Guarantee");
+  const [saleTagText, setSaleTagText] = React.useState("Superfast Delivery Guarantee");
   const [bannerImageUrl, setBannerImageUrl] = React.useState("/banners/forest-speed-hero.webp");
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
@@ -758,16 +770,22 @@ export default function OwnerControlPage() {
   }
 
   const role = session?.user?.role;
-  if (role !== "OWNER") {
+  const userRoles: string[] =
+    (session?.user as any)?.roles?.length
+      ? (session?.user as any).roles
+      : [role];
+  const isOwner = userRoles.includes("OWNER");
+  const isManager = userRoles.includes("MANAGER");
+  if (!isOwner && !isManager) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-border-subtle">
           <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-surface-dark mb-2">Owner Restricted Area</h2>
+          <h2 className="text-xl font-black text-surface-dark mb-2">Restricted Area</h2>
           <p className="text-sm text-slate-600 mb-6">
-            Only designated <strong>Store Owners</strong> have access to financial metrics, catalog overrides, and store theme customization.
+            Only <strong>Store Owners</strong> and <strong>Managers</strong> have access to this hub.
           </p>
           <Link href="/">
             <Button variant="default" className="w-full">
@@ -913,6 +931,7 @@ export default function OwnerControlPage() {
       {/* Subheader Navigation Tabs */}
       <div className="bg-white border-b border-border-subtle sticky top-[57px] z-20 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2.5">
+          {isOwner && (
           <button
             type="button"
             onClick={() => setActiveOwnerTab("overview")}
@@ -925,6 +944,7 @@ export default function OwnerControlPage() {
             <TrendingUp className="w-4 h-4" />
             <span>Overview &amp; Stock</span>
           </button>
+          )}
 
           <button
             type="button"
@@ -944,6 +964,7 @@ export default function OwnerControlPage() {
             )}
           </button>
 
+          {isOwner && (
           <button
             type="button"
             onClick={() => setActiveOwnerTab("customers")}
@@ -956,7 +977,9 @@ export default function OwnerControlPage() {
             <Users className="w-4 h-4" />
             <span>Customers CRM</span>
           </button>
+          )}
 
+          {isOwner && (
           <button
             type="button"
             onClick={() => setActiveOwnerTab("staff")}
@@ -972,7 +995,9 @@ export default function OwnerControlPage() {
               {staffList.length}
             </Badge>
           </button>
+          )}
 
+          {isOwner && (
           <button
             type="button"
             onClick={() => setActiveOwnerTab("coupons")}
@@ -988,7 +1013,9 @@ export default function OwnerControlPage() {
               {couponsList.length}
             </Badge>
           </button>
+          )}
 
+          {isOwner && (
           <button
             type="button"
             onClick={() => setActiveOwnerTab("theme")}
@@ -1001,6 +1028,7 @@ export default function OwnerControlPage() {
             <Palette className="w-4 h-4" />
             <span>Theme &amp; Branding</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -1009,11 +1037,18 @@ export default function OwnerControlPage() {
         {/* ORDERS HUB TAB */}
         {activeOwnerTab === "orders" && <OwnerOrdersTab />}
 
+        {/* Managers only get the Orders Hub; guard every owner tab render too */}
+        {!isOwner && activeOwnerTab !== "orders" && (
+          <div className="p-8 text-center text-sm text-slate-500 font-bold">
+            Owner access required for this section.
+          </div>
+        )}
+
         {/* CUSTOMERS CRM TAB */}
-        {activeOwnerTab === "customers" && <OwnerCustomersTab />}
+        {isOwner && activeOwnerTab === "customers" && <OwnerCustomersTab />}
 
         {/* SECTION 1: FINANCIAL & SLA KPI METRIC CARDS */}
-        {activeOwnerTab === "overview" && (
+        {isOwner && activeOwnerTab === "overview" && (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in">
           {/* GMV Card */}
           <div className="bg-white rounded-2xl p-5 border border-border-subtle shadow-sm flex flex-col justify-between relative overflow-hidden">
@@ -1098,7 +1133,7 @@ export default function OwnerControlPage() {
         )}
 
         {/* SECTION 2: DYNAMIC SEASONAL THEME CUSTOMIZER */}
-        {activeOwnerTab === "theme" && (
+        {isOwner && activeOwnerTab === "theme" && (
         <section className="bg-white rounded-3xl p-6 lg:p-8 border border-border-subtle shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
@@ -1314,7 +1349,7 @@ export default function OwnerControlPage() {
               <Input
                 value={saleTagText}
                 onChange={(e) => setSaleTagText(e.target.value)}
-                placeholder="10-15 Min Delivery Guarantee"
+                placeholder="Superfast Delivery Guarantee"
                 className="h-10 rounded-xl"
               />
             </div>
@@ -1384,7 +1419,7 @@ export default function OwnerControlPage() {
         )}
 
         {/* SECTION 3: INVENTORY REPLENISHMENT (Overview tab) */}
-        {activeOwnerTab === "overview" && (
+        {isOwner && activeOwnerTab === "overview" && (
         <section className="bg-white rounded-3xl border border-border-subtle shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -1479,7 +1514,7 @@ export default function OwnerControlPage() {
         )}
 
         {/* SECTION 4: STAFF DIRECTORY TAB */}
-        {activeOwnerTab === "staff" && (
+        {isOwner && activeOwnerTab === "staff" && (
         <section className="space-y-4 animate-in fade-in">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-black text-surface-dark flex items-center gap-2">
@@ -1540,7 +1575,7 @@ export default function OwnerControlPage() {
         )}
 
         {/* SECTION 5: COUPONS TAB */}
-        {activeOwnerTab === "coupons" && (
+        {isOwner && activeOwnerTab === "coupons" && (
         <section className="space-y-4 animate-in fade-in">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-black text-surface-dark flex items-center gap-2">

@@ -1857,7 +1857,7 @@ export default function OwnerCatalogPage() {
 
                       <div className="absolute top-2 right-2 z-10">
                         <Badge variant="accent" className="text-[9px] py-0 px-1.5 gap-0.5 font-bold shadow-2xs">
-                          <Zap className="w-2.5 h-2.5 fill-surface-dark" /> 10 MINS
+                          <Zap className="w-2.5 h-2.5 fill-surface-dark" /> EXPRESS
                         </Badge>
                       </div>
 

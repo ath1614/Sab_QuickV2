@@ -10,7 +10,7 @@ interface CustomLoadingScreenProps {
 
 export function CustomLoadingScreen({
   message = "Loading SabQuick Dark Store...",
-  subMessage = "10-15 min hyper-local provision fulfillment",
+  subMessage = "Superfast hyper-local provision fulfillment",
 }: CustomLoadingScreenProps) {
   return (
     <div

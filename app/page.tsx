@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { CategoriesDirectory } from "@/components/catalog/CategoriesDirectory";
-import { CategoryNav, ParentCategoryItem } from "@/components/catalog/CategoryNav";
+import { ParentCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 import { AisleProductRow } from "@/components/catalog/AisleProductRow";
@@ -61,7 +61,7 @@ function StorefrontContent() {
     themeName: "Forest Speed (Standard)",
     primaryColor: "#0B6E4F",
     accentColor: "#00C853",
-    saleTagText: "⚡ 10-15 Min Delivery Guarantee",
+    saleTagText: "⚡ Superfast Delivery Guarantee",
   });
   const [categories, setCategories] = React.useState<ParentCategoryItem[]>([]);
   const [products, setProducts] = React.useState<ProductData[]>([]);
@@ -321,15 +321,8 @@ function StorefrontContent() {
         onSearchChange={setActiveSearch}
       />
 
-      {/* Sticky Two-Tier Category Navigation */}
-      <div id="category-nav">
-        <CategoryNav
-          categories={categories}
-          activeCategorySlug={categoryParam}
-          activeSubSlug={subParam}
-          onSelectCategory={handleSelectCategory}
-        />
-      </div>
+      {/* Category browsing lives on the Categories tab/page; the sticky
+          top nav pill row was removed per product decision. */}
 
       {/* Main Storefront Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32 md:pb-12 space-y-6">
@@ -380,7 +373,7 @@ function StorefrontContent() {
                   className="gap-1.5 uppercase font-black tracking-wider text-[10px] sm:text-[11px] py-0.5 sm:py-1 px-2 sm:px-3 bg-primary-accent text-surface-dark shadow-sm"
                 >
                   <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-surface-dark" />
-                  10-15 Min Delivery
+                  Superfast Delivery
                 </Badge>
               </div>
               <h1 className="text-lg sm:text-3xl md:text-4xl font-display font-bold tracking-tight leading-tight text-white drop-shadow-md line-clamp-2">
@@ -436,7 +429,7 @@ function StorefrontContent() {
               </Badge>
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Guaranteed 10-15 minute doorstep delivery within your 2.5 km geofence.
+              Superfast doorstep delivery within your 2.5 km geofence.
             </p>
           </div>
 
@@ -551,7 +544,7 @@ function StorefrontContent() {
               <Logo variant="icon" size={28} className="rounded-lg shrink-0" />
               <div>
                 <span className="font-extrabold text-surface-dark block text-sm">SabQuick</span>
-                <span className="text-[11px] text-slate-500">Hyper-Local 10-15 Min Grocery Fulfillment &bull; Ambikapur, Chhattisgarh</span>
+                <span className="text-[11px] text-slate-500">Hyper-Local Superfast Grocery Fulfillment &bull; Ambikapur, Chhattisgarh</span>
               </div>
             </div>
 

@@ -10,7 +10,6 @@ import {
   Zap,
   Plus,
   Minus,
-  X,
   ShieldCheck,
   Truck,
   Sparkles,
@@ -60,18 +59,8 @@ export function ProductDetailModal({
         {/* Visually Hidden Title for Accessibility */}
         <DialogTitle className="sr-only">{product.title} Details</DialogTitle>
 
-        {/* Modal Header & Close Button */}
+        {/* Modal Header (Dialog renders its own close button) */}
         <div className="relative bg-slate-50 border-b border-slate-100 flex items-center justify-center p-6 pt-10">
-          {/* Close button with high-contrast pill */}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close product details"
-            className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white flex items-center justify-center transition-all shadow-2xs active:scale-95"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
           {/* Discount Badge */}
           {discountPercent > 0 && (
             <div className="absolute top-4 left-4 z-10">
@@ -81,11 +70,11 @@ export function ProductDetailModal({
             </div>
           )}
 
-          {/* 10 MINS Express Delivery Pill */}
+          {/* Express Delivery Pill */}
           <div className="absolute bottom-3 left-4 z-10">
             <div className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-xs text-slate-800 border border-slate-200 text-xs px-2.5 py-1 rounded-lg font-bold shadow-xs">
               <Zap className="w-3.5 h-3.5 fill-[#0B6E4F] text-[#0B6E4F]" />
-              <span>10 MINS DELIVERY</span>
+              <span>EXPRESS DELIVERY</span>
             </div>
           </div>
 
@@ -153,7 +142,7 @@ export function ProductDetailModal({
                   Quality Guaranteed by SabQuick Dark Store
                 </p>
                 <p className="text-slate-500 leading-relaxed">
-                  Hand-picked and stored under strict temperature controls in our Ambikapur facility. Delivered in sealed tamper-evident bags within 10-15 minutes.
+                  Hand-picked and stored under strict temperature controls in our Ambikapur facility. Delivered in sealed tamper-evident bags, superfast.
                 </p>
               </div>
             )}

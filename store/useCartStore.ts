@@ -91,6 +91,8 @@ export interface CartStoreState {
   paymentMethod: PaymentMethod;
   appliedCoupon: AppliedCoupon | null;
   isOpen: boolean;
+  /** Cart pill minimized to a dot (persisted so it survives reloads). */
+  isPillMinimized: boolean;
 
   // Actions
   addItem: (product: ProductData) => void;
@@ -104,6 +106,8 @@ export interface CartStoreState {
   setIsOpen: (open: boolean) => void;
   openCart: () => void;
   closeCart: () => void;
+  /** Cart pill minimized to a dot (makes room for the active-order bar). */
+  setPillMinimized: (minimized: boolean) => void;
 
   // Getters for derived computations
   getItemTotal: () => number;
@@ -121,6 +125,7 @@ export const useCartStore = create<CartStoreState>()(
       paymentMethod: "CASHFREE",
       appliedCoupon: null,
       isOpen: false,
+      isPillMinimized: false,
 
       addItem: (product: ProductData) => {
         set((state) => {
@@ -224,6 +229,10 @@ export const useCartStore = create<CartStoreState>()(
         set({ isOpen: false });
       },
 
+      setPillMinimized: (minimized: boolean) => {
+        set({ isPillMinimized: minimized });
+      },
+
       getItemTotal: () => {
         const discount = get().appliedCoupon?.discountAmount || 0;
         return calculateCartTotals(get().items, get().tipAmount, discount).itemTotal;
@@ -257,6 +266,7 @@ export const useCartStore = create<CartStoreState>()(
         tipAmount: state.tipAmount,
         paymentMethod: state.paymentMethod,
         appliedCoupon: state.appliedCoupon,
+        isPillMinimized: state.isPillMinimized,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

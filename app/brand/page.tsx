@@ -436,7 +436,7 @@ export default function BrandShowcasePage() {
                   <span>₹420.00 (UPI)</span>
                 </div>
                 <div className="text-center text-[9px] text-slate-500 font-bold pt-1">
-                  *** 10-15 MIN EXPRESS FULFILLMENT ***
+                  *** SUPERFAST EXPRESS FULFILLMENT ***
                 </div>
               </div>
             </div>
@@ -592,7 +592,7 @@ export default function BrandShowcasePage() {
                 Tests the complete full-screen mobile/desktop splash screen:
                 <strong> &quot;S&quot; slides from left</strong> &bull; <strong>&quot;A&quot; and &quot;B&quot; drop into alignment</strong> &bull; 
                 <strong> &quot;QUICK&quot; dashes from right with electric green speed streak</strong> &bull; 
-                <strong> 10-15 Min SLA badge illumination</strong> &bull; <strong> Smooth scale &amp; fade-out exit</strong>.
+                <strong> Superfast SLA badge illumination</strong> &bull; <strong> Smooth scale &amp; fade-out exit</strong>.
               </p>
             </div>
 

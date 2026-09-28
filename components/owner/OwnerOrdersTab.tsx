@@ -56,6 +56,9 @@ export interface StoreOrder {
   tipAmount: number;
   paymentMethod: string;
   paymentStatus: string;
+  offlineCollectionMethod?: string | null;
+  offlineCollectedAt?: string | null;
+  offlineCollector?: { id: string; name: string | null } | null;
   createdAt: string;
   deliveredAt?: string | null;
   customer: {
@@ -330,8 +333,17 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                             {order.orderNumber}
                           </span>
                           <Badge variant="outline" className="text-[9px] font-mono py-0 px-1 text-slate-500">
-                            {order.paymentMethod}
+                            {order.paymentMethod === "CASH_ON_DELIVERY"
+                              ? "CASH"
+                              : order.paymentMethod === "UPI_DOORSTEP"
+                                ? "UPI"
+                                : order.paymentMethod}
                           </Badge>
+                          {order.offlineCollectionMethod && (
+                            <Badge className="text-[9px] font-black py-0 px-1 bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              ✓ {order.offlineCollectionMethod === "CASH_ON_DELIVERY" ? "Cash" : "UPI"} collected
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
                           {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""} &bull; {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
@@ -452,8 +464,17 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                         {order.orderNumber}
                       </span>
                       <Badge variant="outline" className="text-[9px] font-mono py-0 px-1 text-slate-500">
-                        {order.paymentMethod}
+                        {order.paymentMethod === "CASH_ON_DELIVERY"
+                          ? "CASH"
+                          : order.paymentMethod === "UPI_DOORSTEP"
+                            ? "UPI"
+                            : order.paymentMethod}
                       </Badge>
+                      {order.offlineCollectionMethod && (
+                        <Badge className="text-[9px] font-black py-0 px-1 bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          ✓ Collected
+                        </Badge>
+                      )}
                     </div>
                     {getStatusBadge(order.status)}
                   </div>
@@ -631,6 +652,19 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                   <span>Total Amount Paid ({selectedOrder.paymentMethod}):</span>
                   <span className="text-primary">₹{selectedOrder.totalAmount}</span>
                 </div>
+                {selectedOrder.offlineCollectionMethod && (
+                  <div className="flex items-center justify-between mt-1.5 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <span className="text-xs font-bold text-emerald-900">
+                      ✓ Doorstep payment collected via {selectedOrder.offlineCollectionMethod === "CASH_ON_DELIVERY" ? "CASH" : "UPI"}
+                      {selectedOrder.offlineCollector?.name ? ` by ${selectedOrder.offlineCollector.name}` : ""}
+                    </span>
+                    {selectedOrder.offlineCollectedAt && (
+                      <span className="text-[10px] text-emerald-700 font-mono shrink-0 ml-2">
+                        {new Date(selectedOrder.offlineCollectedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

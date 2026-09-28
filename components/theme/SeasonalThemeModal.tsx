@@ -36,7 +36,7 @@ export function SeasonalThemeModal({
   const [themeName, setThemeName] = React.useState("Standard Green");
   const [primaryColor, setPrimaryColor] = React.useState("#0B6E4F");
   const [accentColor, setAccentColor] = React.useState("#00C853");
-  const [saleTagText, setSaleTagText] = React.useState("10-15 Min Delivery Guarantee");
+  const [saleTagText, setSaleTagText] = React.useState("Superfast Delivery Guarantee");
   const [bannerImageUrl, setBannerImageUrl] = React.useState("");
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
@@ -275,10 +275,10 @@ export function SeasonalThemeModal({
               >
                 <div className="inline-flex items-center gap-1.5 w-fit text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-xs text-slate-900" style={{ backgroundColor: accentColor }}>
                   <Zap className="w-3 h-3 fill-current" />
-                  <span>10-15 Min Delivery</span>
+                  <span>Superfast Delivery</span>
                 </div>
                 <h3 className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-sm">
-                  {saleTagText || "10-15 Min Delivery Guarantee"}
+                  {saleTagText || "Superfast Delivery Guarantee"}
                 </h3>
               </div>
             </div>

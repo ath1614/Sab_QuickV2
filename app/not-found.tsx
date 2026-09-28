@@ -78,7 +78,7 @@ export default function NotFound() {
         {/* Fast Delivery Promise Footer */}
         <div className="pt-6 border-t border-slate-200/60 flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>SabQuick • Fresh Groceries Delivered in 10-15 Minutes</span>
+          <span>SabQuick • Fresh Groceries Delivered Superfast</span>
         </div>
       </div>
     </main>
