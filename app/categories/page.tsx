@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { CATEGORY_ICONS, ParentCategoryItem } from "@/components/catalog/CategoryNav";
-import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
+import { CompactProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 
@@ -126,17 +126,18 @@ export default function CategoriesPage() {
     const IconComponent = CATEGORY_ICONS[activeCat.slug] || ShoppingBag;
     const subs = activeCat.subCategories ?? [];
     return (
-      <div className="min-h-screen bg-[var(--sq-fog)] text-[var(--sq-ink)] font-sans">
-        {/* Top bar: back + category identity */}
-        <div className="sticky top-0 z-30 bg-[var(--sq-fog)]/95 backdrop-blur-md border-b border-[var(--sq-line)] pt-[env(safe-area-inset-top,0px)]">
+      <div className="min-h-screen bg-slate-50/70 text-[var(--sq-ink)] font-sans">
+      <div className="pt-[env(safe-area-inset-top,0px)]" />
+      {/* Top bar: back + category identity (orders-page pattern) */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-3">
             <button
               type="button"
               onClick={backToAll}
               aria-label="Back to all categories"
-              className="w-9 h-9 rounded-full bg-white border border-[var(--sq-line)] flex items-center justify-center shadow-[var(--sq-shadow-card)] sq-pressable shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-surface-dark transition-colors shrink-0"
             >
-              <ArrowLeft className="w-4.5 h-4.5" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="w-10 h-10 rounded-full bg-emerald-50 border border-[var(--sq-line)] overflow-hidden flex items-center justify-center shrink-0">
               {activeCat.imageUrl && activeCat.imageUrl.startsWith("http") ? (
@@ -157,20 +158,20 @@ export default function CategoriesPage() {
           {/* Search within the category */}
           <div className="max-w-7xl mx-auto px-3 sm:px-6 pb-3">
             <div className="relative">
-              <Search className="w-4 h-4 text-[var(--sq-ink-faint)] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder={`Search in ${activeCat.name}...`}
-                className="w-full h-11 pl-10 pr-10 rounded-[var(--sq-radius-sm)] bg-white border border-[var(--sq-line)] text-sm font-medium placeholder:text-[var(--sq-ink-faint)] focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full h-11 pl-10 pr-10 rounded-xl bg-white border border-border-subtle text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
               />
               {searchText && (
                 <button
                   type="button"
                   onClick={() => setSearchText("")}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[var(--sq-ink-soft)]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-muted-foreground"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -182,7 +183,7 @@ export default function CategoriesPage() {
         {/* Side panel + product grid — both columns scroll independently */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 flex gap-4 items-start">
           {/* LEFT: subcategory side panel */}
-          <aside className="w-[38%] max-w-[220px] shrink-0 bg-white rounded-[var(--sq-radius-md)] border border-[var(--sq-line)] shadow-[var(--sq-shadow-card)] overflow-y-auto max-h-[calc(100dvh-220px)] sticky top-[124px]">
+          <aside className="w-[38%] max-w-[230px] shrink-0 bg-white rounded-[var(--sq-radius-md)] border border-border-subtle shadow-2xs overflow-y-auto max-h-[calc(100dvh-230px)] sticky top-[128px]">
             <div className="p-2 space-y-1">
               <button
                 type="button"
@@ -231,8 +232,8 @@ export default function CategoriesPage() {
                 ))}
               </div>
             ) : panelProducts.length === 0 ? (
-              <div className="bg-white rounded-[var(--sq-radius-md)] border border-[var(--sq-line)] p-10 text-center space-y-2">
-                <ShoppingBag className="w-8 h-8 text-[var(--sq-ink-faint)] mx-auto" />
+              <div className="bg-white rounded-[var(--sq-radius-md)] border border-border-subtle p-10 text-center space-y-2">
+                <ShoppingBag className="w-8 h-8 text-muted-foreground mx-auto" />
                 <p className="text-sm font-bold">Nothing here yet</p>
                 <p className="text-xs text-[var(--sq-ink-faint)]">
                   {searchText
@@ -241,9 +242,9 @@ export default function CategoriesPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-3 pb-6">
                 {panelProducts.map((p) => (
-                  <ProductCard
+                  <CompactProductCard
                     key={p.id}
                     product={p}
                     cartQuantity={cartQuantities[p.id] || 0}
@@ -266,22 +267,30 @@ export default function CategoriesPage() {
 
   /* ----------------------------- ENTRY VIEW ------------------------------ */
   return (
-    <div className="min-h-screen bg-[var(--sq-fog)] text-[var(--sq-ink)] font-sans">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-5">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl sm:text-3xl font-black font-display">All Categories</h1>
+    <div className="min-h-screen bg-slate-50/70 text-[var(--sq-ink)] font-sans">
+      <div className="pt-[env(safe-area-inset-top,0px)]" />
+      {/* Orders-page header pattern */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs">
+        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+          <h1 className="text-lg font-black text-surface-dark tracking-tight">
+            All Categories
+          </h1>
           <button
             type="button"
             onClick={() => window.location.reload()}
+            disabled={loading}
             aria-label="Refresh categories"
-            className="w-10 h-10 rounded-full bg-white border border-[var(--sq-line)] flex items-center justify-center shadow-[var(--sq-shadow-card)] sq-pressable"
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-surface-dark transition-colors"
           >
-            <RefreshCw className={cn("w-4.5 h-4.5 text-primary", loading && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", loading && "animate-spin")} />
           </button>
         </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-5">
 
         {/* Catalog-wide search — jumps into the storefront results */}
-        <div className="relative mt-4">
+        <div className="relative mt-1">
           <Search className="w-4.5 h-4.5 text-[var(--sq-ink-faint)] absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="search"
@@ -290,18 +299,18 @@ export default function CategoriesPage() {
               if (e.key === "Enter") entrySearch(e as unknown as React.ChangeEvent<HTMLInputElement>);
             }}
             placeholder="Search the full catalog..."
-            className="w-full h-12 pl-11 pr-4 rounded-[var(--sq-radius-sm)] bg-white border border-[var(--sq-line)] text-sm font-medium placeholder:text-[var(--sq-ink-faint)] focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full h-12 pl-11 pr-4 rounded-xl bg-white border border-border-subtle text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
           />
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-40 rounded-[var(--sq-radius-md)] bg-white animate-pulse" />
+              <div key={i} className="h-40 rounded-2xl bg-white animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-5 pb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pb-10">
             {categories.map((cat) => {
               const IconComponent = CATEGORY_ICONS[cat.slug] || ShoppingBag;
               const count = productCounts[cat.id] ?? 0;
@@ -310,9 +319,9 @@ export default function CategoriesPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => openCategory(cat)}
-                  className="sq-pressable flex flex-col items-center gap-2.5 p-4 rounded-[var(--sq-radius-md)] bg-white border border-[var(--sq-line)] shadow-[var(--sq-shadow-card)] hover:shadow-[var(--sq-shadow-pop)] hover:border-primary/30 select-none"
+                  className="sq-pressable flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-white border border-border-subtle shadow-2xs hover:shadow-md hover:border-primary/30 select-none"
                 >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-50 border border-[var(--sq-line)] flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary/5 border border-border-subtle flex items-center justify-center overflow-hidden">
                     {cat.imageUrl && cat.imageUrl.startsWith("http") ? (
                       <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
@@ -333,12 +342,12 @@ export default function CategoriesPage() {
           </div>
         )}
 
-        <div className="pb-6 text-center">
+        <div className="pb-8 pt-2 text-center">
           <Link href="/" className="text-xs font-bold text-primary hover:underline">
             Back to home
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
