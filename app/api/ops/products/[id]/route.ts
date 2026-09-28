@@ -18,6 +18,15 @@ const updateProductSchema = z.object({
   description: z.string().optional(),
 });
 
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -70,6 +79,28 @@ export async function PUT(
     }
 
     const updateData: any = { ...parseResult.data };
+
+    // Regenerate the slug when the title changes so the old name's slug is
+    // freed (previously renaming a product permanently reserved the old
+    // slug and "product already exists" blocked re-creating that name).
+    if (
+      typeof parseResult.data.title === "string" &&
+      parseResult.data.title !== currentProduct.title
+    ) {
+      const candidate = slugifyTitle(parseResult.data.title);
+      if (candidate && candidate !== currentProduct.slug) {
+        const slugOwner = await prisma.product.findFirst({
+          where: { slug: candidate, NOT: { id } },
+          select: { id: true },
+        });
+        if (slugOwner) {
+          // Keep the rename valid: fall back to a unique suffixed slug.
+          updateData.slug = `${candidate}-${id.slice(-4).toLowerCase()}`;
+        } else {
+          updateData.slug = candidate;
+        }
+      }
+    }
 
     // Auto-sync availability with stock count if stockCount is updated
     if (parseResult.data.stockCount !== undefined) {

@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
 
     if (existingProduct) {
       return NextResponse.json(
-        { error: `Product slug '${cleanSlug}' already exists.` },
+        {
+          error: `A product with the name "${existingProduct.title}" already exists. Edit it from the catalog (Edit button) or pick a different name.`,
+        },
         { status: 400 }
       );
     }

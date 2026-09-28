@@ -3,4 +3,6 @@
     <color name="colorPrimary">#0B6E4F</color>
     <color name="colorPrimaryDark">#074834</color>
     <color name="colorAccent">#00C853</color>
+    <!-- Neon Market fog canvas: status + nav bars blend into the page -->
+    <color name="sqFog">#F7F6F2</color>
 </resources>

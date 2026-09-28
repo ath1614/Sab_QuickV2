@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   Home,
@@ -17,16 +17,15 @@ import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
-import { CategoriesSheet } from "@/components/catalog/CategoriesSheet";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { items, openCart, getItemTotal } = useCartStore();
   const { openAuthModal } = useAuthModalStore();
   const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
-  const [aislesSheetOpen, setAislesSheetOpen] = React.useState(false);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
@@ -37,8 +36,8 @@ function MobileBottomNavInner() {
     return null;
   }
 
-  const isHomeActive = pathname === "/" && !searchParams?.get("category");
-  const isCategoryActive = pathname === "/" && Boolean(searchParams?.get("category"));
+  const isHomeActive = pathname === "/" && !searchParams?.get("category") && !searchParams?.get("search");
+  const isCategoryActive = pathname === "/categories" || (pathname === "/" && Boolean(searchParams?.get("category")));
   const isOrdersActive = pathname?.startsWith("/orders");
 
   const user = session?.user;
@@ -68,10 +67,10 @@ function MobileBottomNavInner() {
           <span className="text-[10px] tracking-tight">Home</span>
         </Link>
 
-        {/* 2. Aisles / Categories Tab */}
+        {/* 2. Categories Tab — full-screen category browser (Flutter parity) */}
         <button
           type="button"
-          onClick={() => setAislesSheetOpen(true)}
+          onClick={() => router.push("/categories")}
           className={cn(
             "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
             isCategoryActive
@@ -167,11 +166,6 @@ function MobileBottomNavInner() {
       <MobileOperationsSheet
         isOpen={operationsSheetOpen}
         onOpenChange={setOperationsSheetOpen}
-      />
-
-      <CategoriesSheet
-        isOpen={aislesSheetOpen}
-        onOpenChange={setAislesSheetOpen}
       />
     </nav>
   );
