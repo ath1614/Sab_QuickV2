@@ -928,7 +928,7 @@ export function CartDrawer() {
                           variant="accent"
                           className="text-[9px] py-0 px-1 font-bold"
                         >
-                          10 Mins
+                          Superfast
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">

@@ -170,7 +170,7 @@ export function Navbar({
                   onClick={() => setLocationPickerOpen(true)}
                   title="Click to check or change delivery geofence"
                 >
-                  <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-surface-dark" /> {activeAddress.estimatedMinutes} Mins
+                  <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-surface-dark" /> Superfast
                 </Badge>
               </div>
 

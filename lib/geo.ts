@@ -70,7 +70,8 @@ export function calculateEstimatedDeliveryMinutes(distanceKm: number): number {
   const totalMinutes = packingTimeMinutes + transitTimeMinutes;
 
   if (distanceKm <= STORE_CONFIG.maxRadiusKm) {
-    // Within geofence, SLA is guaranteed between 10 and 15 mins
+    // Within geofence: show a stable 10-minute floor as the ETA estimate.
+    // Public copy must stay "Superfast" (no minute-count guarantees).
     return Math.min(15, Math.max(10, totalMinutes));
   }
 
