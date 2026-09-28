@@ -681,7 +681,7 @@ export default function NeumorphicDemoPage() {
               </div>
               <ul className="space-y-1.5 opacity-80 list-disc list-inside">
                 <li>Maintain high text contrast (`#1E293B` or `#F1F5F9`) so readability remains crisp.</li>
-                <li>Use Neumorphism as an optional **"Tactile Hardware Theme"** selectable from the owner’s theme panel or settings!</li>
+                <li>Use Neumorphism as an optional &ldquo;Tactile Hardware Theme&rdquo; selectable from the owner&apos;s theme panel or settings!</li>
                 <li>Keeps the core store accessible while providing a stunning retro-modern hardware skin.</li>
               </ul>
             </div>

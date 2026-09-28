@@ -27,6 +27,156 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
+const CATEGORIES = [
+  { id: "all", name: "All Aisles", icon: "⚡" },
+  { id: "dairy", name: "Dairy & Bread", icon: "🥛" },
+  { id: "snacks", name: "Snacks & Munchies", icon: "🍿" },
+  { id: "drinks", name: "Cold Drinks", icon: "🥤" },
+  { id: "fresh", name: "Fresh Fruits", icon: "🍎" },
+  { id: "instant", name: "Instant Noodles", icon: "🍜" },
+  { id: "atta", name: "Atta, Dal & Rice", icon: "🌾" },
+];
+
+const PRODUCTS = [
+  // Dairy Rail
+  {
+    id: "dairy-1",
+    name: "Amul Taaza Homogenised Toned Milk",
+    weight: "500 ml",
+    price: 28,
+    mrp: 30,
+    image: "🥛",
+    category: "dairy",
+    tag: "DAILY ESSENTIAL",
+    rating: "4.9",
+  },
+  {
+    id: "dairy-2",
+    name: "Amul Salted Butter Block",
+    weight: "100 g",
+    price: 58,
+    mrp: 60,
+    image: "🧈",
+    category: "dairy",
+    tag: "FRESH BATCH",
+    rating: "4.8",
+  },
+  {
+    id: "dairy-3",
+    name: "Modern Brown Bread (100% Whole Wheat)",
+    weight: "400 g",
+    price: 45,
+    mrp: 50,
+    image: "🍞",
+    category: "dairy",
+    tag: "BAKERY",
+    rating: "4.7",
+  },
+  {
+    id: "dairy-4",
+    name: "Epigamia Greek Yogurt (Wild Blueberry)",
+    weight: "90 g",
+    price: 60,
+    mrp: 65,
+    image: "🫐",
+    category: "dairy",
+    tag: "PROBIOTIC",
+    rating: "4.9",
+  },
+
+  // Snacks Rail
+  {
+    id: "snack-1",
+    name: "Lay's India's Magic Masala Chips",
+    weight: "90 g",
+    price: 40,
+    mrp: 45,
+    image: "🥔",
+    category: "snacks",
+    tag: "POPULAR",
+    rating: "4.9",
+  },
+  {
+    id: "snack-2",
+    name: "Doritos Sizzlin' Hot Nacho Crisps",
+    weight: "82 g",
+    price: 50,
+    mrp: 55,
+    image: "🧀",
+    category: "snacks",
+    tag: "SPICY BITE",
+    rating: "4.8",
+  },
+  {
+    id: "snack-3",
+    name: "Cadbury Dairy Milk Silk Chocolate",
+    weight: "60 g",
+    price: 75,
+    mrp: 80,
+    image: "🍫",
+    category: "snacks",
+    tag: "SWEET CRUSH",
+    rating: "5.0",
+  },
+  {
+    id: "snack-4",
+    name: "Haldiram's Bhujia Sev Classic",
+    weight: "200 g",
+    price: 55,
+    mrp: 60,
+    image: "🥨",
+    category: "snacks",
+    tag: "NAMKEEN",
+    rating: "4.8",
+  },
+
+  // Cold Drinks Rail
+  {
+    id: "drink-1",
+    name: "Coca-Cola Zero Sugar Chilled Can",
+    weight: "300 ml",
+    price: 40,
+    mrp: 40,
+    image: "🥤",
+    category: "drinks",
+    tag: "ZERO SUGAR",
+    rating: "4.9",
+  },
+  {
+    id: "drink-2",
+    name: "Red Bull Energy Drink (Cold Can)",
+    weight: "250 ml",
+    price: 125,
+    mrp: 130,
+    image: "⚡",
+    category: "drinks",
+    tag: "VITALIZES",
+    rating: "4.9",
+  },
+  {
+    id: "drink-3",
+    name: "Raw Pressery Cold Pressed Coconut Water",
+    weight: "200 ml",
+    price: 65,
+    mrp: 70,
+    image: "🥥",
+    category: "drinks",
+    tag: "100% NATURAL",
+    rating: "4.7",
+  },
+  {
+    id: "drink-4",
+    name: "Frooti Fresh Mango Drink Tetra",
+    weight: "160 ml",
+    price: 15,
+    mrp: 15,
+    image: "🥭",
+    category: "drinks",
+    tag: "FAVORITE",
+    rating: "4.8",
+  },
+];
+
 export default function NeumorphicHomePageDemo() {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
   const [ledColor, setLedColor] = React.useState<"green" | "yellow" | "cyan">("green");
@@ -91,156 +241,6 @@ export default function NeumorphicHomePageDemo() {
     };
   };
 
-  const categories = [
-    { id: "all", name: "All Aisles", icon: "⚡" },
-    { id: "dairy", name: "Dairy & Bread", icon: "🥛" },
-    { id: "snacks", name: "Snacks & Munchies", icon: "🍿" },
-    { id: "drinks", name: "Cold Drinks", icon: "🥤" },
-    { id: "fresh", name: "Fresh Fruits", icon: "🍎" },
-    { id: "instant", name: "Instant Noodles", icon: "🍜" },
-    { id: "atta", name: "Atta, Dal & Rice", icon: "🌾" },
-  ];
-
-  const products = [
-    // Dairy Rail
-    {
-      id: "dairy-1",
-      name: "Amul Taaza Homogenised Toned Milk",
-      weight: "500 ml",
-      price: 28,
-      mrp: 30,
-      image: "🥛",
-      category: "dairy",
-      tag: "DAILY ESSENTIAL",
-      rating: "4.9",
-    },
-    {
-      id: "dairy-2",
-      name: "Amul Salted Butter Block",
-      weight: "100 g",
-      price: 58,
-      mrp: 60,
-      image: "🧈",
-      category: "dairy",
-      tag: "FRESH BATCH",
-      rating: "4.8",
-    },
-    {
-      id: "dairy-3",
-      name: "Modern Brown Bread (100% Whole Wheat)",
-      weight: "400 g",
-      price: 45,
-      mrp: 50,
-      image: "🍞",
-      category: "dairy",
-      tag: "BAKERY",
-      rating: "4.7",
-    },
-    {
-      id: "dairy-4",
-      name: "Epigamia Greek Yogurt (Wild Blueberry)",
-      weight: "90 g",
-      price: 60,
-      mrp: 65,
-      image: "🫐",
-      category: "dairy",
-      tag: "PROBIOTIC",
-      rating: "4.9",
-    },
-
-    // Snacks Rail
-    {
-      id: "snack-1",
-      name: "Lay's India's Magic Masala Chips",
-      weight: "90 g",
-      price: 40,
-      mrp: 45,
-      image: "🥔",
-      category: "snacks",
-      tag: "POPULAR",
-      rating: "4.9",
-    },
-    {
-      id: "snack-2",
-      name: "Doritos Sizzlin' Hot Nacho Crisps",
-      weight: "82 g",
-      price: 50,
-      mrp: 55,
-      image: "🧀",
-      category: "snacks",
-      tag: "SPICY BITE",
-      rating: "4.8",
-    },
-    {
-      id: "snack-3",
-      name: "Cadbury Dairy Milk Silk Chocolate",
-      weight: "60 g",
-      price: 75,
-      mrp: 80,
-      image: "🍫",
-      category: "snacks",
-      tag: "SWEET CRUSH",
-      rating: "5.0",
-    },
-    {
-      id: "snack-4",
-      name: "Haldiram's Bhujia Sev Classic",
-      weight: "200 g",
-      price: 55,
-      mrp: 60,
-      image: "🥨",
-      category: "snacks",
-      tag: "NAMKEEN",
-      rating: "4.8",
-    },
-
-    // Cold Drinks Rail
-    {
-      id: "drink-1",
-      name: "Coca-Cola Zero Sugar Chilled Can",
-      weight: "300 ml",
-      price: 40,
-      mrp: 40,
-      image: "🥤",
-      category: "drinks",
-      tag: "ZERO SUGAR",
-      rating: "4.9",
-    },
-    {
-      id: "drink-2",
-      name: "Red Bull Energy Drink (Cold Can)",
-      weight: "250 ml",
-      price: 125,
-      mrp: 130,
-      image: "⚡",
-      category: "drinks",
-      tag: "VITALIZES",
-      rating: "4.9",
-    },
-    {
-      id: "drink-3",
-      name: "Raw Pressery Cold Pressed Coconut Water",
-      weight: "200 ml",
-      price: 65,
-      mrp: 70,
-      image: "🥥",
-      category: "drinks",
-      tag: "100% NATURAL",
-      rating: "4.7",
-    },
-    {
-      id: "drink-4",
-      name: "Frooti Fresh Mango Drink Tetra",
-      weight: "160 ml",
-      price: 15,
-      mrp: 15,
-      image: "🥭",
-      category: "drinks",
-      tag: "FAVORITE",
-      rating: "4.8",
-    },
-  ];
-
   const updateCart = (id: string, delta: number) => {
     setCart((prev) => {
       const cur = prev[id] || 0;
@@ -256,12 +256,12 @@ export default function NeumorphicHomePageDemo() {
 
   const totalCartCount = Object.values(cart).reduce((a, b) => a + b, 0);
   const totalCartPrice = Object.entries(cart).reduce((acc, [id, qty]) => {
-    const p = products.find((x) => x.id === id);
+    const p = PRODUCTS.find((x) => x.id === id);
     return acc + (p?.price || 0) * qty;
   }, 0);
 
   const filteredProducts = React.useMemo(() => {
-    return products.filter((p) => {
+    return PRODUCTS.filter((p) => {
       const matchesCat = activeCategory === "all" || p.category === activeCategory;
       const matchesSearch =
         searchQuery.trim() === "" ||
@@ -521,7 +521,7 @@ export default function NeumorphicHomePageDemo() {
           </div>
 
           <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-1 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-            {categories.map((c) => {
+            {CATEGORIES.map((c) => {
               const isActive = activeCategory === c.id;
               return (
                 <button
@@ -565,7 +565,7 @@ export default function NeumorphicHomePageDemo() {
           <div className="flex items-center justify-between px-1 border-b pb-2 border-slate-300/30">
             <div>
               <h2 className="text-lg font-black tracking-tight">
-                {activeCategory === "all" ? "Dark Store Fresh Catalog" : categories.find((c) => c.id === activeCategory)?.name}
+                {activeCategory === "all" ? "Dark Store Fresh Catalog" : CATEGORIES.find((c) => c.id === activeCategory)?.name}
               </h2>
               <p className="text-xs opacity-65">
                 Showing {filteredProducts.length} items ready for immediate dispatch
