@@ -161,7 +161,7 @@ export default function NeumorphicDemoPage() {
           borderColor: isDark ? "#292e3a" : "#cbd1dc",
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             href="/"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all"
@@ -170,12 +170,19 @@ export default function NeumorphicDemoPage() {
               backgroundColor: bgCanvas,
             }}
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Store
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
           </Link>
 
-          <span className="text-xs uppercase tracking-widest font-extrabold opacity-60 hidden sm:inline">
-            Tactile Soft-UI Design System Preview
-          </span>
+          <Link
+            href="/demo/home"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black tracking-wide text-emerald-600 dark:text-emerald-400 transition-all hover:scale-105"
+            style={{
+              boxShadow: extrudeSm,
+              backgroundColor: bgCanvas,
+            }}
+          >
+            <span>Full Home Demo &rarr;</span>
+          </Link>
         </div>
 
         {/* LED Color & Theme Switches */}
