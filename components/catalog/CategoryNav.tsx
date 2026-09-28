@@ -21,6 +21,7 @@ export interface SubCategoryItem {
   id: string;
   name: string;
   slug: string;
+  imageUrl?: string | null;
   displayRank: number;
 }
 

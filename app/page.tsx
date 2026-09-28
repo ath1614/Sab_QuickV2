@@ -396,18 +396,11 @@ function StorefrontContent() {
           </div>
         </section>
 
-        {/* Categories directory: circle cards → subcategory side panel */}
+        {/* Categories directory: high-density grid linking to /categories */}
         {categoryParam === "all" && !activeSearch && (
           <CategoriesDirectory
             categories={categories}
             productCounts={categoryProductCounts}
-            products={products}
-            cartQuantities={cartQuantities}
-            onAddToCart={addItem}
-            onIncrement={addItem}
-            onDecrement={(p) => removeItem(p.id)}
-            onProductClick={handleProductClick}
-            onSelectCategory={handleSelectCategory}
           />
         )}
 
@@ -494,7 +487,7 @@ function StorefrontContent() {
                 onIncrement={addItem}
                 onDecrement={(p) => removeItem(p.id)}
                 onProductClick={handleProductClick}
-                onSeeAll={(slug) => handleSelectCategory(slug)}
+                onSeeAll={(slug) => router.push(`/categories?category=${slug}`)}
               />
             ))}
           </div>
