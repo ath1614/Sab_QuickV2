@@ -132,10 +132,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Node
+      - name: Setup Node (Capacitor 8 requires >= 22)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Dependencies
