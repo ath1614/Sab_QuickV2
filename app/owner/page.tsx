@@ -629,6 +629,9 @@ export default function OwnerControlPage() {
       if (typeof window !== "undefined") {
         document.documentElement.style.setProperty("--brand-primary", primaryColor);
         document.documentElement.style.setProperty("--brand-accent", accentColor);
+        document.documentElement.style.setProperty("--sq-green", primaryColor);
+        document.documentElement.style.setProperty("--sq-lime", accentColor);
+        document.documentElement.style.setProperty("--sq-lime-soft", `${accentColor}26`);
       }
 
       setThemeSuccessMsg("Theme successfully updated & applied globally!");

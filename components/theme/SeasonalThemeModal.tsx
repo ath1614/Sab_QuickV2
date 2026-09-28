@@ -90,6 +90,17 @@ export function SeasonalThemeModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update theme.");
 
+      if (typeof window !== "undefined") {
+        document.documentElement.style.setProperty("--brand-primary", primaryColor);
+        document.documentElement.style.setProperty("--brand-accent", accentColor);
+        document.documentElement.style.setProperty("--sq-green", primaryColor);
+        document.documentElement.style.setProperty("--sq-lime", accentColor);
+        document.documentElement.style.setProperty("--sq-lime-soft", `${accentColor}26`);
+        if (bannerImageUrl.trim()) {
+          document.documentElement.style.setProperty("--brand-banner", `url(${bannerImageUrl.trim()})`);
+        }
+      }
+
       setThemeSuccessMsg("Seasonal theme successfully updated & applied globally!");
       onThemeUpdated?.();
       setTimeout(() => {

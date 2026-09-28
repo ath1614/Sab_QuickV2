@@ -59,7 +59,7 @@ export function CategoriesDirectory({
               onClick={() => router.push(`/categories?category=${cat.slug}`)}
               className="sq-pressable group flex flex-col items-center gap-1.5 p-2 sm:p-2.5 rounded-2xl bg-white border border-[var(--sq-line)] shadow-[var(--sq-shadow-card)] hover:shadow-md hover:border-primary/40 select-none transition-all"
             >
-              <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50/70 border border-emerald-100/60 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+              <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-primary/5 border border-primary/15 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
                 {cat.imageUrl && cat.imageUrl.startsWith("http") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -72,12 +72,9 @@ export function CategoriesDirectory({
                   <IconComponent className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
                 )}
               </div>
-              <div className="text-center w-full space-y-0.5">
+              <div className="text-center w-full">
                 <span className="block text-[11px] sm:text-xs font-bold text-[var(--sq-ink)] leading-tight line-clamp-2">
                   {cat.name}
-                </span>
-                <span className="block text-[9px] sm:text-[10px] font-semibold text-[var(--sq-ink-faint)]">
-                  {count} item{count === 1 ? "" : "s"}
                 </span>
               </div>
             </button>

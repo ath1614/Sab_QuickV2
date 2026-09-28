@@ -126,7 +126,7 @@ export function CompactProductCard({
                 type="button"
                 onClick={stop(onAddToCart)}
                 aria-label={`Add ${product.title} to cart`}
-                className="w-9 h-9 rounded-full bg-[var(--sq-lime)] text-[var(--sq-ink)] border-2 border-white flex items-center justify-center shadow-[0_4px_12px_rgba(200,245,49,0.45)] active:scale-90 transition-transform"
+                className="w-9 h-9 rounded-full bg-primary text-white border-2 border-white flex items-center justify-center shadow-md hover:opacity-90 active:scale-90 transition-all"
               >
                 <Plus className="w-5 h-5" strokeWidth={2.75} />
               </button>
@@ -208,10 +208,10 @@ export function ProductCard({
         aria-label={`View details for ${product.title}`}
       >
         <div className="relative w-full aspect-square rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100 group-hover:bg-slate-100/50 transition-colors">
-          {/* Discount Badge in Kinetic Green */}
+          {/* Discount Badge */}
           {discountPercent > 0 && (
             <div className="absolute top-2 left-2 z-10">
-              <span className="bg-primary-accent text-surface-dark text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
+              <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs tracking-wider">
                 {discountPercent}% OFF
               </span>
             </div>
@@ -220,7 +220,7 @@ export function ProductCard({
           {/* Speed Pill positioned at bottom-left of image */}
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
             <div className="inline-flex items-center gap-1 bg-slate-900/85 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-xs backdrop-blur-xs">
-              <Zap className="w-2.5 h-2.5 fill-[#C8F531] text-[#C8F531]" />
+              <Zap className="w-2.5 h-2.5 fill-primary-accent text-primary-accent" />
               <span>EXPRESS</span>
             </div>
           </div>

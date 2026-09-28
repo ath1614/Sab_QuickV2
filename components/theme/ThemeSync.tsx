@@ -18,6 +18,9 @@ export function ThemeSync() {
           const root = document.documentElement;
           root.style.setProperty("--brand-primary", data.primaryColor);
           root.style.setProperty("--brand-accent", data.accentColor);
+          root.style.setProperty("--sq-green", data.primaryColor);
+          root.style.setProperty("--sq-lime", data.accentColor);
+          root.style.setProperty("--sq-lime-soft", `${data.accentColor}26`);
           if (data.bannerImageUrl) {
             root.style.setProperty("--brand-banner", `url(${data.bannerImageUrl})`);
           }

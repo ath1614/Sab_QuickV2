@@ -9,9 +9,7 @@ import {
   RefreshCw,
   Search,
   ShoppingBag,
-  Sparkles,
   X,
-  Zap,
   Plus,
   Minus,
 } from "lucide-react";
@@ -53,7 +51,7 @@ function getCategoryImage(cat: ParentCategoryItem, products: ProductData[]): str
 }
 
 /* -------------------------------------------------------------------------- */
-/* Split Product Card (Optimized for 2-column mobile + multi-column desktop)   */
+/* Split Product Card (Theme-Dynamic, No ETA Chip, Compact & High-Density)     */
 /* -------------------------------------------------------------------------- */
 interface SplitProductCardProps {
   product: ProductData;
@@ -102,19 +100,11 @@ function SplitProductCard({
           {/* Discount Badge */}
           {discountPercent > 0 && (
             <div className="absolute top-1.5 left-1.5 z-10">
-              <span className="bg-emerald-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs tracking-wide">
+              <span className="bg-primary text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs tracking-wide">
                 {discountPercent}% OFF
               </span>
             </div>
           )}
-
-          {/* Delivery Speed Pill */}
-          <div className="absolute bottom-1.5 left-1.5 z-10 pointer-events-none">
-            <div className="inline-flex items-center gap-0.5 bg-slate-900/85 text-white text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded font-bold shadow-xs backdrop-blur-xs">
-              <Zap className="w-2.5 h-2.5 fill-[#C8F531] text-[#C8F531]" />
-              <span>8-10m</span>
-            </div>
-          </div>
 
           {/* Product Image */}
           {!imageError && product.imageUrl ? (
@@ -127,7 +117,7 @@ function SplitProductCard({
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 text-center">
-              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                 {product.title.slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -143,7 +133,7 @@ function SplitProductCard({
 
         {/* Title */}
         <h3
-          className="mt-1 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors min-h-[28px]"
+          className="mt-1 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-primary transition-colors min-h-[28px]"
           title={product.title}
         >
           {product.title}
@@ -164,14 +154,14 @@ function SplitProductCard({
           )}
         </div>
 
-        {/* Action Button: Blinkit High-Contrast + ADD or Stepper */}
+        {/* Action Button: Dynamic Theme + ADD or Stepper */}
         <div className="shrink-0">
           {isOutOfStock ? (
             <span className="inline-block text-[9px] sm:text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded select-none">
               OOS
             </span>
           ) : cartQuantity > 0 ? (
-            <div className="flex items-center h-7 sm:h-8 rounded-lg bg-emerald-700 text-white px-0.5 sm:px-1 shadow-xs font-bold text-xs select-none">
+            <div className="flex items-center h-7 sm:h-8 rounded-lg bg-primary text-white px-0.5 sm:px-1 shadow-xs font-bold text-xs select-none">
               <button
                 type="button"
                 onClick={(e) => {
@@ -206,7 +196,7 @@ function SplitProductCard({
                 onAddToCart(product);
               }}
               aria-label={`Add ${product.title} to cart`}
-              className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-lg border border-emerald-600 bg-emerald-50/60 hover:bg-emerald-600 hover:text-white text-emerald-700 text-[11px] sm:text-xs font-black transition-all active:scale-95 shadow-2xs select-none flex items-center justify-center gap-0.5"
+              className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-lg border-2 border-primary bg-primary/5 hover:bg-primary hover:text-white text-primary text-[11px] sm:text-xs font-black transition-all active:scale-95 shadow-2xs select-none flex items-center justify-center gap-0.5"
             >
               + ADD
             </button>
@@ -270,19 +260,6 @@ function CategoriesContent() {
       cancelled = true;
     };
   }, []);
-
-  // Compute product counts per parent category
-  const productCounts = React.useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const cat of categories) {
-      counts[cat.id] = products.filter(
-        (p) =>
-          p.category?.id === cat.id ||
-          (p.category?.id && cat.subCategories?.some((s) => s.id === p.category?.id))
-      ).length;
-    }
-    return counts;
-  }, [categories, products]);
 
   // Sync category and subcategory from URL search params
   React.useEffect(() => {
@@ -360,6 +337,7 @@ function CategoriesContent() {
   // Select subcategory handler
   const handleSelectSubcategory = (subId: string | null) => {
     setActiveSubId(subId);
+    setSearchText("");
     if (!activeCat) return;
     if (subId) {
       const sub = activeCat.subCategories?.find((s) => s.id === subId);
@@ -372,76 +350,46 @@ function CategoriesContent() {
   };
 
   /* -------------------------------------------------------------------------- */
-  /* VIEW 1: CATEGORY DETAIL SPLIT-SCREEN VIEW (Blinkit Parity)                 */
+  /* VIEW 1: CATEGORY DETAIL SPLIT-SCREEN VIEW                                  */
   /* -------------------------------------------------------------------------- */
   if (activeCat) {
     const IconComponent = CATEGORY_ICONS[activeCat.slug] || ShoppingBag;
     const subs = activeCat.subCategories ?? [];
     const catImage = getCategoryImage(activeCat, products);
 
+    // Active subcategory name for the header above the search bar
+    const activeSubName = activeSubId
+      ? subs.find((s) => s.id === activeSubId)?.name || activeCat.name
+      : `All ${activeCat.name}`;
+
     return (
       <div className="h-[100dvh] flex flex-col bg-white text-[var(--sq-ink)] font-sans overflow-hidden">
         {/* Notch / Safe Area Inset */}
         <div className="pt-[env(safe-area-inset-top,0px)] bg-white shrink-0" />
 
-        {/* Top Header Bar */}
+        {/* Top Header Bar: Clean & Spacious (No ETA, No Item Count, Search shifted below) */}
         <header className="shrink-0 bg-white border-b border-slate-200 z-20 shadow-2xs">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-            {/* Back button & Category Title */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <button
-                type="button"
-                onClick={backToAll}
-                aria-label="Back to all categories"
-                className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors shrink-0 active:scale-95"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={backToAll}
+              aria-label="Back to all categories"
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors shrink-0 active:scale-95"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
 
-              <div className="min-w-0 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0 hidden sm:flex items-center justify-center">
-                  {catImage ? (
-                    <img src={catImage} alt={activeCat.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <IconComponent className="w-4 h-4 text-emerald-700" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-base sm:text-lg font-black text-slate-900 truncate leading-tight font-display">
-                    {activeCat.name}
-                  </h1>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-semibold">
-                    <span className="inline-flex items-center gap-0.5 text-emerald-700 font-bold">
-                      <Zap className="w-3 h-3 fill-emerald-600 text-emerald-600" />
-                      8-10 MINS
-                    </span>
-                    <span>•</span>
-                    <span>{productCounts[activeCat.id] ?? 0} items</span>
-                  </div>
-                </div>
+            <div className="min-w-0 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 border border-primary/20 shrink-0 flex items-center justify-center">
+                {catImage ? (
+                  <img src={catImage} alt={activeCat.name} className="w-full h-full object-cover" />
+                ) : (
+                  <IconComponent className="w-4 h-4 text-primary" />
+                )}
               </div>
-            </div>
-
-            {/* In-category Search Input */}
-            <div className="relative w-44 sm:w-64 md:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder={`Search in ${activeCat.name}...`}
-                className="w-full h-9 sm:h-10 pl-9 pr-8 rounded-full bg-slate-100 border border-transparent text-xs sm:text-sm font-medium placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:outline-none transition-all"
-              />
-              {searchText && (
-                <button
-                  type="button"
-                  onClick={() => setSearchText("")}
-                  aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+              <h1 className="text-base sm:text-lg font-black text-slate-900 truncate leading-tight font-display">
+                {activeCat.name}
+              </h1>
             </div>
           </div>
         </header>
@@ -458,13 +406,13 @@ function CategoriesContent() {
                 className={cn(
                   "relative flex flex-col items-center justify-center py-2.5 px-1 transition-all cursor-pointer text-center",
                   activeSubId === null
-                    ? "bg-white text-emerald-950 font-black shadow-2xs"
+                    ? "bg-white text-surface-dark font-black shadow-2xs"
                     : "text-slate-600 hover:bg-slate-200/40 font-semibold"
                 )}
               >
                 {/* Active Indicator Bar on right edge */}
                 {activeSubId === null && (
-                  <span className="absolute right-0 top-1.5 bottom-1.5 w-1 bg-emerald-600 rounded-l-full" />
+                  <span className="absolute right-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-l-full" />
                 )}
 
                 {/* Circular Icon */}
@@ -472,14 +420,14 @@ function CategoriesContent() {
                   className={cn(
                     "w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 mb-1 transition-transform",
                     activeSubId === null
-                      ? "ring-2 ring-emerald-600 bg-white shadow-xs"
+                      ? "ring-2 ring-primary bg-white shadow-xs"
                       : "bg-white border border-slate-200/80"
                   )}
                 >
                   {catImage ? (
                     <img src={catImage} alt="All" className="w-full h-full object-cover" />
                   ) : (
-                    <IconComponent className="w-5 h-5 text-emerald-700" />
+                    <IconComponent className="w-5 h-5 text-primary" />
                   )}
                 </div>
 
@@ -502,13 +450,13 @@ function CategoriesContent() {
                     className={cn(
                       "relative flex flex-col items-center justify-center py-2.5 px-1 transition-all cursor-pointer text-center",
                       active
-                        ? "bg-white text-emerald-950 font-black shadow-2xs"
+                        ? "bg-white text-surface-dark font-black shadow-2xs"
                         : "text-slate-600 hover:bg-slate-200/40 font-semibold"
                     )}
                   >
-                    {/* Active Indicator Bar on right edge (Blinkit style) */}
+                    {/* Active Indicator Bar on right edge */}
                     {active && (
-                      <span className="absolute right-0 top-1.5 bottom-1.5 w-1 bg-emerald-600 rounded-l-full" />
+                      <span className="absolute right-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-l-full" />
                     )}
 
                     {/* Circular Thumbnail Icon */}
@@ -516,7 +464,7 @@ function CategoriesContent() {
                       className={cn(
                         "w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 mb-1 transition-transform",
                         active
-                          ? "ring-2 ring-emerald-600 bg-white shadow-xs scale-105"
+                          ? "ring-2 ring-primary bg-white shadow-xs scale-105"
                           : "bg-white border border-slate-200/80"
                       )}
                     >
@@ -542,21 +490,38 @@ function CategoriesContent() {
             </div>
           </aside>
 
-          {/* RIGHT PANEL: Product Grid (Independently Scrollable) */}
+          {/* RIGHT PANEL: Subcategory Name Header + Shifted Search Bar + Products Grid */}
           <main className="flex-1 min-h-0 h-full overflow-y-auto bg-slate-50/60 p-2 sm:p-4 pb-28 md:pb-12">
-            {/* Header / Subcategory Summary */}
-            <div className="flex items-center justify-between pb-2.5 px-0.5">
-              <span className="text-xs font-bold text-slate-700">
-                {activeSubId
-                  ? subs.find((s) => s.id === activeSubId)?.name || activeCat.name
-                  : `All ${activeCat.name}`}
-                <span className="text-slate-400 font-normal ml-1.5">
-                  ({panelProducts.length} item{panelProducts.length === 1 ? "" : "s"})
-                </span>
-              </span>
+            {/* 1. Subcategory Name Header (Clean, No Item Count) */}
+            <div className="pb-1 px-0.5">
+              <h2 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                {activeSubName}
+              </h2>
             </div>
 
-            {/* Product Grid Content */}
+            {/* 2. Shifted Search Bar (Positioned below the Subcategory Name) */}
+            <div className="relative mt-2 mb-3">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder={`Search in ${activeSubName}...`}
+                className="w-full h-10 pl-9 pr-8 rounded-xl bg-white border border-slate-200 text-xs sm:text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs transition-all"
+              />
+              {searchText && (
+                <button
+                  type="button"
+                  onClick={() => setSearchText("")}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* 3. Product Grid Content */}
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -576,7 +541,7 @@ function CategoriesContent() {
                   <button
                     type="button"
                     onClick={() => setSearchText("")}
-                    className="inline-flex items-center text-xs font-bold text-emerald-700 hover:underline"
+                    className="inline-flex items-center text-xs font-bold text-primary hover:underline"
                   >
                     Clear search
                   </button>
@@ -600,7 +565,7 @@ function CategoriesContent() {
           </main>
         </div>
 
-        {/* In-page Product Details Modal (Prevents redirecting to home!) */}
+        {/* In-page Product Details Modal */}
         <ProductDetailModal
           product={selectedProduct}
           isOpen={Boolean(selectedProduct)}
@@ -615,7 +580,7 @@ function CategoriesContent() {
   }
 
   /* -------------------------------------------------------------------------- */
-  /* VIEW 2: ALL CATEGORIES DIRECTORY VIEW (Blinkit Parity Grid)                */
+  /* VIEW 2: ALL CATEGORIES DIRECTORY VIEW (Theme-Dynamic, No Item Counts)      */
   /* -------------------------------------------------------------------------- */
   return (
     <div className="min-h-screen bg-slate-50/70 text-[var(--sq-ink)] font-sans pb-28 md:pb-16">
@@ -629,9 +594,6 @@ function CategoriesContent() {
             <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-display">
               All Categories
             </h1>
-            <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-              {categories.length}
-            </span>
           </div>
 
           <button
@@ -656,7 +618,7 @@ function CategoriesContent() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search all categories or products..."
-            className="w-full h-11 sm:h-12 pl-11 pr-10 rounded-2xl bg-white border border-slate-200 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 shadow-2xs"
+            className="w-full h-11 sm:h-12 pl-11 pr-10 rounded-2xl bg-white border border-slate-200 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
           />
           {searchText && (
             <button
@@ -674,7 +636,7 @@ function CategoriesContent() {
         {loading ? (
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3.5 md:gap-4">
             {Array.from({ length: 16 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-2xl bg-white animate-pulse" />
+              <div key={i} className="h-24 rounded-2xl bg-white animate-pulse" />
             ))}
           </div>
         ) : (
@@ -690,7 +652,6 @@ function CategoriesContent() {
               })
               .map((cat) => {
                 const IconComponent = CATEGORY_ICONS[cat.slug] || ShoppingBag;
-                const count = productCounts[cat.id] ?? 0;
                 const catImg = getCategoryImage(cat, products);
 
                 return (
@@ -698,10 +659,10 @@ function CategoriesContent() {
                     key={cat.id}
                     type="button"
                     onClick={() => openCategory(cat)}
-                    className="group flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-500/40 hover:-translate-y-0.5 transition-all select-none cursor-pointer text-center"
+                    className="group flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 transition-all select-none cursor-pointer text-center"
                   >
                     {/* Thumbnail Image */}
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-primary/5 border border-primary/10 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
                       {catImg ? (
                         <img
                           src={catImg}
@@ -710,18 +671,13 @@ function CategoriesContent() {
                           loading="lazy"
                         />
                       ) : (
-                        <IconComponent className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-700" />
+                        <IconComponent className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
                       )}
                     </div>
 
                     {/* Category Title */}
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-tight min-h-[28px] flex items-center justify-center mt-1.5 group-hover:text-emerald-700 transition-colors">
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-tight min-h-[28px] flex items-center justify-center mt-1.5 group-hover:text-primary transition-colors">
                       {cat.name}
-                    </span>
-
-                    {/* Count */}
-                    <span className="text-[9px] sm:text-[10px] text-slate-400 font-semibold mt-0.5">
-                      {count} items
                     </span>
                   </button>
                 );
@@ -730,7 +686,7 @@ function CategoriesContent() {
         )}
 
         <div className="mt-8 text-center">
-          <Link href="/" className="text-xs font-bold text-emerald-700 hover:underline">
+          <Link href="/" className="text-xs font-bold text-primary hover:underline">
             Back to home
           </Link>
         </div>
@@ -740,7 +696,7 @@ function CategoriesContent() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Page Export with Suspense Boundary (Prevents Next.js SSR Deoptimization)   */
+/* Page Export with Suspense Boundary                                         */
 /* -------------------------------------------------------------------------- */
 export default function CategoriesPage() {
   return (
@@ -748,7 +704,7 @@ export default function CategoriesPage() {
       fallback={
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-slate-500">
-            <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
             <span className="text-xs font-bold">Loading categories...</span>
           </div>
         </div>
