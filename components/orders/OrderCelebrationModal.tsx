@@ -98,7 +98,13 @@ export function OrderCelebrationModal({
     setTimeout(() => setCopiedOtp(false), 2000);
   };
 
-  const hasSavings = order.totalSavings > 0;
+  const formatSavingsAmount = (val?: number): string => {
+    if (val === undefined || val === null || isNaN(val)) return "0";
+    const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
+    return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2);
+  };
+
+  const hasSavings = (order.totalSavings || 0) > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -110,7 +116,7 @@ export function OrderCelebrationModal({
         <div className="flex flex-col items-center text-center space-y-4 pt-2">
           {/* Animated Celebration Icon */}
           <div className="relative">
-            <div className="w-18 h-18 rounded-3xl bg-gradient-to-tr from-primary to-emerald-400 p-0.5 shadow-lg shadow-primary/20 animate-in zoom-in-75 duration-300">
+            <div className="w-18 h-18 rounded-3xl bg-gradient-to-tr from-primary to-primary-accent p-0.5 shadow-lg shadow-primary/20 animate-in zoom-in-75 duration-300">
               <div className="w-full h-full bg-white rounded-[22px] flex items-center justify-center">
                 <PartyPopper className="w-9 h-9 text-primary animate-bounce" />
               </div>
@@ -124,48 +130,50 @@ export function OrderCelebrationModal({
           <DialogHeader className="space-y-1 text-center">
             <Badge
               variant="accent"
-              className="mx-auto text-[11px] font-black uppercase px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border-emerald-300"
+              className="mx-auto text-[11px] font-black uppercase px-2.5 py-0.5 bg-primary/10 text-primary border-primary/20"
             >
               Order Placed Successfully!
             </Badge>
-            <DialogTitle className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">                Woohoo! It&apos;s Confirmed
+            <DialogTitle className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
+              Woohoo! It&apos;s Confirmed
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">                Your items are being packed at Dark Store Hub #01. Arriving superfast!
+            <DialogDescription className="text-xs text-muted-foreground font-medium">
+              Your items are being packed at Dark Store Hub #01. Arriving superfast!
             </DialogDescription>
           </DialogHeader>
 
           {/* TOTAL SAVINGS CELEBRATION CARD */}
           {hasSavings && (
-            <div className="w-full bg-gradient-to-r from-emerald-500/10 via-emerald-50 to-teal-500/10 border-2 border-emerald-400/60 rounded-2xl p-3.5 text-center shadow-xs space-y-1 animate-in slide-in-from-bottom-2 duration-300">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-black text-emerald-800 uppercase tracking-wider">
-                <TrendingDown className="w-4 h-4 text-emerald-600" />
+            <div className="w-full bg-primary/5 border-2 border-primary/30 rounded-2xl p-3.5 text-center shadow-xs space-y-1 animate-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-black text-primary uppercase tracking-wider">
+                <TrendingDown className="w-4 h-4 text-primary" />
                 <span>Super Saver Deal!</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-700 font-mono flex items-center justify-center gap-1">
+              <div className="text-xl sm:text-2xl font-black text-primary font-mono flex items-center justify-center gap-1.5">
                 <span>You Saved</span>
-                <span className="bg-emerald-600 text-white px-2.5 py-0.5 rounded-lg shadow-xs">
-                  ₹{order.totalSavings}
+                <span className="bg-primary text-white px-2.5 py-0.5 rounded-lg shadow-xs">
+                  ₹{formatSavingsAmount(order.totalSavings)}
                 </span>
                 <span>on this order!</span>
               </div>
               {order.savingsBreakdown && (
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[10px] text-emerald-800/80 font-semibold">
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[10px] text-slate-700 font-semibold">
                   {(order.savingsBreakdown.couponSavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                      <Ticket className="w-3 h-3" />
-                      Coupon ({order.savingsBreakdown.couponCode}): -₹{order.savingsBreakdown.couponSavings}
+                    <span className="bg-white px-2 py-0.5 rounded-full border border-slate-200 inline-flex items-center gap-1">
+                      <Ticket className="w-3 h-3 text-primary" />
+                      Coupon ({order.savingsBreakdown.couponCode}): -₹{formatSavingsAmount(order.savingsBreakdown.couponSavings)}
                     </span>
                   )}
                   {(order.savingsBreakdown.mrpSavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                      <Tag className="w-3 h-3" />
-                      MRP Discount: -₹{order.savingsBreakdown.mrpSavings}
+                    <span className="bg-white px-2 py-0.5 rounded-full border border-slate-200 inline-flex items-center gap-1">
+                      <Tag className="w-3 h-3 text-primary" />
+                      MRP Discount: -₹{formatSavingsAmount(order.savingsBreakdown.mrpSavings)}
                     </span>
                   )}
                   {(order.savingsBreakdown.deliverySavings || 0) > 0 && (
-                    <span className="bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                      <Truck className="w-3 h-3" />
-                      Free Delivery: -₹{order.savingsBreakdown.deliverySavings}
+                    <span className="bg-white px-2 py-0.5 rounded-full border border-slate-200 inline-flex items-center gap-1">
+                      <Truck className="w-3 h-3 text-primary" />
+                      Free Delivery: -₹{formatSavingsAmount(order.savingsBreakdown.deliverySavings)}
                     </span>
                   )}
                 </div>

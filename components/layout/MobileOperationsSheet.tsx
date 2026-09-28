@@ -493,9 +493,6 @@ export function MobileOperationsSheet({
             <LogOut className="w-4 h-4" />
             <span>Sign Out of SabQuick</span>
           </Button>
-          <p className="text-[10px] text-center text-slate-400">
-            SabQuick &bull; Hyper-Local Provision Store &bull; v2.0
-          </p>
         </div>
       </SheetContent>
     </Sheet>

@@ -22,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { useCartStore } from "@/store/useCartStore";
 import { ProductData } from "@/components/catalog/ProductCard";
-import { Logo } from "@/components/brand/Logo";
 
 interface OrderItem {
   id: string;
@@ -155,7 +154,6 @@ export default function OrdersPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="flex items-center gap-2">
-              <Logo variant="icon" size={28} />
               <h1 className="text-lg font-black text-surface-dark tracking-tight">
                 My Orders
               </h1>

@@ -303,15 +303,16 @@ export function CartDrawer() {
 
     setIsPlacingOrder(true);
 
-    // Compute total savings for celebration pop-up
-    const mrpSavings = items.reduce(
+    // Compute total savings for celebration pop-up (rounded to eliminate floating point decimals)
+    const rawMrpSavings = items.reduce(
       (sum, item) =>
         sum + Math.max(0, ((item.product.mrp || item.product.salePrice) - item.product.salePrice) * item.quantity),
       0
     );
-    const couponSavings = appliedCoupon?.discountAmount || 0;
+    const mrpSavings = Math.round((rawMrpSavings + Number.EPSILON) * 100) / 100;
+    const couponSavings = Math.round(((appliedCoupon?.discountAmount || 0) + Number.EPSILON) * 100) / 100;
     const deliverySavings = totals.subtotalAfterDiscount >= 199 ? 15 : 0;
-    const totalSavings = mrpSavings + couponSavings + deliverySavings;
+    const totalSavings = Math.round((mrpSavings + couponSavings + deliverySavings + Number.EPSILON) * 100) / 100;
 
     try {
       const payload = {
