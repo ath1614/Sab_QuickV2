@@ -11,6 +11,8 @@ Outputs:
   - android/app/src/main/res/mipmap-*/ic_launcher_round.png (Anti-aliased white circle BG, centered logo)
   - android/app/src/main/res/mipmap-*/ic_launcher_foreground.png (Transparent safe zone logo for adaptive icon)
 """
+import base64
+import io
 import os
 from PIL import Image, ImageDraw
 
@@ -58,7 +60,8 @@ def make_round_icon(size: int, padding_ratio: float = 0.18) -> Image.Image:
     return canvas.resize((size, size), Image.Resampling.LANCZOS)
 
 # Function: Adaptive Icon Foreground (Transparent canvas, centered inside the 66dp/72dp safe area)
-def make_adaptive_foreground(canvas_size: int, safe_ratio: float = 0.60) -> Image.Image:
+# Using safe_ratio = 0.52 so that the wide SQ logo (2.11:1 aspect ratio) diagonal corners fit fully inside Android's 66dp circular mask without any clipping
+def make_adaptive_foreground(canvas_size: int, safe_ratio: float = 0.52) -> Image.Image:
     canvas = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     avail_size = int(canvas_size * safe_ratio)
     scale = avail_size / max(cw, ch)
@@ -69,8 +72,41 @@ def make_adaptive_foreground(canvas_size: int, safe_ratio: float = 0.60) -> Imag
     canvas.paste(scaled, (ox, oy), scaled)
     return canvas
 
-# --- Generate Web & PWA Brand Icons ---
-print("🎨 Generating web and brand icons with white background...")
+# Function: Generate Splash Screen with White Canvas and Centered Logo
+def make_splash_screen(width: int, height: int) -> Image.Image:
+    canvas = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    if height > width:
+        # Portrait: logo width ~ 55% of screen width
+        avail_w = int(width * 0.55)
+        scale = avail_w / cw
+    else:
+        # Landscape: logo height ~ 35% of screen height
+        avail_h = int(height * 0.35)
+        scale = avail_h / ch
+    nw, nh = max(1, int(cw * scale)), max(1, int(ch * scale))
+    scaled = cropped_logo.resize((nw, nh), Image.Resampling.LANCZOS)
+    ox = (width - nw) // 2
+    oy = (height - nh) // 2
+    canvas.paste(scaled, (ox, oy), scaled)
+    return canvas.convert("RGB")
+
+# --- 1. Generate Web & Brand Lockup Assets ---
+print("🎨 Generating web and brand transparent logos...")
+
+# Navbar & Official Brand Logo: tightly cropped with 8px subtle padding around edges
+pad = 8
+lockup_w = cw + pad * 2
+lockup_h = ch + pad * 2
+brand_lockup = Image.new("RGBA", (lockup_w, lockup_h), (0, 0, 0, 0))
+brand_lockup.paste(cropped_logo, (pad, pad), cropped_logo)
+
+brand_lockup.save(os.path.join(PROJECT_ROOT, "public/brand/navbar-logo.png"), "PNG")
+brand_lockup.save(os.path.join(PROJECT_ROOT, "public/brand/sabquick-official-logo.png"), "PNG")
+brand_lockup.save(os.path.join(PROJECT_ROOT, "public/brand/splash-logo.png"), "PNG")
+print("  ✓ Saved navbar-logo.png, sabquick-official-logo.png, and splash-logo.png")
+
+# --- 2. Generate Square & PWA Icons ---
+print("🎨 Generating square web and PWA icons with white background...")
 app_icon_1024 = make_square_icon(1024, padding_ratio=0.16)
 app_icon_1024.save(os.path.join(PROJECT_ROOT, "public/brand/app-icon.png"), "PNG")
 
@@ -80,6 +116,15 @@ icon_512.save(os.path.join(PROJECT_ROOT, "public/icon-512.png"), "PNG")
 icon_192 = make_square_icon(192, padding_ratio=0.16)
 icon_192.save(os.path.join(PROJECT_ROOT, "public/icon-192.png"), "PNG")
 
+icon_maskable_512 = make_square_icon(512, padding_ratio=0.20)
+icon_maskable_512.save(os.path.join(PROJECT_ROOT, "public/icon-maskable-512.png"), "PNG")
+
+icon_maskable_192 = make_square_icon(192, padding_ratio=0.20)
+icon_maskable_192.save(os.path.join(PROJECT_ROOT, "public/icon-maskable-192.png"), "PNG")
+
+apple_icon_180 = make_square_icon(180, padding_ratio=0.16)
+apple_icon_180.save(os.path.join(PROJECT_ROOT, "public/apple-touch-icon.png"), "PNG")
+
 # Generate favicon.ico (multi-resolution 16, 32, 48)
 icon_48 = make_square_icon(48, padding_ratio=0.12)
 icon_48.save(
@@ -88,7 +133,20 @@ icon_48.save(
     sizes=[(16, 16), (32, 32), (48, 48)],
 )
 
-# --- Generate Android Mipmap Icons ---
+# Generate favicon.svg (Vector SVG embedding the high-res PNG for browsers requesting SVG)
+buf = io.BytesIO()
+brand_lockup.save(buf, format="PNG")
+b64_logo = base64.b64encode(buf.getvalue()).decode("utf-8")
+svg_content = f'''<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <rect width="100" height="100" rx="22" fill="#FFFFFF"/>
+  <image href="data:image/png;base64,{b64_logo}" x="6" y="24" width="88" height="52" preserveAspectRatio="xMidYMid meet"/>
+</svg>
+'''
+with open(os.path.join(PROJECT_ROOT, "public/favicon.svg"), "w") as f:
+    f.write(svg_content)
+print("  ✓ Saved web icons (app-icon, 512, 192, maskables, apple-touch, favicon.ico, favicon.svg)")
+
+# --- 3. Generate Android Mipmap Icons ---
 # DENSITIES: (folder, std_size, canvas_size)
 DENSITIES = [
     ("mipmap-mdpi", 48, 108),
@@ -112,9 +170,33 @@ for folder, std_size, canvas_size in DENSITIES:
     round_icon.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG")
 
     # 3. Adaptive foreground icon (safe-zone centered on transparent canvas)
-    fg_icon = make_adaptive_foreground(canvas_size, safe_ratio=0.60)
+    fg_icon = make_adaptive_foreground(canvas_size, safe_ratio=0.52)
     fg_icon.save(os.path.join(target_dir, "ic_launcher_foreground.png"), "PNG")
 
     print(f"  ✓ {folder}: ic_launcher ({std_size}x{std_size}), ic_launcher_round ({std_size}x{std_size}), ic_launcher_foreground ({canvas_size}x{canvas_size})")
 
-print("🎉 All Android mipmap icons and web brand assets generated successfully with white background!")
+# --- 4. Generate Android Splash Drawables ---
+SPLASH_SIZES = [
+    ("drawable", 480, 320),
+    ("drawable-port-mdpi", 320, 480),
+    ("drawable-port-hdpi", 480, 800),
+    ("drawable-port-xhdpi", 720, 1280),
+    ("drawable-port-xxhdpi", 960, 1600),
+    ("drawable-port-xxxhdpi", 1280, 1920),
+    ("drawable-land-mdpi", 480, 320),
+    ("drawable-land-hdpi", 800, 480),
+    ("drawable-land-xhdpi", 1280, 720),
+    ("drawable-land-xxhdpi", 1600, 960),
+    ("drawable-land-xxxhdpi", 1920, 1280),
+]
+
+print("📱 Generating Android splash screen drawables...")
+for folder, w, h in SPLASH_SIZES:
+    target_dir = os.path.join(RES_DIR, folder)
+    os.makedirs(target_dir, exist_ok=True)
+    splash_img = make_splash_screen(w, h)
+    splash_img.save(os.path.join(target_dir, "splash.png"), "PNG")
+    print(f"  ✓ {folder}/splash.png ({w}x{h})")
+
+print("🎉 All Android mipmap icons, native splash screens, and web brand assets generated successfully with white background!")
+
