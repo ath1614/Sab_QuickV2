@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
-import { AislesDirectorySheet } from "@/components/catalog/AislesDirectorySheet";
+import { CategoriesSheet } from "@/components/catalog/CategoriesSheet";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
@@ -85,7 +85,7 @@ function MobileBottomNavInner() {
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
             )}
           </div>
-          <span className="text-[10px] tracking-tight">Aisles</span>
+          <span className="text-[10px] tracking-tight">Categories</span>
         </button>
 
         {/* 3. Cart Trigger (Center Hero with Live Items Badge & Price) */}
@@ -169,11 +169,9 @@ function MobileBottomNavInner() {
         onOpenChange={setOperationsSheetOpen}
       />
 
-      <AislesDirectorySheet
+      <CategoriesSheet
         isOpen={aislesSheetOpen}
         onOpenChange={setAislesSheetOpen}
-        activeCategorySlug={searchParams?.get("category") || undefined}
-        activeSubSlug={searchParams?.get("sub") || undefined}
       />
     </nav>
   );

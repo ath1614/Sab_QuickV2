@@ -138,7 +138,7 @@ export function AislesDirectorySheet({
         <SheetHeader className="px-4 pt-5 pb-3 border-b border-slate-100 shrink-0 space-y-3">
           <SheetTitle className="text-lg font-black text-slate-950 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-primary" />
-            <span>All Aisles</span>
+            <span>All Categories</span>
           </SheetTitle>
           <SheetDescription className="text-xs text-slate-500 sr-only">
             Browse the full SabQuick dark store inventory by aisle
@@ -151,7 +151,7 @@ export function AislesDirectorySheet({
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Search aisles (e.g. Dairy, Snacks)..."
+              placeholder="Search categories (e.g. Dairy, Snacks)..."
               className="w-full h-10 pl-10 pr-4 bg-slate-50 border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary"
             />
           </div>

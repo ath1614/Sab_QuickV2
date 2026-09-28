@@ -20,7 +20,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
-import { CategoryGrid } from "@/components/catalog/CategoryGrid";
+import { CategoriesDirectory } from "@/components/catalog/CategoriesDirectory";
 import { CategoryNav, ParentCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
@@ -47,7 +47,7 @@ interface ThemeInfo {
 
 // Maximum cards mounted per rail on the home feed (per-card images dominate
 // initial payload; longer lists are available via "See All").
-const MAX_RAIL_PRODUCTS = 10;
+const MAX_RAIL_PRODUCTS = 6;
 
 function StorefrontContent() {
   const router = useRouter();
@@ -340,7 +340,7 @@ function StorefrontContent() {
             from the theme engine (live campaign > manual pin > brand default).
             Mobile diet: ~34% of viewport (was 46%) so products stay above the fold. */}
         <section
-          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-4 sm:p-8 shadow-xl border border-white/10 overflow-hidden"
+          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-4 sm:p-8 shadow-xl border border-white/10"
           style={
             theme.bannerImageUrl
               ? {
@@ -388,11 +388,17 @@ function StorefrontContent() {
           </div>
         </section>
 
-        {/* Blinkit-Style 3x3 Category Grid (home feed only) */}
+        {/* Categories directory: circle cards → subcategory side panel */}
         {categoryParam === "all" && !activeSearch && (
-          <CategoryGrid
+          <CategoriesDirectory
             categories={categories}
             productCounts={categoryProductCounts}
+            products={products}
+            cartQuantities={cartQuantities}
+            onAddToCart={addItem}
+            onIncrement={addItem}
+            onDecrement={(p) => removeItem(p.id)}
+            onProductClick={handleProductClick}
             onSelectCategory={handleSelectCategory}
           />
         )}
@@ -405,7 +411,7 @@ function StorefrontContent() {
                 {activeSearch
                   ? `Search results for "${activeSearch}"`
                   : subParam
-                    ? `Aisle: ${subParam.replace(/-/g, " ").toUpperCase()}`
+                    ? `Category: ${subParam.replace(/-/g, " ").toUpperCase()}`
                     : categoryParam !== "all"
                       ? `Category: ${categoryParam.replace(/-/g, " ").toUpperCase()}`
                       : "All Fresh Dark Store Catalog"}

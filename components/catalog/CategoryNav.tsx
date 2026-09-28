@@ -77,7 +77,7 @@ export function CategoryNav({
             )}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>All Aisles</span>
+            <span>All Categories</span>
           </button>
 
           {/* Parent Category Aisle Buttons */}
@@ -115,7 +115,7 @@ export function CategoryNav({
         {activeParent && activeParent.subCategories.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 pt-1.5 border-t border-slate-100 animate-in fade-in slide-in-from-top-1 duration-200">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Layers className="w-3 h-3 text-primary" /> Sub-Aisles:
+              <Layers className="w-3 h-3 text-primary" /> Subcategories:
             </span>
 
             {/* All In This Parent */}
