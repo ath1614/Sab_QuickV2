@@ -2,9 +2,9 @@
 "use client";
 
 import * as React from "react";
-import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
-import { Button } from "@/components/ui/button";
+import { ProductCard, CompactProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 
 interface AisleProductRowProps {
@@ -131,17 +131,45 @@ export function AisleProductRow({
         </div>
       </div>
 
-      {/* Horizontal Carousel Container */}
+      {/* Mobile: 3×2 grid (6 items) + See-all button below — per product
+          decision, replacing the horizontal carousel. Desktop keeps the
+          horizontal carousel with chevrons. */}
+      <div className="md:hidden">
+        <div className="grid grid-cols-3 gap-2.5">
+          {products.slice(0, 6).map((product) => (
+            <CompactProductCard
+              key={product.id}
+              product={product}
+              cartQuantity={cartQuantities[product.id] || 0}
+              onAddToCart={onAddToCart}
+              onIncrement={onIncrement}
+              onDecrement={onDecrement}
+              onProductClick={onProductClick}
+            />
+          ))}
+        </div>
+        {products.length > 6 && (
+          <button
+            type="button"
+            onClick={() => onSeeAll(categorySlug)}
+            className="sq-cta w-full mt-3 py-2.5 text-xs inline-flex items-center justify-center gap-1"
+          >
+            See all {products.length} items <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Desktop: Horizontal Carousel Container */}
       <div
         ref={scrollContainerRef}
-        className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pt-1 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+        className="hidden md:flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pt-1 pb-2 sm:mx-0 sm:px-0"
       >
         {products.map((product) => {
           const cartQty = cartQuantities[product.id] || 0;
           return (
             <div
               key={product.id}
-              className="w-[150px] sm:w-[180px] md:w-[200px] shrink-0 snap-start flex flex-col"
+              className="w-[200px] shrink-0 snap-start flex flex-col"
             >
               <ProductCard
                 product={product}
