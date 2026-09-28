@@ -39,7 +39,6 @@ enum DiscountType {
   FLAT
 }
 
-
 enum PaymentStatus {
   PENDING
   PAID
@@ -48,20 +47,21 @@ enum PaymentStatus {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String?
-  email         String?        @unique
-  phone         String?        @unique
-  phoneVerified Boolean        @default(false)
-  role          Role           @default(CUSTOMER)
-  roles         Role[]         @default([])
-  pin           String?
-  addresses     Address[]
-  orders        Order[]        @relation("CustomerOrders")
-  deliveries    Order[]        @relation("RiderDeliveries")
-  riderProfile  RiderProfile?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                 String        @id @default(cuid())
+  name               String?
+  email              String?       @unique
+  phone              String?       @unique
+  phoneVerified      Boolean       @default(false)
+  role               Role          @default(CUSTOMER)
+  roles              Role[]        @default([])
+  pin                String?
+  addresses          Address[]
+  orders             Order[]       @relation("CustomerOrders")
+  deliveries         Order[]       @relation("RiderDeliveries")
+  offlineCollections Order[]       @relation("OfflineCollector")
+  riderProfile       RiderProfile?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@index([role])
   @@index([phone])
@@ -125,38 +125,43 @@ model Product {
 }
 
 model Order {
-  id            String        @id @default(cuid())
-  orderNumber   String        @unique
-  customerId    String
-  customer      User          @relation("CustomerOrders", fields: [customerId], references: [id])
-  riderId       String?
-  rider         User?         @relation("RiderDeliveries", fields: [riderId], references: [id])
-  addressId     String
-  address       Address       @relation(fields: [addressId], references: [id])
-  status        OrderStatus   @default(PENDING)
-  deliveryOtp   String        @default("1234")
-  subtotal      Float
-  deliveryFee   Float         @default(0)
-  handlingFee   Float         @default(2)
-  tipAmount     Float         @default(0)
-  totalAmount       Float
-  paymentMethod     PaymentMethod @default(UPI_DOORSTEP)
-  paymentStatus     PaymentStatus @default(PENDING)
-  paymentTxnId      String?
-  couponId          String?
-  coupon            Coupon?       @relation(fields: [couponId], references: [id])
-  discountAmount    Float         @default(0)
-  razorpayOrderId   String?
-  razorpayPaymentId String?
-  razorpaySignature String?
-  cashfreeOrderId        String?
-  cashfreePaymentId      String?
-  cashfreePaymentStatus  String?
-  packedAt          DateTime?
-  deliveredAt       DateTime?
-  items             OrderItem[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  orderNumber             String        @unique
+  customerId              String
+  customer                User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  riderId                 String?
+  rider                   User?         @relation("RiderDeliveries", fields: [riderId], references: [id])
+  addressId               String
+  address                 Address       @relation(fields: [addressId], references: [id])
+  status                  OrderStatus   @default(PENDING)
+  deliveryOtp             String        @default("1234")
+  subtotal                Float
+  deliveryFee             Float         @default(0)
+  handlingFee             Float         @default(2)
+  tipAmount               Float         @default(0)
+  totalAmount             Float
+  paymentMethod           PaymentMethod @default(UPI_DOORSTEP)
+  paymentStatus           PaymentStatus @default(PENDING)
+  /// Rider-verified doorstep collection for UPI_DOORSTEP / CASH_ON_DELIVERY orders
+  offlineCollectionMethod String?
+  offlineCollectedAt      DateTime?
+  offlineCollectedBy      String?
+  offlineCollector        User?         @relation("OfflineCollector", fields: [offlineCollectedBy], references: [id])
+  paymentTxnId            String?
+  couponId                String?
+  coupon                  Coupon?       @relation(fields: [couponId], references: [id])
+  discountAmount          Float         @default(0)
+  razorpayOrderId         String?
+  razorpayPaymentId       String?
+  razorpaySignature       String?
+  cashfreeOrderId         String?
+  cashfreePaymentId       String?
+  cashfreePaymentStatus   String?
+  packedAt                DateTime?
+  deliveredAt             DateTime?
+  items                   OrderItem[]
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 
   @@index([customerId])
   @@index([riderId])
@@ -184,13 +189,12 @@ model Coupon {
   @@index([isActive])
 }
 
-
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
   price     Float
 

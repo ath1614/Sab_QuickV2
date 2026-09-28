@@ -35,10 +35,43 @@ export function DoorstepSettlement({
   const [isVerifying, setIsVerifying] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
+  const [collectedMethod, setCollectedMethod] = React.useState<string | null>(
+    paymentStatus === "PAID" ? paymentMethod : null
+  );
+  const [isCollecting, setIsCollecting] = React.useState<boolean>(false);
 
   const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
-  const isPrepaid = paymentStatus === "PAID" || paymentMethod === "ONLINE_PREPAID";
+  const isPrepaid =
+    collectedMethod === "CASHFREE" ||
+    collectedMethod === "RAZORPAY" ||
+    collectedMethod === "ONLINE_PREPAID" ||
+    paymentMethod === "CASHFREE" ||
+    paymentMethod === "RAZORPAY" ||
+    paymentMethod === "ONLINE_PREPAID";
+  const isOffline = !isPrepaid;
+
+  const recordCollection = async (method: "UPI_DOORSTEP" | "CASH_ON_DELIVERY") => {
+    setIsCollecting(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/rider/orders/collect-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, method }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Failed to record collection.");
+        return;
+      }
+      setCollectedMethod(method);
+    } catch (err: any) {
+      setErrorMsg(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsCollecting(false);
+    }
+  };
 
   // Standard NPCI UPI URI Scheme
   const upiUri = `upi://pay?pa=sabquick@upi&pn=SabQuickStore&am=${totalAmount}&tr=${orderNumber}&tn=SabQuick_${orderNumber}&cu=INR`;
@@ -132,7 +165,28 @@ export function DoorstepSettlement({
               PAID
             </Badge>
           </div>
+        ) : collectedMethod ? (
+          /* Collection already recorded — show the confirmation state */
+          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary-accent/20 text-primary-accent flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">
+                  Collected via {collectedMethod === "CASH_ON_DELIVERY" ? "Cash" : "UPI"}
+                </h4>
+                <p className="text-[11px] text-emerald-400">
+                  ₹{totalAmount} recorded against this order. Owner &amp; manager can see this in the Orders Hub.
+                </p>
+              </div>
+            </div>
+            <Badge variant="accent" className="font-bold text-xs bg-primary-accent text-surface-dark">
+              COLLECTED
+            </Badge>
+          </div>
         ) : (
+          <React.Fragment>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center space-y-3">
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-primary-accent" />
@@ -160,6 +214,37 @@ export function DoorstepSettlement({
               </p>
             </div>
           </div>
+
+          {/* Collect buttons — the rider confirms HOW the money arrived.
+              Customer may pay the QR with UPI or hand over cash; either way
+              the rider records it and it reflects in the Orders Hub. */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button
+              type="button"
+              disabled={isCollecting}
+              onClick={() => recordCollection("CASH_ON_DELIVERY")}
+              className="h-12 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-black text-xs disabled:opacity-50"
+            >
+              {isCollecting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <span>💵 Collected CASH</span>
+              )}
+            </Button>
+            <Button
+              type="button"
+              disabled={isCollecting}
+              onClick={() => recordCollection("UPI_DOORSTEP")}
+              className="h-12 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-black text-xs disabled:opacity-50"
+            >
+              {isCollecting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <span>📱 Collected UPI</span>
+              )}
+            </Button>
+          </div>
+          </React.Fragment>
         )}
       </div>
 

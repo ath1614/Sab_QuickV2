@@ -442,7 +442,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                 Order #{order.orderNumber}
               </h1>
               <Badge variant="accent" className="font-bold text-xs">
-                {isDelivered ? "Delivered" : "Express 10-15 Min SLA"}
+                {isDelivered ? "Delivered" : "Superfast SLA"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">

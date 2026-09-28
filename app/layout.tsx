@@ -42,11 +42,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://srv1985371.hstgr.cloud"),
   title: {
-    default: "SabQuick | 10-15 Min Hyper-Local Grocery Delivery",
+    default: "SabQuick | Superfast Grocery Delivery",
     template: "%s | SabQuick",
   },
   description:
-    "SabQuick delivers fresh groceries, daily essentials, and midnight munchies to your doorstep within 10-15 minutes in a 2.5 km geofence.",
+    "SabQuick delivers fresh groceries, daily essentials, and midnight munchies to your doorstep superfast within a 2.5 km geofence.",
   applicationName: "SabQuick",
   appleWebApp: {
     capable: true,
@@ -69,9 +69,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   openGraph: {
-    title: "SabQuick | 10-15 Min Hyper-Local Grocery Delivery",
+    title: "SabQuick | Superfast Grocery Delivery",
     description:
-      "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep within 10-15 minutes in a 2.5 km geofence.",
+      "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep superfast within a 2.5 km geofence.",
     url: "https://srv1985371.hstgr.cloud",
     siteName: "SabQuick",
     images: [

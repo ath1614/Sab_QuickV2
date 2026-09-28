@@ -12,7 +12,7 @@ export interface ThemePreset {
  */
 export const THEME_PRESETS: ThemePreset[] = [
   // Brand default
-  { key: "standard", name: "Standard Green", primaryColor: "#0B6E4F", accentColor: "#00C853", saleTagText: "10-15 Min Delivery Guarantee" },
+  { key: "standard", name: "Standard Green", primaryColor: "#0B6E4F", accentColor: "#00C853", saleTagText: "Superfast Delivery Guarantee" },
   // Festivals
   { key: "diwali", name: "Diwali Lights", primaryColor: "#7C2D12", accentColor: "#F59E0B", saleTagText: "Diwali Dhamaka — Festive Deals Live" },
   { key: "holi", name: "Holi Colors", primaryColor: "#BE185D", accentColor: "#F472B6", saleTagText: "Holi Hai! Colorful Savings Inside" },

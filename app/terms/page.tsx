@@ -4,7 +4,7 @@ import { FileText, ArrowLeft, CheckCircle2, ShieldCheck, AlertCircle, Clock, Map
 
 export const metadata = {
   title: "Terms of Service | SabQuick Provision Store",
-  description: "Terms and Conditions governing orders, hyper-local 10-15 minute delivery, pricing, and services at SabQuick.",
+  description: "Terms and Conditions governing orders, superfast delivery, pricing, and services at SabQuick.",
 };
 
 export default function TermsOfServicePage() {
@@ -53,10 +53,10 @@ export default function TermsOfServicePage() {
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 space-y-2">
               <div className="font-bold flex items-center gap-1.5 text-slate-900">
                 <Clock className="w-4 h-4 text-primary" />
-                <span>10–15 Minute Delivery Commitment</span>
+                <span>Superfast Delivery Commitment</span>
               </div>
               <p>
-                Our operational SLA targets 10 to 15 minute delivery from packing completion to your doorstep under standard weather and traffic conditions. In cases of severe torrential weather, unpassable roadblocks, or force majeure events, estimated times may adjust dynamically in real time.
+                Our operational SLA targets superfast delivery from packing completion to your doorstep under standard weather and traffic conditions. In cases of severe torrential weather, unpassable roadblocks, or force majeure events, estimated times may adjust dynamically in real time.
               </p>
             </div>
           </section>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Privacy Policy | SabQuick Provision Store",
-  description: "Learn how SabQuick collects, protects, and manages your personal data and geolocation for 10-15 minute delivery.",
+  description: "Learn how SabQuick collects, protects, and manages your personal data and geolocation for superfast delivery.",
 };
 
 export default function PrivacyPolicyPage() {

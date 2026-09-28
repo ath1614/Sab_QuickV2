@@ -221,7 +221,7 @@ export function PhoneVerificationDrawer({
             <div>
               <SheetTitle className="text-lg">Mobile Number Verification</SheetTitle>
               <Badge variant="accent" className="text-[10px] mt-0.5">
-                Required for 10-15 Min Delivery
+                Required for Superfast Delivery
               </Badge>
             </div>
           </div>
@@ -266,7 +266,7 @@ export function PhoneVerificationDrawer({
                   />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Used exclusively by delivery riders to coordinate 10-15 min drop-off.
+                  Used exclusively by delivery riders to coordinate superfast drop-off.
                 </p>
               </div>
 

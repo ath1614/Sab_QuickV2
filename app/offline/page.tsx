@@ -44,7 +44,7 @@ export default function OfflinePage() {
             Connection Lost
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            SabQuick requires an active internet connection to calculate live 10-15 minute delivery ETAs and sync dark store inventory.
+            SabQuick requires an active internet connection to calculate live delivery ETAs and sync dark store inventory.
           </p>
         </div>
 

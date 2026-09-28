@@ -579,7 +579,7 @@ export function CartDrawer() {
                 </SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground truncate font-medium flex items-center gap-1">
                   <Zap className="w-3 h-3 text-primary fill-primary" />
-                  10-15 Min Express Delivery
+                  Superfast Express Delivery
                 </SheetDescription>
               </div>
             </div>
@@ -628,7 +628,7 @@ export function CartDrawer() {
                   </h2>
                   <p className="text-xs text-muted-foreground max-w-xs mx-auto">
                     Your grocery bag is being packed right now. Our delivery
-                    partner will arrive in 10-15 minutes.
+                    partner will arrive superfast.
                   </p>
                 </div>
 
@@ -693,7 +693,7 @@ export function CartDrawer() {
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-xs">
                   Fill your basket with fresh dairy, snacks, and daily grocery
-                  essentials delivered in 10-15 minutes.
+                  essentials delivered superfast.
                 </p>
                 <Button
                   variant="outline"

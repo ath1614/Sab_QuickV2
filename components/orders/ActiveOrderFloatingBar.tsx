@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useCartStore } from "@/store/useCartStore";
 import {
   Bike,
   Package,
@@ -65,6 +66,12 @@ function getStatusDetails(status: string) {
 export function ActiveOrderFloatingBar() {
   const { data: session, status: authStatus } = useSession();
   const pathname = usePathname();
+  const cartItemCount = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
+  const pillMinimized = useCartStore((s) => s.isPillMinimized);
+  // The cart pill occupies its own strip above the nav whenever it is
+  // expanded; the order bar then floats one strip higher so the two
+  // never collapse into each other (interchangeable stack).
+  const pillStrip = cartItemCount > 0 && !pillMinimized ? 4 : 0;
   const [order, setOrder] = React.useState<ActiveOrderData | null>(null);
   const [eta, setEta] = React.useState<number>(12);
   const [isExiting, setIsExiting] = React.useState<boolean>(false);
@@ -222,7 +229,7 @@ export function ActiveOrderFloatingBar() {
   if (isMinimized) {
     return (
       <div
-        className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3 sm:right-6 z-50 transition-all duration-300 ${
+        className={`fixed bottom-[calc(${4.75 + pillStrip}rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3 sm:right-6 z-50 transition-all duration-300 ${
           isExiting ? "opacity-0 scale-90 pointer-events-none" : "opacity-100 scale-100"
         }`}
       >
@@ -256,7 +263,7 @@ export function ActiveOrderFloatingBar() {
   return (
     <aside
       aria-label="Active delivery order status"
-      className={`fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6 inset-x-3 sm:inset-x-4 max-w-lg mx-auto z-50 transition-all duration-300 ease-out ${
+      className={`fixed bottom-[calc(${4.75 + pillStrip}rem+env(safe-area-inset-bottom,0px))] md:bottom-6 inset-x-3 sm:inset-x-4 max-w-lg mx-auto z-50 transition-all duration-300 ease-out ${
         isExiting
           ? "opacity-0 translate-y-6 pointer-events-none"
           : "opacity-100 translate-y-0"

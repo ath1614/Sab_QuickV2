@@ -288,7 +288,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
             {step === "PHONE"
-              ? "Sign in or create your customer account for hyper-local 10-15 minute grocery delivery."
+              ? "Sign in or create your customer account for hyper-local grocery delivery."
               : step === "OWNER_PIN"
               ? "Store Owner account (+91 9109066668). Enter your 6-digit Secret Passcode."
               : step === "STAFF_PIN"
@@ -313,11 +313,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
         {step === "PHONE" ? (
           <div className="space-y-4 py-2">
-            {/* Google OAuth Hero Button (Option 1: Recommended, Instant & 100% Free) */}
+            {/* Google OAuth Button */}
             <div className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full h-12 relative flex items-center justify-between px-4 border-2 border-primary/20 hover:border-primary/50 hover:bg-emerald-50/40 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm group"
+                className="w-full h-12 flex items-center justify-center gap-3 px-4 border-2 border-primary/20 hover:border-primary/50 hover:bg-emerald-50/40 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-sm group"
                 onClick={handleGoogleLogin}
               >
                 <div className="flex items-center gap-3">
@@ -341,15 +341,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   </svg>
                   <span className="text-surface-dark font-extrabold">Continue with Google</span>
                 </div>
-                <Badge variant="accent" className="gap-1 text-[10px] uppercase font-black px-2 py-0.5 tracking-wider">
-                  <Zap className="w-3 h-3 fill-surface-dark" />
-                  Instant Login
-                </Badge>
               </Button>
-              <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span>Recommended • 100% Free • Unlimited</span>
-              </div>
             </div>
 
             {/* Divider */}

@@ -130,7 +130,7 @@ export function OrderCelebrationModal({
             </Badge>
             <DialogTitle className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">                Woohoo! It&apos;s Confirmed
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">                Your items are being packed at Dark Store Hub #01. Arriving in 10-15 mins!
+            <DialogDescription className="text-xs text-muted-foreground font-medium">                Your items are being packed at Dark Store Hub #01. Arriving superfast!
             </DialogDescription>
           </DialogHeader>
 
