@@ -91,11 +91,6 @@ export function CompactProductCard({
                 {product.title.slice(0, 2).toUpperCase()}
               </span>
             )}
-            {/* Delivery speed — tiny, bottom-left, never covers the art */}
-            <span className="absolute bottom-1 left-1 z-10 inline-flex items-center gap-0.5 bg-slate-900/80 text-white text-[8px] font-bold px-1 py-px rounded backdrop-blur-xs">
-              <Zap className="w-2 h-2 fill-[#C8F531] text-[#C8F531]" />
-              10 MINS
-            </span>
           </div>
 
           {/* Floating ADD control (Blinkit parity) */}
