@@ -16,6 +16,8 @@ import {
   Info,
   Clock,
 } from "lucide-react";
+import { useCartStore, MAX_PER_ITEM_LIMIT } from "@/store/useCartStore";
+import { cn } from "@/lib/utils";
 
 interface ProductDetailModalProps {
   product: ProductData | null;
@@ -37,6 +39,7 @@ export function ProductDetailModal({
   onDecrement,
 }: ProductDetailModalProps) {
   const [imageError, setImageError] = React.useState<boolean>(false);
+  const setWarningToast = useCartStore((s) => s.setWarningToast);
 
   // Reset image error state when product changes
   React.useEffect(() => {
@@ -52,6 +55,24 @@ export function ProductDetailModal({
 
   const savingsAmount = product.mrp > product.salePrice ? product.mrp - product.salePrice : 0;
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
+  const maxLimit = Math.min(
+    typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999,
+    MAX_PER_ITEM_LIMIT
+  );
+  const isAtMax = cartQuantity >= maxLimit;
+
+  const handleIncrement = () => {
+    if (isAtMax) {
+      const available = product.stockCount ?? 999;
+      const msg =
+        cartQuantity >= available
+          ? `Only ${available} unit${available === 1 ? "" : "s"} available in stock for ${product.title}.`
+          : `Bulk ordering is not allowed. Max ${MAX_PER_ITEM_LIMIT} units per item for ${product.title}.`;
+      setWarningToast(msg);
+      return;
+    }
+    onIncrement(product);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -216,9 +237,13 @@ export function ProductDetailModal({
                 <span className="font-mono text-sm px-2">{cartQuantity}</span>
                 <button
                   type="button"
-                  onClick={() => onIncrement(product)}
+                  onClick={handleIncrement}
                   aria-label="Increase quantity"
-                  className="w-8 h-8 flex items-center justify-center hover:bg-white/20 active:scale-95 rounded-lg transition-all"
+                  className={cn(
+                    "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
+                    isAtMax ? "opacity-35 cursor-not-allowed" : "hover:bg-white/20 active:scale-95"
+                  )}
+                  title={isAtMax ? "Maximum order limit reached" : "Increase quantity"}
                 >
                   <Plus className="w-4 h-4" />
                 </button>

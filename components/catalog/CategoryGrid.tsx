@@ -76,12 +76,9 @@ export function CategoryGrid({
                   <IconComponent className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
                 )}
               </div>
-              <div className="text-center space-y-0.5">
+              <div className="text-center">
                 <span className="block text-[11px] sm:text-xs font-bold text-surface-dark leading-tight line-clamp-2">
                   {cat.name}
-                </span>
-                <span className="block text-[10px] font-semibold text-muted-foreground">
-                  {count} item{count === 1 ? "" : "s"}
                 </span>
               </div>
             </button>

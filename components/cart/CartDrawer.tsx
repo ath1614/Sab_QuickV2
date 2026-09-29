@@ -22,6 +22,7 @@ import {
   formatCurrency,
   FREE_DELIVERY_THRESHOLD,
   PaymentMethod,
+  MAX_PER_ITEM_LIMIT,
 } from "@/store/useCartStore";
 import { ProductData } from "@/components/catalog/ProductCard";
 import {
@@ -59,6 +60,7 @@ import {
   Banknote,
   Ticket,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface AvailableCoupon {
   id: string;
@@ -790,68 +792,88 @@ export function CartDrawer() {
 
                 {/* 2. ITEMIZED CART LIST */}
                 <div className="bg-white rounded-2xl border border-border-subtle shadow-2xs divide-y divide-slate-100 overflow-hidden">
-                  {items.map(({ product, quantity }) => (
-                    <div
-                      key={product.id}
-                      className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
-                    >
-                      {/* Thumbnail Image */}
-                      <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden">
-                        <img
-                          src={product.imageUrl}
-                          alt={product.title}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      </div>
+                  {items.map(({ product, quantity }) => {
+                    const availableStock = typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999;
+                    const maxAllowed = Math.min(availableStock, MAX_PER_ITEM_LIMIT);
+                    const isAtItemMax = quantity >= maxAllowed;
 
-                      {/* Product Details */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-surface-dark truncate">
-                          {product.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-                            {product.unitQuantity}
-                          </span>
-                          <span className="text-xs font-bold text-surface-dark">
-                            ₹{product.salePrice}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Stepper & Line Total */}
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex items-center gap-1.5 bg-primary text-white px-1.5 py-1 rounded-lg font-bold text-xs shadow-2xs select-none">
-                          <button
-                            type="button"
-                            onClick={() => removeItem(product.id)}
-                            className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded transition-colors"
-                            title="Decrease quantity"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="w-4 text-center font-mono text-xs">
-                            {quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => addItem(product)}
-                            className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded transition-colors"
-                            title="Increase quantity"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
+                    return (
+                      <div
+                        key={product.id}
+                        className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+                      >
+                        {/* Thumbnail Image */}
+                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                          <img
+                            src={product.imageUrl}
+                            alt={product.title}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
                         </div>
 
-                        <span className="font-bold text-xs text-surface-dark min-w-[45px] text-right font-mono">
-                          ₹{product.salePrice * quantity}
-                        </span>
+                        {/* Product Details */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-bold text-surface-dark truncate">
+                            {product.title}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                              {product.unitQuantity}
+                            </span>
+                            <span className="text-xs font-bold text-surface-dark">
+                              ₹{product.salePrice}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stepper & Line Total */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 bg-primary text-white px-1.5 py-1 rounded-lg font-bold text-xs shadow-2xs select-none">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(product.id)}
+                                className="w-5 h-5 flex items-center justify-center hover:bg-white/20 rounded transition-colors"
+                                title="Decrease quantity"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-4 text-center font-mono text-xs">
+                                {quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => addItem(product)}
+                                className={cn(
+                                  "w-5 h-5 flex items-center justify-center rounded transition-colors",
+                                  isAtItemMax ? "opacity-35 cursor-not-allowed" : "hover:bg-white/20"
+                                )}
+                                title={isAtItemMax ? "Maximum order limit reached" : "Increase quantity"}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            <span className="font-bold text-xs text-surface-dark min-w-[45px] text-right font-mono">
+                              ₹{formatCurrency(product.salePrice * quantity)}
+                            </span>
+                          </div>
+
+                          {/* Stock or bulk limit indicator pill */}
+                          {isAtItemMax && (
+                            <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded">
+                              {quantity >= availableStock
+                                ? `Only ${availableStock} in stock`
+                                : `Max ${MAX_PER_ITEM_LIMIT} per order`}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* 3. FREQUENTLY BOUGHT TOGETHER CROSS-SELL RAIL */}

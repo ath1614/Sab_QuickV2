@@ -83,14 +83,9 @@ export function AisleProductRow({
             </div>
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-surface-dark truncate">
-                {categoryTitle}
-              </h2>
-              <Badge variant="outline" className="text-[10px] font-mono font-bold shrink-0">
-                {products.length} Items
-              </Badge>
-            </div>
+            <h2 className="text-base sm:text-lg font-black text-surface-dark truncate">
+              {categoryTitle}
+            </h2>
           </div>
         </div>
 

@@ -127,7 +127,11 @@ export async function POST(req: NextRequest) {
         }
 
         if (!product.isAvailable || product.stockCount < item.quantity) {
-          throw new Error(`Insufficient stock for product ${product.title}`);
+          throw new Error(`Insufficient stock for product "${product.title}". Only ${product.stockCount} unit(s) available.`);
+        }
+
+        if (item.quantity > 6) {
+          throw new Error(`Bulk orders are not allowed. Maximum 6 units allowed for "${product.title}".`);
         }
       }
 

@@ -5,6 +5,8 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Zap, Plus, Minus, Package, ShoppingBag } from "lucide-react";
+import { useCartStore, MAX_PER_ITEM_LIMIT } from "@/store/useCartStore";
+import { cn } from "@/lib/utils";
 
 export interface ProductData {
   id: string;
@@ -48,6 +50,26 @@ export function CompactProductCard({
       : 0;
 
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
+  const setWarningToast = useCartStore((s) => s.setWarningToast);
+  const maxLimit = Math.min(
+    typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999,
+    MAX_PER_ITEM_LIMIT
+  );
+  const isAtMax = cartQuantity >= maxLimit;
+
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAtMax) {
+      const available = product.stockCount ?? 999;
+      const msg =
+        cartQuantity >= available
+          ? `Only ${available} unit${available === 1 ? "" : "s"} available in stock for ${product.title}.`
+          : `Bulk ordering is not allowed. Max ${MAX_PER_ITEM_LIMIT} units per item for ${product.title}.`;
+      setWarningToast(msg);
+      return;
+    }
+    onIncrement?.(product);
+  };
 
   const stop = (fn?: (p: ProductData) => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -114,9 +136,13 @@ export function CompactProductCard({
                 </span>
                 <button
                   type="button"
-                  onClick={stop(onIncrement)}
-                  className="w-7 h-7 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded-full transition-all"
+                  onClick={handleIncrement}
+                  className={cn(
+                    "w-7 h-7 flex items-center justify-center rounded-full transition-all",
+                    isAtMax ? "opacity-35 cursor-not-allowed" : "hover:bg-white/20 active:scale-90"
+                  )}
                   aria-label={`Increase ${product.title}`}
+                  title={isAtMax ? "Maximum order limit reached" : `Increase ${product.title}`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -186,6 +212,26 @@ export function ProductCard({
 
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
   const isLowStock = !isOutOfStock && product.stockCount <= 5;
+  const setWarningToast = useCartStore((s) => s.setWarningToast);
+  const maxLimit = Math.min(
+    typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999,
+    MAX_PER_ITEM_LIMIT
+  );
+  const isAtMax = cartQuantity >= maxLimit;
+
+  const handleIncrement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAtMax) {
+      const available = product.stockCount ?? 999;
+      const msg =
+        cartQuantity >= available
+          ? `Only ${available} unit${available === 1 ? "" : "s"} available in stock for ${product.title}.`
+          : `Bulk ordering is not allowed. Max ${MAX_PER_ITEM_LIMIT} units per item for ${product.title}.`;
+      setWarningToast(msg);
+      return;
+    }
+    onIncrement?.(product);
+  };
 
   const handleCardClick = () => {
     onProductClick?.(product);
@@ -305,9 +351,13 @@ export function ProductCard({
               <span className="font-mono text-xs">{cartQuantity}</span>
               <button
                 type="button"
-                onClick={() => onIncrement?.(product)}
-                className="w-9 h-9 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded transition-all"
+                onClick={handleIncrement}
+                className={cn(
+                  "w-9 h-9 flex items-center justify-center rounded transition-all",
+                  isAtMax ? "opacity-35 cursor-not-allowed" : "hover:bg-white/20 active:scale-90"
+                )}
                 aria-label={`Increase ${product.title}`}
+                title={isAtMax ? "Maximum order limit reached" : `Increase ${product.title}`}
               >
                 <Plus className="w-4 h-4" />
               </button>

@@ -91,6 +91,19 @@ export function calculateCartTotals(
   };
 }
 
+export const MAX_PER_ITEM_LIMIT = 6;
+
+export function getProductMaxAllowed(product: ProductData): {
+  maxAllowed: number;
+  availableStock: number;
+  isBulkLimited: boolean;
+} {
+  const availableStock = typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999;
+  const isBulkLimited = MAX_PER_ITEM_LIMIT < availableStock;
+  const maxAllowed = Math.min(availableStock, MAX_PER_ITEM_LIMIT);
+  return { maxAllowed, availableStock, isBulkLimited };
+}
+
 export interface CartStoreState {
   items: CartItem[];
   tipAmount: number;
@@ -99,11 +112,14 @@ export interface CartStoreState {
   isOpen: boolean;
   /** Cart pill minimized to a dot (persisted so it survives reloads). */
   isPillMinimized: boolean;
+  /** Real-time stock / bulk limit warning message (auto-dismissed) */
+  warningToast: string | null;
 
   // Actions
-  addItem: (product: ProductData) => void;
+  addItem: (product: ProductData) => boolean;
   removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  updateQuantity: (productId: string, quantity: number) => boolean;
+  setWarningToast: (msg: string | null) => void;
   setTip: (amount: number) => void;
   setPaymentMethod: (method: PaymentMethod) => void;
   applyCoupon: (coupon: AppliedCoupon) => void;
@@ -132,26 +148,43 @@ export const useCartStore = create<CartStoreState>()(
       appliedCoupon: null,
       isOpen: false,
       isPillMinimized: false,
+      warningToast: null,
 
-      addItem: (product: ProductData) => {
-        set((state) => {
-          const existingIndex = state.items.findIndex(
-            (item) => item.product.id === product.id
-          );
+      setWarningToast: (msg: string | null) => {
+        set({ warningToast: msg });
+      },
 
-          if (existingIndex > -1) {
-            const updatedItems = [...state.items];
-            updatedItems[existingIndex] = {
-              ...updatedItems[existingIndex],
-              quantity: updatedItems[existingIndex].quantity + 1,
-            };
-            return { items: updatedItems };
-          } else {
-            return {
-              items: [...state.items, { product, quantity: 1 }],
-            };
-          }
-        });
+      addItem: (product: ProductData): boolean => {
+        const state = get();
+        const existingIndex = state.items.findIndex(
+          (item) => item.product.id === product.id
+        );
+        const currentQty = existingIndex > -1 ? state.items[existingIndex].quantity : 0;
+        const { maxAllowed, availableStock } = getProductMaxAllowed(product);
+
+        if (currentQty >= maxAllowed) {
+          const warning =
+            currentQty >= availableStock
+              ? `Only ${availableStock} unit${availableStock === 1 ? "" : "s"} available in stock for ${product.title}.`
+              : `Bulk ordering is not allowed. Max ${MAX_PER_ITEM_LIMIT} units per item for ${product.title}.`;
+          set({ warningToast: warning });
+          return false;
+        }
+
+        if (existingIndex > -1) {
+          const updatedItems = [...state.items];
+          updatedItems[existingIndex] = {
+            ...updatedItems[existingIndex],
+            quantity: currentQty + 1,
+          };
+          set({ items: updatedItems, warningToast: null });
+        } else {
+          set({
+            items: [...state.items, { product, quantity: 1 }],
+            warningToast: null,
+          });
+        }
+        return true;
       },
 
       removeItem: (productId: string) => {
@@ -167,6 +200,7 @@ export const useCartStore = create<CartStoreState>()(
               items: state.items.filter(
                 (item) => item.product.id !== productId
               ),
+              warningToast: null,
             };
           } else {
             const updatedItems = [...state.items];
@@ -174,33 +208,51 @@ export const useCartStore = create<CartStoreState>()(
               ...updatedItems[existingIndex],
               quantity: currentQty - 1,
             };
-            return { items: updatedItems };
+            return { items: updatedItems, warningToast: null };
           }
         });
       },
 
-      updateQuantity: (productId: string, quantity: number) => {
-        set((state) => {
-          if (quantity <= 0) {
-            return {
-              items: state.items.filter(
-                (item) => item.product.id !== productId
-              ),
-            };
-          }
+      updateQuantity: (productId: string, quantity: number): boolean => {
+        const state = get();
+        if (quantity <= 0) {
+          set({
+            items: state.items.filter((item) => item.product.id !== productId),
+            warningToast: null,
+          });
+          return true;
+        }
 
-          const existingIndex = state.items.findIndex(
-            (item) => item.product.id === productId
-          );
-          if (existingIndex === -1) return state;
+        const existingIndex = state.items.findIndex(
+          (item) => item.product.id === productId
+        );
+        if (existingIndex === -1) return false;
 
+        const product = state.items[existingIndex].product;
+        const { maxAllowed, availableStock } = getProductMaxAllowed(product);
+
+        if (quantity > maxAllowed) {
+          const warning =
+            quantity > availableStock
+              ? `Only ${availableStock} unit${availableStock === 1 ? "" : "s"} available in stock for ${product.title}.`
+              : `Bulk ordering is not allowed. Max ${MAX_PER_ITEM_LIMIT} units per item for ${product.title}.`;
+          
           const updatedItems = [...state.items];
           updatedItems[existingIndex] = {
             ...updatedItems[existingIndex],
-            quantity,
+            quantity: maxAllowed,
           };
-          return { items: updatedItems };
-        });
+          set({ items: updatedItems, warningToast: warning });
+          return false;
+        }
+
+        const updatedItems = [...state.items];
+        updatedItems[existingIndex] = {
+          ...updatedItems[existingIndex],
+          quantity,
+        };
+        set({ items: updatedItems, warningToast: null });
+        return true;
       },
 
       setTip: (amount: number) => {

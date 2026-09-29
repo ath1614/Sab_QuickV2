@@ -58,10 +58,12 @@ function CategoryCircleButton({
         </div>
       </div>
 
-      {/* Category Name Under Circle */}
-      <span className="block text-[10px] sm:text-[11px] md:text-xs font-bold text-slate-800 text-center leading-tight line-clamp-2 max-w-[68px] sm:max-w-[80px] group-hover:text-primary transition-colors">
-        {cat.name}
-      </span>
+      {/* Category Name Under Circle - Fixed 2-line height ensures all circles and labels align perfectly */}
+      <div className="h-[28px] sm:h-[32px] flex items-start justify-center max-w-[68px] sm:max-w-[84px]">
+        <span className="block text-[10px] sm:text-[11px] md:text-xs font-bold text-slate-800 text-center leading-[14px] sm:leading-[16px] line-clamp-2 group-hover:text-primary transition-colors">
+          {cat.name}
+        </span>
+      </div>
     </button>
   );
 }
@@ -70,8 +72,8 @@ function CategoryCircleButton({
  * Categories Directory for Homepage (Blinkit & Zepto Parity):
  *
  *  • Circular avatar button with category image/icon centered inside.
- *  • Category image is rendered as a clean circle with an inset frame for breathing room (no square corners).
- *  • Category name placed cleanly below the circle.
+ *  • Guaranteed horizontal alignment: all circles pin to the same baseline.
+ *  • Category name placed cleanly below the circle with uniform 2-line height.
  *  • Truncation: When > 10 categories exist, shows the top 9 categories
  *    plus a 10th "+N MORE" circular action button leading to `/categories`.
  *  • 5-column layout on mobile creates two balanced rows of 5 circles.
@@ -103,12 +105,12 @@ export function CategoriesDirectory({
           onClick={() => router.push("/categories")}
           className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 select-none"
         >
-          Browse all ({withStock.length}) <ChevronRight className="w-3.5 h-3.5" />
+          Browse all <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Modern Circular Category Grid: 5 columns on mobile, up to 10 on desktop */}
-      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 place-items-center">
+      {/* Modern Circular Category Grid: items-start pins all circles to the same top baseline */}
+      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 items-start justify-items-center">
         {displayedCategories.map((cat) => (
           <CategoryCircleButton
             key={cat.id}
@@ -125,15 +127,17 @@ export function CategoriesDirectory({
             className="group flex flex-col items-center gap-1.5 focus:outline-none select-none transition-transform active:scale-90"
             title="Browse all categories"
           >
-            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-emerald-50/80 border-2 border-dashed border-primary/40 text-primary flex flex-col items-center justify-center shadow-2xs group-hover:bg-primary group-hover:text-white transition-all duration-200">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-emerald-50/80 border-2 border-dashed border-primary/40 text-primary flex flex-col items-center justify-center shadow-2xs group-hover:bg-primary group-hover:text-white transition-all duration-200 shrink-0">
               <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" />
               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-tight mt-0.5">
                 +{remainingCount} MORE
               </span>
             </div>
-            <span className="block text-[10px] sm:text-[11px] md:text-xs font-black text-primary text-center leading-tight">
-              All Aisles
-            </span>
+            <div className="h-[28px] sm:h-[32px] flex items-start justify-center max-w-[68px] sm:max-w-[84px]">
+              <span className="block text-[10px] sm:text-[11px] md:text-xs font-black text-primary text-center leading-[14px] sm:leading-[16px]">
+                All Aisles
+              </span>
+            </div>
           </button>
         )}
       </div>

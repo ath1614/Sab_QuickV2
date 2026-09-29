@@ -417,9 +417,6 @@ function StorefrontContent() {
                       ? `Category: ${categoryParam.replace(/-/g, " ").toUpperCase()}`
                       : "All Fresh Dark Store Catalog"}
               </span>
-              <Badge variant="outline" className="text-xs font-mono font-bold">
-                {products.length} Items
-              </Badge>
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Superfast doorstep delivery within your 2.5 km geofence.
