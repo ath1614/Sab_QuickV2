@@ -141,9 +141,9 @@ export default function OrdersPage() {
   const pastOrders = (orders || []).filter((o) => o && o.status && !ACTIVE_STATUSES.includes(o.status));
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-32 sm:pb-36 md:pb-16 pt-[env(safe-area-inset-top,0px)]">
+    <div className="min-h-screen bg-slate-50/70 pb-32 sm:pb-36 md:pb-16">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link

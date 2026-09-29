@@ -185,10 +185,11 @@ export async function POST(req: NextRequest) {
       const deliveryOtp = crypto.randomInt(1000, 10000).toString();
 
       // 5e. Financial calculations & Coupon validation
-      const subtotal = items.reduce((sum, item) => {
+      const rawSubtotal = items.reduce((sum, item) => {
         const product = productMap.get(item.productId)!;
         return sum + product.salePrice * item.quantity;
       }, 0);
+      const subtotal = Math.round((rawSubtotal + Number.EPSILON) * 100) / 100;
 
       let couponId: string | undefined = undefined;
       let discountAmount = 0;

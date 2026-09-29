@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ShoppingBag, ChevronRight, ChevronDown } from "lucide-react";
-import { useCartStore } from "@/store/useCartStore";
+import { useCartStore, formatCurrency } from "@/store/useCartStore";
 
 /**
  * Blinkit-style floating cart pill — compact, sits directly above the
@@ -35,7 +35,7 @@ export function FloatingCartPill() {
     return (
       <button
         type="button"
-        aria-label={`Expand cart, ${totalQuantity} items, ₹${itemTotal}`}
+        aria-label={`Expand cart, ${totalQuantity} items, ₹${formatCurrency(itemTotal)}`}
         onClick={() => setPillMinimized(false)}
         className={`fixed right-3 bottom-[calc(4.9rem+env(safe-area-inset-bottom,0px))] md:right-8 md:bottom-8 z-40 w-11 h-11 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center transition-all duration-300 ease-out active:scale-95 ${
           isVisible ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
@@ -56,7 +56,7 @@ export function FloatingCartPill() {
       }`}
       role="button"
       tabIndex={0}
-      aria-label={`View cart, ${totalQuantity} items, ₹${itemTotal}`}
+      aria-label={`View cart, ${totalQuantity} items, ₹${formatCurrency(itemTotal)}`}
       onClick={openCart}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -74,7 +74,7 @@ export function FloatingCartPill() {
             </span>
           </div>
           <span className="text-xs font-black whitespace-nowrap">
-            ₹{itemTotal}
+            ₹{formatCurrency(itemTotal)}
           </span>
           <span className="hidden xs:inline text-[10px] font-semibold text-emerald-100 whitespace-nowrap">
             • Superfast delivery

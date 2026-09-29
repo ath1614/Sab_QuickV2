@@ -584,11 +584,8 @@ function CategoriesContent() {
   /* -------------------------------------------------------------------------- */
   return (
     <div className="min-h-screen bg-slate-50/70 text-[var(--sq-ink)] font-sans pb-28 md:pb-16">
-      {/* Top Safe Area */}
-      <div className="pt-[env(safe-area-inset-top,0px)] bg-white" />
-
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-2xs">
+      {/* Header with Safe Area Inset */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-2xs pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-6xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-display">

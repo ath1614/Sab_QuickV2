@@ -32,15 +32,22 @@ export interface CartTotals {
   totalQuantity: number;
 }
 
+export function formatCurrency(amount: number): string {
+  if (typeof amount !== "number" || isNaN(amount)) return "0";
+  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100;
+  return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+}
+
 export function calculateCartTotals(
   items: CartItem[],
   tipAmount: number = 0,
   discountAmount: number = 0
 ): CartTotals {
-  const itemTotal = items.reduce(
+  const rawItemTotal = items.reduce(
     (sum, item) => sum + item.product.salePrice * item.quantity,
     0
   );
+  const itemTotal = Math.round((rawItemTotal + Number.EPSILON) * 100) / 100;
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const freeDeliveryThreshold = FREE_DELIVERY_THRESHOLD;
 
@@ -59,18 +66,17 @@ export function calculateCartTotals(
   }
 
   // Deduct discountAmount before computing delivery fee and grand total
-  const validDiscount = Math.min(Math.max(0, discountAmount), itemTotal);
-  const subtotalAfterDiscount = Math.max(0, itemTotal - validDiscount);
+  const validDiscount = Math.round(Math.min(Math.max(0, discountAmount), itemTotal) * 100) / 100;
+  const subtotalAfterDiscount = Math.round(Math.max(0, itemTotal - validDiscount) * 100) / 100;
 
   const deliveryFee =
     subtotalAfterDiscount >= freeDeliveryThreshold ? 0 : STANDARD_DELIVERY_FEE;
   const handlingFee = HANDLING_FEE;
   const grandTotal =
-    Math.round((subtotalAfterDiscount + deliveryFee + handlingFee + tipAmount) * 100) / 100;
-  const amountNeededForFreeDelivery = Math.max(
-    0,
-    freeDeliveryThreshold - subtotalAfterDiscount
-  );
+    Math.round((subtotalAfterDiscount + deliveryFee + handlingFee + tipAmount + Number.EPSILON) * 100) / 100;
+  const amountNeededForFreeDelivery = Math.round(
+    Math.max(0, freeDeliveryThreshold - subtotalAfterDiscount) * 100
+  ) / 100;
 
   return {
     itemTotal,

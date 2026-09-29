@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import {
   useCartStore,
   calculateCartTotals,
+  formatCurrency,
   FREE_DELIVERY_THRESHOLD,
   PaymentMethod,
 } from "@/store/useCartStore";
@@ -768,13 +769,13 @@ export function CartDrawer() {
                     <div>
                       <div className="flex items-center justify-between text-xs mb-1.5 font-bold">
                         <span className="text-surface-dark">
-                          Add ₹{totals.amountNeededForFreeDelivery} more for{" "}
+                          Add ₹{formatCurrency(totals.amountNeededForFreeDelivery)} more for{" "}
                           <span className="text-primary font-black">
                             FREE Delivery
                           </span>
                         </span>
                         <span className="text-[11px] text-muted-foreground font-mono">
-                          ₹{totals.itemTotal}/₹{FREE_DELIVERY_THRESHOLD}
+                          ₹{formatCurrency(totals.itemTotal)}/₹{FREE_DELIVERY_THRESHOLD}
                         </span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -1158,7 +1159,7 @@ export function CartDrawer() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Item Total</span>
                     <span className="font-mono text-surface-dark font-medium">
-                      ₹{totals.itemTotal}
+                      ₹{formatCurrency(totals.itemTotal)}
                     </span>
                   </div>
 
@@ -1169,7 +1170,7 @@ export function CartDrawer() {
                         Coupon Discount {appliedCoupon?.code ? `(${appliedCoupon.code})` : ""}
                       </span>
                       <span className="font-mono font-bold">
-                        -₹{totals.discountAmount}
+                        -₹{formatCurrency(totals.discountAmount)}
                       </span>
                     </div>
                   )}
@@ -1186,7 +1187,7 @@ export function CartDrawer() {
                         </>
                       ) : (
                         <span className="font-mono text-surface-dark font-medium">
-                          ₹{totals.deliveryFee}
+                          ₹{formatCurrency(totals.deliveryFee)}
                         </span>
                       )}
                     </div>
@@ -1195,7 +1196,7 @@ export function CartDrawer() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Handling Charge</span>
                     <span className="font-mono text-surface-dark font-medium">
-                      ₹{totals.handlingFee}
+                      ₹{formatCurrency(totals.handlingFee)}
                     </span>
                   </div>
 
@@ -1203,7 +1204,7 @@ export function CartDrawer() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Delivery Tip</span>
                       <span className="font-mono text-surface-dark font-medium">
-                        ₹{tipAmount}
+                        ₹{formatCurrency(tipAmount)}
                       </span>
                     </div>
                   )}
@@ -1211,7 +1212,7 @@ export function CartDrawer() {
                   <div className="border-t border-slate-100 pt-2 flex justify-between items-center font-bold text-sm text-surface-dark">
                     <span>Grand Total</span>
                     <span className="font-display font-bold text-primary text-base">
-                      ₹{totals.grandTotal}
+                      ₹{formatCurrency(totals.grandTotal)}
                     </span>
                   </div>
                 </div>
@@ -1343,27 +1344,27 @@ export function CartDrawer() {
                 variant="accent"
                 disabled={isPlacingOrder || items.length === 0}
                 onClick={handlePlaceOrder}
-                className="w-full h-12 text-base font-black flex items-center justify-between text-surface-dark rounded-xl shadow-md hover:shadow-lg transition-all"
+                className="w-full h-12 text-sm sm:text-base font-black flex items-center justify-between text-surface-dark rounded-xl shadow-md hover:shadow-lg transition-all px-4"
               >
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 fill-surface-dark" />
-                  <span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-surface-dark shrink-0" />
+                  <span className="truncate">
                     {isPlacingOrder
                       ? "Placing Order..."
                       : paymentMethod === "CASHFREE"
                       ? "Pay Online"
                       : paymentMethod === "UPI_DOORSTEP"
-                      ? "Pay via UPI on Delivery"
-                      : "Place Order · Pay on Delivery"}
+                      ? "Pay with UPI"
+                      : "Pay on Delivery"}
                   </span>
                 </div>
 
                 {isPlacingOrder ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin shrink-0" />
                 ) : (
-                  <div className="flex items-center gap-1.5 font-mono">
-                    <span>₹{totals.grandTotal}</span>
-                    <ArrowRight className="w-4 h-4" />
+                  <div className="flex items-center gap-1.5 font-mono shrink-0 ml-2">
+                    <span>₹{formatCurrency(totals.grandTotal)}</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </div>
                 )}
               </Button>

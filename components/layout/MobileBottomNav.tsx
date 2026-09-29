@@ -14,7 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCartStore } from "@/store/useCartStore";
+import { useCartStore, formatCurrency } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
 
@@ -102,7 +102,7 @@ function MobileBottomNavInner() {
             )}
           </div>
           <span className="text-[10px] font-bold text-surface-dark tracking-tight">
-            {totalQuantity > 0 ? `₹${itemTotal}` : "Cart"}
+            {totalQuantity > 0 ? `₹${formatCurrency(itemTotal)}` : "Cart"}
           </span>
         </button>
 
