@@ -19,9 +19,12 @@ const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, "At least one item is required in cart"),
   tipAmount: z.number().min(0).default(0),
   paymentMethod: z
-    .enum(["CASHFREE", "UPI_DOORSTEP", "RAZORPAY", "CASH_ON_DELIVERY"])
-    .default("CASHFREE")
-    .transform((val) => (val === "RAZORPAY" ? "CASHFREE" : val)),
+    .enum(["ONLINE_UPI", "ONLINE_PREPAID", "CASHFREE", "UPI_DOORSTEP", "RAZORPAY", "CASH_ON_DELIVERY"])
+    .default("ONLINE_UPI")
+    .transform((val) => {
+      if (val === "ONLINE_UPI" || (val as string) === "RAZORPAY") return "ONLINE_PREPAID";
+      return val;
+    }),
   couponCode: z.string().optional(),
 });
 
@@ -304,8 +307,8 @@ export async function POST(req: NextRequest) {
 
     // 6. Redis Event Notification to channel orders:dispatch
     // For Doorstep UPI and Cash on Delivery, order is confirmed immediately.
-    // For online prepaid (CASHFREE), dispatch is published ONLY after payment verification succeeds.
-    if (order.paymentMethod !== "CASHFREE") {
+    // For online prepaid (ONLINE_PREPAID / CASHFREE), dispatch is published after payment confirmation.
+    if (order.paymentMethod !== "CASHFREE" && (order.paymentMethod as string) !== "ONLINE_PREPAID") {
       try {
         await redis.publish(
           "orders:dispatch",

@@ -1,5 +1,7 @@
 package com.sabquick.app;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -7,10 +9,54 @@ import android.view.Window;
 import android.view.WindowInsetsController;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
 
 public class MainActivity extends BridgeActivity {
+
+  @CapacitorPlugin(name = "NativeUpi")
+  public static class NativeUpiPlugin extends Plugin {
+    @PluginMethod
+    public void launchUpi(PluginCall call) {
+      String uriString = call.getString("uri");
+      String packageName = call.getString("packageName");
+
+      if (uriString == null || uriString.isEmpty()) {
+        call.reject("URI cannot be empty");
+        return;
+      }
+
+      try {
+        Uri uri = Uri.parse(uriString);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+
+        if (packageName != null && !packageName.isEmpty()) {
+          intent.setPackage(packageName);
+        }
+
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getActivity().startActivity(intent);
+        call.resolve();
+      } catch (Exception e) {
+        // Fallback: If targeted package (e.g. PhonePe or GPay) fails or isn't installed, open system chooser
+        try {
+          Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString));
+          Intent chooser = Intent.createChooser(fallback, "Pay with UPI");
+          chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          getActivity().startActivity(chooser);
+          call.resolve();
+        } catch (Exception ex) {
+          call.reject("Could not launch UPI app: " + ex.getMessage());
+        }
+      }
+    }
+  }
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    registerPlugin(NativeUpiPlugin.class);
     super.onCreate(savedInstanceState);
 
     // The site draws its own edge-to-edge canvas (viewport-fit=cover +

@@ -36,6 +36,7 @@ import {
   OrderCelebrationModal,
   OrderCelebrationData,
 } from "@/components/orders/OrderCelebrationModal";
+import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
 import {
   ShoppingBag,
   Plus,
@@ -59,6 +60,7 @@ import {
   Tag,
   Banknote,
   Ticket,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -130,6 +132,12 @@ export function CartDrawer() {
   } | null>(null);
   const [celebrationOrder, setCelebrationOrder] = React.useState<OrderCelebrationData | null>(null);
   const [showCelebration, setShowCelebration] = React.useState<boolean>(false);
+  const [upiModalData, setUpiModalData] = React.useState<{
+    isOpen: boolean;
+    orderNumber: string;
+    orderId: string;
+    totalAmount: number;
+  } | null>(null);
 
   // Available Promotional Coupons State
   const [availableCoupons, setAvailableCoupons] = React.useState<AvailableCoupon[]>([]);
@@ -343,6 +351,18 @@ export function CartDrawer() {
         } else {
           setOrderError(data.error || "Failed to place order.");
         }
+        return;
+      }
+
+      // If Direct UPI payment method (GPay, PhonePe, Paytm), launch native UPI modal
+      if (paymentMethod === "ONLINE_UPI") {
+        setIsPlacingOrder(false);
+        setUpiModalData({
+          isOpen: true,
+          orderNumber: data.orderNumber,
+          orderId: data.orderId,
+          totalAmount: totals.grandTotal,
+        });
         return;
       }
 
@@ -1246,11 +1266,11 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: Pay Online */}
+                    {/* Option 1: Pay via UPI */}
                     <div
-                      onClick={() => setPaymentMethod("CASHFREE")}
+                      onClick={() => setPaymentMethod("ONLINE_UPI")}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "CASHFREE"
+                        paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"
                           ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
                           : "border-slate-200 hover:border-slate-300 bg-white"
                       }`}
@@ -1259,25 +1279,25 @@ export function CartDrawer() {
                         <input
                           type="radio"
                           name="paymentMethod"
-                          checked={paymentMethod === "CASHFREE"}
-                          onChange={() => setPaymentMethod("CASHFREE")}
+                          checked={paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"}
+                          onChange={() => setPaymentMethod("ONLINE_UPI")}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-surface-dark">
-                              Pay Online
+                              Pay via UPI
                             </span>
                             <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              Instant
+                              Instant App
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            UPI (Google Pay, PhonePe, Paytm), Cards & NetBanking
+                            Google Pay, PhonePe, Paytm & any UPI app
                           </p>
                         </div>
                       </div>
-                      <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                      <Smartphone className="w-4 h-4 text-primary shrink-0" />
                     </div>
 
                     {/* Option 2: UPI at Doorstep */}
@@ -1373,8 +1393,8 @@ export function CartDrawer() {
                   <span className="truncate">
                     {isPlacingOrder
                       ? "Placing Order..."
-                      : paymentMethod === "CASHFREE"
-                      ? "Pay Online"
+                      : paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"
+                      ? "Pay via UPI"
                       : paymentMethod === "UPI_DOORSTEP"
                       ? "Pay with UPI"
                       : "Pay on Delivery"}
@@ -1429,6 +1449,17 @@ export function CartDrawer() {
         }}
         currentAddress={activeAddress}
       />
+
+      {/* Direct Native UPI Payment Modal (Google Pay, PhonePe, Paytm & Dynamic QR) */}
+      {upiModalData && (
+        <UpiPaymentModal
+          isOpen={upiModalData.isOpen}
+          orderNumber={upiModalData.orderNumber}
+          orderId={upiModalData.orderId}
+          totalAmount={upiModalData.totalAmount}
+          onClose={() => setUpiModalData(null)}
+        />
+      )}
     </>
   );
 }
