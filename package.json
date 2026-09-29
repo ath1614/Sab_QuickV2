@@ -15,7 +15,8 @@
     "db:seed:prod": "tsx prisma/seed.prod.ts",
     "db:studio": "prisma studio",
     "generate:assets": "tsx scripts/generate-brand-assets.ts",
-    "build:apk": "bash scripts/build-apk.sh"
+    "build:apk": "bash scripts/build-apk.sh",
+    "postinstall": "node scripts/patch-next-font.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
