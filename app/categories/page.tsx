@@ -25,26 +25,26 @@ function getSubcategoryImage(
   parent: ParentCategoryItem,
   products: ProductData[]
 ): string | null {
-  if (sub.imageUrl && sub.imageUrl.startsWith("http")) return sub.imageUrl;
+  if (sub.imageUrl && (sub.imageUrl.startsWith("http") || sub.imageUrl.startsWith("/"))) return sub.imageUrl;
   const prod = products.find(
     (p) =>
       (p.category?.id === sub.id || p.category?.slug === sub.slug) &&
       p.imageUrl &&
-      p.imageUrl.startsWith("http")
+      (p.imageUrl.startsWith("http") || p.imageUrl.startsWith("/"))
   );
   if (prod?.imageUrl) return prod.imageUrl;
-  if (parent.imageUrl && parent.imageUrl.startsWith("http")) return parent.imageUrl;
+  if (parent.imageUrl && (parent.imageUrl.startsWith("http") || parent.imageUrl.startsWith("/"))) return parent.imageUrl;
   return null;
 }
 
 /** Helper to get thumbnail image for a category */
 function getCategoryImage(cat: ParentCategoryItem, products: ProductData[]): string | null {
-  if (cat.imageUrl && cat.imageUrl.startsWith("http")) return cat.imageUrl;
+  if (cat.imageUrl && (cat.imageUrl.startsWith("http") || cat.imageUrl.startsWith("/"))) return cat.imageUrl;
   const prod = products.find(
     (p) =>
       (p.category?.id === cat.id || cat.subCategories?.some((s) => s.id === p.category?.id)) &&
       p.imageUrl &&
-      p.imageUrl.startsWith("http")
+      (p.imageUrl.startsWith("http") || p.imageUrl.startsWith("/"))
   );
   if (prod?.imageUrl) return prod.imageUrl;
   return null;
@@ -659,12 +659,12 @@ function CategoriesContent() {
                     className="group flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 transition-all select-none cursor-pointer text-center"
                   >
                     {/* Thumbnail Image */}
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-primary/5 border border-primary/10 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-200/80 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
                       {catImg ? (
                         <img
                           src={catImg}
                           alt={cat.name}
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-cover rounded-lg"
                           loading="lazy"
                         />
                       ) : (
