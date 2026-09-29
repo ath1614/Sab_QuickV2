@@ -39,7 +39,7 @@ function CategoryCircleButton({
       title={`Browse ${cat.name}`}
     >
       {/* Circular Image Container: 100% circular avatar with subtle inset frame for zoomed-out look */}
-      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-white border border-slate-200/90 shadow-2xs group-hover:shadow-md group-hover:border-primary/50 group-hover:ring-2 group-hover:ring-primary/20 flex items-center justify-center p-1 overflow-hidden transition-all duration-200">
+      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-white border border-slate-200/90 shadow-2xs group-hover:shadow-md group-hover:border-primary/50 group-hover:ring-2 group-hover:ring-primary/20 flex items-center justify-center p-1 sm:p-1.5 overflow-hidden transition-all duration-200">
         <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center">
           {hasImage ? (
             // eslint-disable-next-line @next/next/no-img-element
