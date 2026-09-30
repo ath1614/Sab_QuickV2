@@ -210,7 +210,7 @@ export function PhoneVerificationDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md w-full flex flex-col justify-between">
+      <SheetContent side="right" className="sm:max-w-md w-full max-w-full flex flex-col justify-between overflow-x-hidden box-border">
         <SheetHeader>
           <div className="flex items-center gap-2.5">
             <img
@@ -328,16 +328,17 @@ export function PhoneVerificationDrawer({
 
               {/* Free Quick-Code Banner */}
               {autoOtp && (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
-                  <span className="flex items-center gap-1.5 font-medium">
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <span className="flex items-center gap-1.5 font-medium min-w-0 truncate">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    Free Code: <strong className="font-mono font-bold text-sm text-primary">{autoOtp}</strong>
+                    <span className="truncate">Free Code:</span>
+                    <strong className="font-mono font-bold text-sm text-primary shrink-0">{autoOtp}</strong>
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setOtpDigits(autoOtp.split(""))}
-                    className="text-[11px] font-bold h-6 px-2 bg-white hover:bg-emerald-100 border-emerald-300"
+                    className="text-[11px] font-bold h-6 px-2 bg-white hover:bg-emerald-100 border-emerald-300 shrink-0"
                   >
                     Auto-fill
                   </Button>
@@ -349,7 +350,7 @@ export function PhoneVerificationDrawer({
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center block">
                   Enter 4-Digit OTP Code
                 </label>
-                <div className="flex justify-center gap-3">
+                <div className="flex justify-center gap-2 sm:gap-3 max-w-full">
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
@@ -363,7 +364,7 @@ export function PhoneVerificationDrawer({
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className="w-12 h-14 sm:w-14 sm:h-16 shrink-0 text-center text-2xl font-black font-mono rounded-xl border border-border-subtle bg-slate-50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+                      className="w-11 h-13 sm:w-14 sm:h-16 shrink-0 text-center text-xl sm:text-2xl font-black font-mono rounded-xl border border-border-subtle bg-slate-50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                     />
                   ))}
                 </div>

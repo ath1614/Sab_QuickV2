@@ -268,25 +268,25 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-6">
+      <DialogContent className="sm:max-w-md p-4 sm:p-6 w-full max-w-full overflow-x-hidden box-border">
         <DialogHeader>
-          <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex items-center gap-2.5 mb-1 min-w-0">
             <img
               src="/brand/app-icon.png"
               alt="SabQuick"
               className="h-8 w-8 rounded-xl object-contain shadow-xs shrink-0"
             />
-            <DialogTitle className="text-xl font-black text-surface-dark">
+            <DialogTitle className="text-lg sm:text-xl font-black text-surface-dark truncate">
               {step === "PHONE"
                 ? "Welcome to SabQuick"
                 : step === "OWNER_PIN"
                 ? "Store Owner Passcode"
                 : step === "STAFF_PIN"
-                ? `Staff Shift Login (${staffRole})`
+                ? `Staff Login (${staffRole})`
                 : "Verify Mobile Number"}
             </DialogTitle>
           </div>
-          <DialogDescription className="text-xs text-muted-foreground">
+          <DialogDescription className="text-xs text-muted-foreground break-words">
             {step === "PHONE"
               ? "Sign in or create your customer account for hyper-local grocery delivery."
               : step === "OWNER_PIN"
@@ -298,16 +298,16 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </DialogHeader>
 
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in break-words">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+            <span className="min-w-0 flex-1">{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in break-words">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
-            <span>{successMsg}</span>
+            <span className="min-w-0 flex-1">{successMsg}</span>
           </div>
         )}
 
@@ -339,7 +339,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                     />
                   </svg>
-                  <span className="text-surface-dark font-extrabold">Continue with Google</span>
+                  <span className="text-surface-dark font-extrabold truncate">Continue with Google</span>
                 </div>
               </Button>
             </div>
@@ -356,11 +356,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             {/* Phone Number Input */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-primary" />
+                <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
                 Mobile Number
               </label>
               <div className="flex items-center gap-2">
-                <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center text-xs font-bold text-surface-dark select-none">
+                <div className="h-11 px-3 bg-slate-100 border border-border-subtle rounded-xl flex items-center text-xs font-bold text-surface-dark select-none shrink-0">
                   <span>+91</span>
                 </div>
                 <Input
@@ -374,7 +374,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                       handleSendOtp();
                     }
                   }}
-                  className="h-11 rounded-xl text-base tracking-wider font-semibold font-mono"
+                  className="h-11 rounded-xl text-base tracking-wider font-semibold font-mono w-full min-w-0"
                   autoFocus
                 />
               </div>
@@ -392,11 +392,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Verifying...
                 </>
               ) : (
                 <>
-                  Continue with Mobile <ArrowRight className="w-4 h-4" />
+                  Continue with Mobile <ArrowRight className="w-4 h-4 shrink-0" />
                 </>
               )}
             </Button>
@@ -408,15 +408,15 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         ) : step === "OWNER_PIN" ? (
           <div className="space-y-4 py-2">
             {/* Account Display */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/80 border border-amber-200">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <Badge className="gap-1 bg-amber-500 text-white font-black text-[10px] px-1.5 py-0">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/80 border border-amber-200 gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge className="gap-1 bg-amber-500 text-white font-black text-[10px] px-1.5 py-0 shrink-0">
                     <Crown className="w-3 h-3" /> OWNER
                   </Badge>
-                  <span className="text-[11px] text-amber-900 font-semibold">Anurag Soni</span>
+                  <span className="text-[11px] text-amber-900 font-semibold truncate">Anurag Soni</span>
                 </div>
-                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5">+91 {phone}</span>
+                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5 truncate">+91 {phone}</span>
               </div>
               <Button
                 variant="ghost"
@@ -426,7 +426,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   setPinValue("");
                   setErrorMsg(null);
                 }}
-                className="text-xs text-amber-800 font-bold hover:bg-white"
+                className="text-xs text-amber-800 font-bold hover:bg-white shrink-0 h-8 px-2"
               >
                 Change
               </Button>
@@ -434,11 +434,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
             {/* 6-Digit Passcode Input */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-amber-600" /> 6-Digit Owner Passcode
+              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between flex-wrap gap-1">
+                <span className="flex items-center gap-1.5 shrink-0">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" /> 6-Digit Passcode
                 </span>
-                <span className="text-[10px] text-muted-foreground font-normal">Zero-SMS Instant Auth</span>
+                <span className="text-[10px] text-muted-foreground font-normal shrink-0">Zero-SMS Instant Auth</span>
               </label>
               <Input
                 type="password"
@@ -452,7 +452,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     handleVerifyPinAndLogin();
                   }
                 }}
-                className="h-14 text-center text-3xl font-black tracking-widest font-mono rounded-xl border-amber-300 focus:border-amber-500 focus:ring-amber-200"
+                className="h-13 sm:h-14 text-center text-2xl sm:text-3xl font-black tracking-widest font-mono rounded-xl border-amber-300 focus:border-amber-500 focus:ring-amber-200 w-full max-w-full box-border"
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground">
@@ -463,17 +463,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             {/* Verify Button */}
             <Button
               variant="default"
-              className="w-full h-11 rounded-xl font-bold gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white shadow-md"
+              className="w-full h-11 rounded-xl font-bold gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white shadow-md text-xs sm:text-sm px-3"
               disabled={pinValue.trim().length !== 6 || isLoading}
               onClick={handleVerifyPinAndLogin}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying Passcode...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Verifying Passcode...
                 </>
               ) : (
                 <>
-                  <KeyRound className="w-4 h-4" /> Verify & Enter Owner Portal
+                  <KeyRound className="w-4 h-4 shrink-0" /> <span className="truncate">Verify & Enter Owner Portal</span>
                 </>
               )}
             </Button>
@@ -482,25 +482,28 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <div className="pt-1">
               <Button
                 variant="outline"
-                className="w-full h-10 rounded-xl text-xs font-semibold gap-2 border-slate-200 hover:bg-slate-50"
+                className="w-full h-auto py-2.5 px-3 rounded-xl text-xs font-semibold gap-1 border-slate-200 hover:bg-slate-50 flex flex-col sm:flex-row items-center justify-center whitespace-normal text-center"
                 onClick={handleGoogleLogin}
               >
-                <span>Or sign in with Google (sabsupermart68@gmail.com)</span>
+                <span>Sign in with Google</span>
+                <span className="text-[11px] text-muted-foreground font-normal truncate max-w-[210px] sm:max-w-none">
+                  (sabsupermart68@gmail.com)
+                </span>
               </Button>
             </div>
           </div>
         ) : step === "STAFF_PIN" ? (
           <div className="space-y-4 py-2">
             {/* Staff Account Display */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/80 border border-blue-200">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <Badge className="bg-blue-600 text-white font-black text-[10px] px-1.5 py-0">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/80 border border-blue-200 gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge className="bg-blue-600 text-white font-black text-[10px] px-1.5 py-0 shrink-0">
                     <Shield className="w-3 h-3" /> {staffRole}
                   </Badge>
-                  <span className="text-[11px] text-blue-900 font-semibold">Store Operations</span>
+                  <span className="text-[11px] text-blue-900 font-semibold truncate">Store Operations</span>
                 </div>
-                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5">+91 {phone}</span>
+                <span className="font-mono font-bold text-sm text-surface-dark block mt-0.5 truncate">+91 {phone}</span>
               </div>
               <Button
                 variant="ghost"
@@ -510,7 +513,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   setPinValue("");
                   setErrorMsg(null);
                 }}
-                className="text-xs text-blue-800 font-bold hover:bg-white"
+                className="text-xs text-blue-800 font-bold hover:bg-white shrink-0 h-8 px-2"
               >
                 Change
               </Button>
@@ -518,11 +521,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
             {/* 4-Digit Staff PIN Input */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-blue-600" /> 4-Digit Staff PIN
+              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center justify-between flex-wrap gap-1">
+                <span className="flex items-center gap-1.5 shrink-0">
+                  <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" /> 4-Digit Staff PIN
                 </span>
-                <span className="text-[10px] text-muted-foreground font-normal">Fast Shift Clock-In</span>
+                <span className="text-[10px] text-muted-foreground font-normal shrink-0">Fast Shift Clock-In</span>
               </label>
               <Input
                 type="password"
@@ -536,7 +539,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     handleVerifyPinAndLogin();
                   }
                 }}
-                className="h-14 text-center text-3xl font-black tracking-widest font-mono rounded-xl border-blue-300 focus:border-blue-500 focus:ring-blue-200"
+                className="h-13 sm:h-14 text-center text-2xl sm:text-3xl font-black tracking-widest font-mono rounded-xl border-blue-300 focus:border-blue-500 focus:ring-blue-200 w-full max-w-full box-border"
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground">
@@ -547,17 +550,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             {/* Clock In Button */}
             <Button
               variant="default"
-              className="w-full h-11 rounded-xl font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+              className="w-full h-11 rounded-xl font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md text-xs sm:text-sm px-3"
               disabled={pinValue.trim().length !== 4 || isLoading}
               onClick={handleVerifyPinAndLogin}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying Shift PIN...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Verifying Shift PIN...
                 </>
               ) : (
                 <>
-                  <KeyRound className="w-4 h-4" /> Clock In & Open Staff Portal
+                  <KeyRound className="w-4 h-4 shrink-0" /> <span className="truncate">Clock In & Open Staff Portal</span>
                 </>
               )}
             </Button>
@@ -565,16 +568,16 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         ) : (
           <div className="space-y-4 py-2">
             {/* Number Display & Change Action */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-border-subtle">
-              <div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-border-subtle gap-2">
+              <div className="min-w-0 flex-1">
                 <span className="text-[11px] text-muted-foreground block">Verification Code For</span>
-                <span className="font-mono font-bold text-sm text-surface-dark">+91 {phone}</span>
+                <span className="font-mono font-bold text-sm text-surface-dark truncate block">+91 {phone}</span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setStep("PHONE")}
-                className="text-xs text-primary font-bold hover:bg-white"
+                className="text-xs text-primary font-bold hover:bg-white shrink-0 h-8 px-2"
               >
                 Change
               </Button>
@@ -582,16 +585,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
             {/* Free Quick-Code Banner */}
             {autoOtp && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
-                <span className="flex items-center gap-1.5 font-medium">
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <span className="flex items-center gap-1.5 font-medium min-w-0 truncate">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                  Free Quick Code: <strong className="font-mono font-bold text-sm text-primary">{autoOtp}</strong>
+                  <span className="truncate">Free Quick Code:</span>
+                  <strong className="font-mono font-bold text-sm text-primary shrink-0">{autoOtp}</strong>
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setOtpDigits(autoOtp.split(""))}
-                  className="text-[11px] font-bold h-6 px-2 bg-white hover:bg-emerald-100 border-emerald-300"
+                  className="text-[11px] font-bold h-6 px-2 bg-white hover:bg-emerald-100 border-emerald-300 shrink-0"
                 >
                   Auto-fill
                 </Button>
@@ -602,7 +606,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             {isNewUser && (
               <div className="space-y-1.5 animate-in fade-in">
                 <label className="text-xs font-bold uppercase tracking-wider text-surface-dark flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
+                  <User className="w-3.5 h-3.5 text-primary shrink-0" />
                   Your Full Name
                 </label>
                 <Input
@@ -610,7 +614,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   placeholder="e.g. Aakash Sharma"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="h-10 rounded-xl text-sm font-medium"
+                  className="h-10 rounded-xl text-sm font-medium w-full"
                 />
               </div>
             )}
@@ -620,7 +624,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               <label className="text-xs font-bold uppercase tracking-wider text-surface-dark text-center block">
                 Enter 4-Digit Code
               </label>
-              <div className="flex justify-center gap-2 sm:gap-2.5">
+              <div className="flex justify-center gap-2 sm:gap-2.5 max-w-full">
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -665,17 +669,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             {/* Verify CTA Button */}
             <Button
               variant="default"
-              className="w-full h-11 rounded-xl font-bold gap-2 shadow-sm"
+              className="w-full h-11 rounded-xl font-bold gap-2 shadow-sm text-xs sm:text-sm px-3"
               disabled={otpDigits.join("").length !== 4 || isLoading}
               onClick={handleVerifyAndLogin}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Verifying...
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" /> Verify & Continue
+                  <ShieldCheck className="w-4 h-4 shrink-0" /> <span className="truncate">Verify & Continue</span>
                 </>
               )}
             </Button>
