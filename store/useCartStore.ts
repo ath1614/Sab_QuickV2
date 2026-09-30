@@ -318,6 +318,7 @@ export const useCartStore = create<CartStoreState>()(
     }),
     {
       name: "sabquick_cart_storage",
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         items: state.items,
@@ -326,11 +327,31 @@ export const useCartStore = create<CartStoreState>()(
         appliedCoupon: state.appliedCoupon,
         isPillMinimized: state.isPillMinimized,
       }),
+      migrate: (persistedState: any, version: number) => {
+        const state = persistedState || {};
+        if (
+          version < 3 ||
+          state.paymentMethod === "CASHFREE" ||
+          state.paymentMethod === "RAZORPAY" ||
+          state.paymentMethod === "ONLINE_PREPAID" ||
+          !state.paymentMethod
+        ) {
+          state.paymentMethod = "ONLINE_UPI";
+        }
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // If legacy RAZORPAY or CASHFREE is in localStorage, automatically migrate to ONLINE_UPI
-          if ((state.paymentMethod as any) === "RAZORPAY" || (state.paymentMethod as any) === "CASHFREE" || !state.paymentMethod) {
+          if (
+            (state.paymentMethod as any) === "RAZORPAY" ||
+            (state.paymentMethod as any) === "CASHFREE" ||
+            (state.paymentMethod as any) === "ONLINE_PREPAID" ||
+            !state.paymentMethod
+          ) {
             state.paymentMethod = "ONLINE_UPI";
+            setTimeout(() => {
+              useCartStore.setState({ paymentMethod: "ONLINE_UPI" });
+            }, 0);
           }
         }
       },

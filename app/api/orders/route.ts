@@ -22,7 +22,7 @@ const createOrderSchema = z.object({
     .enum(["ONLINE_UPI", "ONLINE_PREPAID", "CASHFREE", "UPI_DOORSTEP", "RAZORPAY", "CASH_ON_DELIVERY"])
     .default("ONLINE_UPI")
     .transform((val) => {
-      if (val === "ONLINE_UPI" || (val as string) === "RAZORPAY") return "ONLINE_PREPAID";
+      if (val === "ONLINE_UPI" || val === "CASHFREE" || (val as string) === "RAZORPAY") return "ONLINE_PREPAID";
       return val;
     }),
   couponCode: z.string().optional(),

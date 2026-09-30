@@ -25,10 +25,12 @@ import {
   ArrowLeft,
   Loader2,
   CreditCard,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { loadCashfreeSdk, setupCashfreeModalAdjuster } from "@/lib/cashfree";
+import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
 
 // Dynamically import Leaflet OrderRouteMap to disable SSR
 const DynamicOrderRouteMap = dynamic(
@@ -99,6 +101,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
   const [isConnected, setIsConnected] = React.useState<boolean>(true);
   const [isPayingWithCashfree, setIsPayingWithCashfree] = React.useState<boolean>(false);
   const [cashfreeError, setCashfreeError] = React.useState<string | null>(null);
+  const [showUpiModal, setShowUpiModal] = React.useState<boolean>(false);
 
   // Auto-verify payment status if returning from Cashfree with PENDING payment status
   React.useEffect(() => {
@@ -485,28 +488,31 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
         </div>
       )}
 
-      {/* PENDING CASHFREE PAYMENT ACTION BANNER */}
+      {/* PENDING UPI / PREPAID PAYMENT ACTION BANNER */}
       {!isCancelled &&
         order.paymentStatus !== "PAID" &&
-        (order.paymentMethod === "CASHFREE" || (order.paymentMethod as string) === "RAZORPAY") && (
-          <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in-50">
+        (order.paymentMethod === "CASHFREE" ||
+          (order.paymentMethod as string) === "RAZORPAY" ||
+          order.paymentMethod === "ONLINE_PREPAID" ||
+          (order.paymentMethod as string) === "ONLINE_UPI") && (
+          <div className="bg-emerald-500/10 border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in-50">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
-                  className="border-amber-500 text-amber-700 bg-amber-100 font-bold text-xs"
+                  className="border-emerald-500 text-emerald-700 bg-emerald-100 font-bold text-xs"
                 >
                   Payment Pending
                 </Badge>
                 <span className="text-xs text-muted-foreground font-semibold">
-                  Instant Prepaid Checkout
+                  Zero Gateway Fee UPI
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-surface-dark">
-                Complete Payment for Order #{order.orderNumber}
+                Complete UPI Payment for Order #{order.orderNumber}
               </h3>
               <p className="text-xs text-muted-foreground max-w-md">
-                Pay instantly using UPI (Google Pay, PhonePe, Paytm), Credit/Debit Card, or NetBanking to proceed with dispatch.
+                Pay directly with Google Pay, PhonePe, Paytm, or Dynamic QR code to proceed with superfast dispatch.
               </p>
               {cashfreeError && (
                 <p className="text-xs font-bold text-red-600 pt-1">
@@ -517,27 +523,18 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
 
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto shrink-0">
               <Button
-                onClick={handlePayWithCashfree}
-                disabled={isPayingWithCashfree || isCancelling}
-                className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-primary text-white font-black text-xs shadow-md hover:bg-primary/90 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
+                onClick={() => setShowUpiModal(true)}
+                disabled={isCancelling}
+                className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-emerald-600 text-white font-black text-xs shadow-md hover:bg-emerald-700 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
               >
-                {isPayingWithCashfree ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Opening Payment...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    <span>Pay Online • ₹{order.totalAmount}</span>
-                  </>
-                )}
+                <Smartphone className="w-4 h-4" />
+                <span>Pay via UPI • ₹{order.totalAmount}</span>
               </Button>
 
               <Button
                 variant="outline"
                 onClick={handleCancelPendingOrder}
-                disabled={isPayingWithCashfree || isCancelling}
+                disabled={isCancelling}
                 className="w-full sm:w-auto h-11 px-4 rounded-2xl border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs shrink-0"
               >
                 {isCancelling ? (
@@ -873,6 +870,16 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
             </div>
           </div>
         )}
+      {/* Direct Native UPI Payment Modal */}
+      {showUpiModal && (
+        <UpiPaymentModal
+          isOpen={showUpiModal}
+          orderNumber={order.orderNumber}
+          orderId={order.orderId}
+          totalAmount={order.totalAmount}
+          onClose={() => setShowUpiModal(false)}
+        />
+      )}
       </div>
     </div>
   );

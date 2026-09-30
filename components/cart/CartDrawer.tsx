@@ -139,6 +139,17 @@ export function CartDrawer() {
     totalAmount: number;
   } | null>(null);
 
+  // Auto-migrate any legacy paymentMethod (e.g. CASHFREE / RAZORPAY) to ONLINE_UPI
+  React.useEffect(() => {
+    if (
+      paymentMethod === "CASHFREE" ||
+      (paymentMethod as any) === "RAZORPAY" ||
+      (paymentMethod as any) === "ONLINE_PREPAID"
+    ) {
+      setPaymentMethod("ONLINE_UPI");
+    }
+  }, [paymentMethod, setPaymentMethod]);
+
   // Available Promotional Coupons State
   const [availableCoupons, setAvailableCoupons] = React.useState<AvailableCoupon[]>([]);
   const [isLoadingCoupons, setIsLoadingCoupons] = React.useState<boolean>(false);
@@ -354,8 +365,13 @@ export function CartDrawer() {
         return;
       }
 
-      // If Direct UPI payment method (GPay, PhonePe, Paytm), launch native UPI modal
-      if (paymentMethod === "ONLINE_UPI") {
+      // Direct Native UPI payment flow (Google Pay, PhonePe, Paytm, QR) — Zero Gateway Fee
+      if (
+        paymentMethod === "ONLINE_UPI" ||
+        paymentMethod === "CASHFREE" ||
+        (paymentMethod as any) === "ONLINE_PREPAID" ||
+        (paymentMethod as any) === "RAZORPAY"
+      ) {
         setIsPlacingOrder(false);
         setUpiModalData({
           isOpen: true,
@@ -364,10 +380,7 @@ export function CartDrawer() {
           totalAmount: totals.grandTotal,
         });
         return;
-      }
-
-      // If Online payment method (Cashfree), launch payment checkout modal
-      if (paymentMethod === "CASHFREE" || (paymentMethod as any) === "RAZORPAY") {
+      } else if ((paymentMethod as any) === "LEGACY_GATEWAY") {
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
           setOrderError("Unable to load payment SDK. Please try again.");
