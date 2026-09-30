@@ -13,6 +13,7 @@ WORKDIR /app
 # Copy dependency manifests and prisma schema
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
+COPY scripts ./scripts/
 
 # Clean install all dependencies (including devDependencies for build & seed)
 RUN npm ci

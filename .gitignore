@@ -53,9 +53,11 @@ next-env.d.ts
 # mobile build artifacts
 /dist/
 *.apk
+!public/downloads/sabquick.apk
 *.aab
 *.ipa
-public/downloads/
+public/downloads/*
+!public/downloads/sabquick.apk
 android/local.properties
 ios/App/Pods/
 .freebuff/
