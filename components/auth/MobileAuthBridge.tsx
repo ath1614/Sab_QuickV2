@@ -24,13 +24,13 @@ export function MobileAuthBridge() {
           console.log("[MobileAuthBridge] deep link:", data.url);
 
           try {
-            // Handle sabquick://auth-callback?token=xxx
+            // Handle sabquick://auth-callback?token=xxx or intent://...
             const rawUrl = data.url;
             let token: string | null = null;
 
-            if (rawUrl.includes("token=")) {
-              const urlObj = new URL(rawUrl.replace("sabquick://", "https://sabquick.com/"));
-              token = urlObj.searchParams.get("token");
+            const match = rawUrl.match(/[?&]token=([^&#]+)/);
+            if (match) {
+              token = decodeURIComponent(match[1]);
             }
 
             if (token) {

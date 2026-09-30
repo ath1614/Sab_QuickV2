@@ -47,6 +47,7 @@ export default async function MobileReturnPage() {
   await redis.setex(`auth:mobile-exchange:${exchangeToken}`, 90, JSON.stringify(payload));
 
   const deepLinkUrl = `sabquick://auth-callback?token=${exchangeToken}`;
+  const androidIntentUrl = `intent://auth-callback?token=${exchangeToken}#Intent;scheme=sabquick;package=com.sabquick.app;end`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-white to-slate-50 flex flex-col items-center justify-center p-6 text-center">
@@ -73,24 +74,29 @@ export default async function MobileReturnPage() {
         <div className="space-y-3 pt-2">
           <a
             href={deepLinkUrl}
-            className="w-full h-14 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-hover text-white font-black text-base shadow-lg shadow-primary/20 active:scale-95 transition-all"
+            className="w-full h-14 inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
           >
             <span>Open SabQuick App</span>
             <ArrowRight className="w-5 h-5" />
           </a>
 
           <p className="text-[11px] text-muted-foreground">
-            Tap the button above if your SabQuick app does not open automatically.
+            Tap <strong>Open SabQuick App</strong> if the application does not switch automatically.
           </p>
         </div>
 
-        {/* Auto-redirect script */}
+        {/* Dual Auto-redirect script (Scheme + Android Intent) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
                   window.location.href = "${deepLinkUrl}";
+                  setTimeout(function() {
+                    try {
+                      window.location.href = "${androidIntentUrl}";
+                    } catch(e) {}
+                  }, 600);
                 } catch(e) {}
               })();
             `,
