@@ -70,5 +70,24 @@
 	<string>SabQuick uses your location to verify delivery within our 10-15 minute 2.5 km dark store geofence.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>SabQuick uses your camera to scan delivery QR codes and OTP receipts.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.sabquick.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sabquick</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>upi</string>
+		<string>phonepe</string>
+		<string>tez</string>
+		<string>paytmmp</string>
+		<string>bhim</string>
+	</array>
 </dict>
 </plist>

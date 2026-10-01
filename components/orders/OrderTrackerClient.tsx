@@ -505,14 +505,20 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                   Payment Pending
                 </Badge>
                 <span className="text-xs text-muted-foreground font-semibold">
-                  Zero Gateway Fee UPI
+                  {order.paymentMethod === "CASHFREE"
+                    ? "Cashfree Secure Gateway"
+                    : "Zero Gateway Fee UPI"}
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-surface-dark">
-                Complete UPI Payment for Order #{order.orderNumber}
+                {order.paymentMethod === "CASHFREE"
+                  ? `Complete Online Payment for Order #${order.orderNumber}`
+                  : `Complete UPI Payment for Order #${order.orderNumber}`}
               </h3>
               <p className="text-xs text-muted-foreground max-w-md">
-                Pay directly with Google Pay, PhonePe, Paytm, or Dynamic QR code to proceed with superfast dispatch.
+                {order.paymentMethod === "CASHFREE"
+                  ? "Pay securely with Cards, UPI, NetBanking, or Wallets to proceed with superfast dispatch."
+                  : "Pay directly with Google Pay, PhonePe, Paytm, or Dynamic QR code to proceed with superfast dispatch."}
               </p>
               {cashfreeError && (
                 <p className="text-xs font-bold text-red-600 pt-1">
@@ -522,19 +528,62 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto shrink-0">
-              <Button
-                onClick={() => setShowUpiModal(true)}
-                disabled={isCancelling}
-                className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-emerald-600 text-white font-black text-xs shadow-md hover:bg-emerald-700 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span>Pay via UPI • ₹{order.totalAmount}</span>
-              </Button>
+              {order.paymentMethod === "CASHFREE" ? (
+                <>
+                  <Button
+                    onClick={handlePayWithCashfree}
+                    disabled={isCancelling || isPayingWithCashfree}
+                    className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-emerald-600 text-white font-black text-xs shadow-md hover:bg-emerald-700 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
+                  >
+                    {isPayingWithCashfree ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4" />
+                    )}
+                    <span>Pay Online (Cashfree) • ₹{order.totalAmount}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowUpiModal(true)}
+                    disabled={isCancelling || isPayingWithCashfree}
+                    className="w-full sm:w-auto h-11 px-4 rounded-2xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold text-xs shrink-0"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Pay via UPI App</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => setShowUpiModal(true)}
+                    disabled={isCancelling || isPayingWithCashfree}
+                    className="w-full sm:w-auto h-11 px-5 rounded-2xl bg-emerald-600 text-white font-black text-xs shadow-md hover:bg-emerald-700 flex items-center justify-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    <span>Pay via UPI • ₹{order.totalAmount}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={handlePayWithCashfree}
+                    disabled={isCancelling || isPayingWithCashfree}
+                    className="w-full sm:w-auto h-11 px-4 rounded-2xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-bold text-xs shrink-0"
+                  >
+                    {isPayingWithCashfree ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-3.5 h-3.5" />
+                    )}
+                    <span>Pay via Cashfree</span>
+                  </Button>
+                </>
+              )}
 
               <Button
                 variant="outline"
                 onClick={handleCancelPendingOrder}
-                disabled={isCancelling}
+                disabled={isCancelling || isPayingWithCashfree}
                 className="w-full sm:w-auto h-11 px-4 rounded-2xl border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs shrink-0"
               >
                 {isCancelling ? (

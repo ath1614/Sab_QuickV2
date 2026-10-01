@@ -144,7 +144,14 @@ export const useCartStore = create<CartStoreState>()(
     (set, get) => ({
       items: [],
       tipAmount: 0,
-      paymentMethod: "ONLINE_UPI",
+      paymentMethod:
+        typeof window !== "undefined" &&
+        Boolean(
+          (window as any).Capacitor?.isNativePlatform?.() ||
+          (window as any).Capacitor?.isNative
+        )
+          ? "ONLINE_UPI"
+          : "CASHFREE",
       appliedCoupon: null,
       isOpen: false,
       isPillMinimized: false,
@@ -318,7 +325,7 @@ export const useCartStore = create<CartStoreState>()(
     }),
     {
       name: "sabquick_cart_storage",
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         items: state.items,
@@ -329,28 +336,40 @@ export const useCartStore = create<CartStoreState>()(
       }),
       migrate: (persistedState: any, version: number) => {
         const state = persistedState || {};
+        const isNative =
+          typeof window !== "undefined" &&
+          Boolean(
+            (window as any).Capacitor?.isNativePlatform?.() ||
+            (window as any).Capacitor?.isNative
+          );
         if (
-          version < 3 ||
-          state.paymentMethod === "CASHFREE" ||
-          state.paymentMethod === "RAZORPAY" ||
-          state.paymentMethod === "ONLINE_PREPAID" ||
+          version < 4 ||
+          (state.paymentMethod as any) === "RAZORPAY" ||
+          (state.paymentMethod as any) === "ONLINE_PREPAID" ||
           !state.paymentMethod
         ) {
-          state.paymentMethod = "ONLINE_UPI";
+          state.paymentMethod = isNative ? "ONLINE_UPI" : "CASHFREE";
         }
         return state;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (
-            (state.paymentMethod as any) === "RAZORPAY" ||
-            (state.paymentMethod as any) === "CASHFREE" ||
-            (state.paymentMethod as any) === "ONLINE_PREPAID" ||
-            !state.paymentMethod
-          ) {
+          const isNative =
+            typeof window !== "undefined" &&
+            Boolean(
+              (window as any).Capacitor?.isNativePlatform?.() ||
+              (window as any).Capacitor?.isNative
+            );
+
+          if (isNative && state.paymentMethod === "CASHFREE") {
             state.paymentMethod = "ONLINE_UPI";
             setTimeout(() => {
               useCartStore.setState({ paymentMethod: "ONLINE_UPI" });
+            }, 0);
+          } else if (!isNative && state.paymentMethod === "ONLINE_UPI") {
+            state.paymentMethod = "CASHFREE";
+            setTimeout(() => {
+              useCartStore.setState({ paymentMethod: "CASHFREE" });
             }, 0);
           }
         }

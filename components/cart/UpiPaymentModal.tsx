@@ -75,6 +75,7 @@ export function UpiPaymentModal({
     await launchUpiPayment({
       uri: upiUri,
       packageName: app.packageName,
+      appId: app.id,
     });
   };
 

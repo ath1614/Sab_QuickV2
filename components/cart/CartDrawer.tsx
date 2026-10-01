@@ -139,14 +139,45 @@ export function CartDrawer() {
     totalAmount: number;
   } | null>(null);
 
-  // Auto-migrate any legacy paymentMethod (e.g. CASHFREE / RAZORPAY) to ONLINE_UPI
+  const [isNativeApp, setIsNativeApp] = React.useState<boolean>(false);
+
   React.useEffect(() => {
-    if (
-      paymentMethod === "CASHFREE" ||
-      (paymentMethod as any) === "RAZORPAY" ||
-      (paymentMethod as any) === "ONLINE_PREPAID"
-    ) {
-      setPaymentMethod("ONLINE_UPI");
+    const isNative =
+      typeof window !== "undefined" &&
+      Boolean(
+        (window as any).Capacitor?.isNativePlatform?.() ||
+        (window as any).Capacitor?.isNative
+      );
+    setIsNativeApp(isNative);
+  }, []);
+
+  // Auto-migrate payment methods based on platform
+  React.useEffect(() => {
+    const isNative =
+      typeof window !== "undefined" &&
+      Boolean(
+        (window as any).Capacitor?.isNativePlatform?.() ||
+        (window as any).Capacitor?.isNative
+      );
+
+    if (isNative) {
+      // In native mobile app: online checkout must be ONLINE_UPI (Google Pay, PhonePe, Paytm)
+      if (
+        paymentMethod === "CASHFREE" ||
+        (paymentMethod as any) === "RAZORPAY" ||
+        (paymentMethod as any) === "ONLINE_PREPAID"
+      ) {
+        setPaymentMethod("ONLINE_UPI");
+      }
+    } else {
+      // On website (desktop/browser): online checkout is CASHFREE payment gateway
+      if (
+        paymentMethod === "ONLINE_UPI" ||
+        (paymentMethod as any) === "RAZORPAY" ||
+        (paymentMethod as any) === "ONLINE_PREPAID"
+      ) {
+        setPaymentMethod("CASHFREE");
+      }
     }
   }, [paymentMethod, setPaymentMethod]);
 
@@ -365,13 +396,8 @@ export function CartDrawer() {
         return;
       }
 
-      // Direct Native UPI payment flow (Google Pay, PhonePe, Paytm, QR) — Zero Gateway Fee
-      if (
-        paymentMethod === "ONLINE_UPI" ||
-        paymentMethod === "CASHFREE" ||
-        (paymentMethod as any) === "ONLINE_PREPAID" ||
-        (paymentMethod as any) === "RAZORPAY"
-      ) {
+      // Direct Native UPI payment flow (Google Pay, PhonePe, Paytm, QR) — Mobile Apps
+      if (paymentMethod === "ONLINE_UPI") {
         setIsPlacingOrder(false);
         setUpiModalData({
           isOpen: true,
@@ -380,10 +406,11 @@ export function CartDrawer() {
           totalAmount: totals.grandTotal,
         });
         return;
-      } else if ((paymentMethod as any) === "LEGACY_GATEWAY") {
+      } else if (paymentMethod === "CASHFREE") {
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
-          setOrderError("Unable to load payment SDK. Please try again.");
+          setOrderError("Unable to load Cashfree payment gateway. Please try again or choose UPI on Delivery.");
+          setIsPlacingOrder(false);
           return;
         }
 
@@ -396,25 +423,19 @@ export function CartDrawer() {
         const cfData = await cfRes.json();
         if (!cfRes.ok) {
           setOrderError(cfData.error || "Failed to initiate online payment.");
+          setIsPlacingOrder(false);
           return;
         }
 
         const Cashfree = (window as any).Cashfree;
         if (!Cashfree) {
-          setOrderError("Payment SDK not ready. Please try again.");
+          setOrderError("Payment gateway not ready. Please try again.");
           setIsPlacingOrder(false);
           return;
         }
 
         setIsCashfreeActive(true);
         setupCashfreeModalAdjuster();
-
-        const isMobileDevice =
-          typeof window !== "undefined" &&
-          (window.innerWidth < 768 ||
-            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-              navigator.userAgent
-            ));
 
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
@@ -433,22 +454,7 @@ export function CartDrawer() {
           }
         };
 
-        // On mobile devices: Use redirectTarget: "_self" so Cashfree renders its native mobile payment page
-        // with 1-tap UPI Intent buttons (PhonePe, Google Pay, Paytm) opening apps directly without desktop QR code.
-        // On desktop: Use redirectTarget: "_modal" for a centered popup with QR code scanning.
-        if (isMobileDevice) {
-          // Do not clear the cart before payment is verified!
-          // We save the pending order in sessionStorage so if user returns or cancels, their items are preserved.
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("sq_pending_checkout_order", data.orderNumber);
-          }
-          cashfreeInstance.checkout({
-            paymentSessionId: cfData.paymentSessionId,
-            redirectTarget: "_self",
-          });
-          return;
-        }
-
+        // Open Cashfree responsive modal directly on page (works on desktop and mobile web)
         cashfreeInstance
           .checkout({
             paymentSessionId: cfData.paymentSessionId,
@@ -1279,39 +1285,76 @@ export function CartDrawer() {
                   </h4>
 
                   <div className="space-y-2">
-                    {/* Option 1: Pay via UPI */}
-                    <div
-                      onClick={() => setPaymentMethod("ONLINE_UPI")}
-                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                        paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"
-                          ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"}
-                          onChange={() => setPaymentMethod("ONLINE_UPI")}
-                          className="accent-primary w-4 h-4 cursor-pointer"
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-surface-dark">
-                              Pay via UPI
-                            </span>
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              Instant App
-                            </span>
+                    {/* Option 1: Online Payment (Platform Differentiated) */}
+                    {isNativeApp ? (
+                      /* Native Mobile App: Direct UPI (GPay, PhonePe, Paytm, BHIM) */
+                      <div
+                        onClick={() => setPaymentMethod("ONLINE_UPI")}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                          paymentMethod === "ONLINE_UPI"
+                            ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
+                            : "border-slate-200 hover:border-slate-300 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "ONLINE_UPI"}
+                            onChange={() => setPaymentMethod("ONLINE_UPI")}
+                            className="accent-primary w-4 h-4 cursor-pointer"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-surface-dark">
+                                Pay via UPI App
+                              </span>
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                Instant App
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Google Pay, PhonePe, Paytm & any UPI app
+                            </p>
                           </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            Google Pay, PhonePe, Paytm & any UPI app
-                          </p>
                         </div>
+                        <Smartphone className="w-4 h-4 text-primary shrink-0" />
                       </div>
-                      <Smartphone className="w-4 h-4 text-primary shrink-0" />
-                    </div>
+                    ) : (
+                      /* Website: Cashfree Gateway (Cards, UPI, NetBanking, Wallets) */
+                      <div
+                        onClick={() => setPaymentMethod("CASHFREE")}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                          paymentMethod === "CASHFREE"
+                            ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
+                            : "border-slate-200 hover:border-slate-300 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "CASHFREE"}
+                            onChange={() => setPaymentMethod("CASHFREE")}
+                            className="accent-primary w-4 h-4 cursor-pointer"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-surface-dark">
+                                Pay Online (Cashfree)
+                              </span>
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                Cards & UPI
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Cards, UPI, NetBanking & Wallets
+                            </p>
+                          </div>
+                        </div>
+                        <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                      </div>
+                    )}
 
                     {/* Option 2: UPI at Doorstep */}
                     <div
@@ -1406,10 +1449,12 @@ export function CartDrawer() {
                   <span className="truncate">
                     {isPlacingOrder
                       ? "Placing Order..."
-                      : paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE"
-                      ? "Pay via UPI"
+                      : paymentMethod === "ONLINE_UPI"
+                      ? "Pay via UPI App"
+                      : paymentMethod === "CASHFREE"
+                      ? "Pay Online (Cashfree)"
                       : paymentMethod === "UPI_DOORSTEP"
-                      ? "Pay with UPI"
+                      ? "Pay with UPI at Delivery"
                       : "Pay on Delivery"}
                   </span>
                 </div>

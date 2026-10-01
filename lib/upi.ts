@@ -67,16 +67,50 @@ export function buildUpiUri({
   return `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(name)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(note)}&tr=${encodeURIComponent(orderNumber)}`;
 }
 
+export function getIosUpiUri(uri: string, appId?: string): string {
+  if (!appId || appId === "any") return uri;
+  const queryString = uri.replace(/^upi:\/\/pay\?/, "");
+  if (appId === "phonepe") {
+    return `phonepe://pay?${queryString}`;
+  }
+  if (appId === "gpay") {
+    return `tez://upi/pay?${queryString}`;
+  }
+  if (appId === "paytm") {
+    return `paytmmp://pay?${queryString}`;
+  }
+  return uri;
+}
+
 export async function launchUpiPayment({
   uri,
   packageName,
+  appId,
 }: {
   uri: string;
   packageName?: string;
+  appId?: string;
 }): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
-  // 1. If running inside Capacitor native Android container
+  const isIos =
+    Capacitor.getPlatform() === "ios" ||
+    /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // 1. If running on iOS (Capacitor or Safari), trigger targeted iOS scheme or generic upi://
+  if (isIos) {
+    const iosUri = getIosUpiUri(uri, appId);
+    try {
+      window.location.href = iosUri;
+      return true;
+    } catch (err) {
+      console.warn("iOS UPI targeted launch failed, trying generic upi URI:", err);
+      window.location.href = uri;
+      return true;
+    }
+  }
+
+  // 2. If running inside Capacitor native Android container
   if (Capacitor.isNativePlatform()) {
     try {
       await NativeUpi.launchUpi({ uri, packageName });
@@ -86,7 +120,7 @@ export async function launchUpiPayment({
     }
   }
 
-  // 2. Mobile web browser fallback (Chrome/Firefox/Safari on Android)
+  // 3. Mobile web browser fallback (Chrome/Firefox/Safari on Android)
   try {
     window.location.href = uri;
     return true;
