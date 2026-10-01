@@ -77,6 +77,23 @@ export async function ensureDatabaseSchema() {
       END $$;
     `);
 
+    // 6. Ensure DeviceToken table exists for Push Notifications
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "DeviceToken" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        "token" TEXT NOT NULL UNIQUE,
+        "platform" TEXT NOT NULL,
+        "deviceModel" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "DeviceToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "DeviceToken_userId_idx" ON "DeviceToken"("userId");
+    `);
+
     isHealed = true;
   } catch (err) {
     console.error("[DB Self-Heal Warning]:", err);

@@ -108,5 +108,15 @@ export async function updateOrderStatus(
     console.warn("[Redis Publish Warning orders:dispatch]:", err);
   }
 
+  // 3. Dispatch Firebase Cloud Messaging push notification to customer device
+  try {
+    const { sendOrderStatusPushNotification } = await import("@/lib/notifications");
+    sendOrderStatusPushNotification(orderId, newStatus).catch((pushErr) => {
+      console.warn(`[Push Notification Dispatch Warning order:${orderId}]:`, pushErr);
+    });
+  } catch (err) {
+    console.warn(`[Push Notification Import Warning order:${orderId}]:`, err);
+  }
+
   return updatedOrder;
 }

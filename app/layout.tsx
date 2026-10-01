@@ -9,6 +9,7 @@ import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { MobileAuthBridge } from "@/components/auth/MobileAuthBridge";
+import { PushNotificationManager } from "@/components/notifications/PushNotificationManager";
 import { GlobalOverlays } from "@/app/providers/GlobalOverlays";
 import { GlobalCartWarningToast } from "@/components/cart/GlobalCartWarningToast";
 
@@ -103,6 +104,7 @@ export default function RootLayout({
       <body className="sq-skin">
         <AuthProvider>
           <MobileAuthBridge />
+          <PushNotificationManager />
           <PwaProvider>
             <ThemeSync />
             <div className="pb-28 sm:pb-32 md:pb-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">

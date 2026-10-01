@@ -60,6 +60,7 @@ model User {
   deliveries         Order[]       @relation("RiderDeliveries")
   offlineCollections Order[]       @relation("OfflineCollector")
   riderProfile       RiderProfile?
+  deviceTokens       DeviceToken[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -241,4 +242,17 @@ model ThemeCampaign {
   updatedAt      DateTime @updatedAt
 
   @@index([isActive, validFrom, validUntil])
+}
+
+model DeviceToken {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String   @unique
+  platform    String   // "ANDROID" | "IOS" | "WEB"
+  deviceModel String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
