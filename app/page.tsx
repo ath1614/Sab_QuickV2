@@ -135,65 +135,136 @@ function StorefrontContent() {
     return counts;
   }, [categories, products]);
 
-  // Grouped Aisles for "All Fresh Dark Store Catalog"
+  // Grouped Aisles for "All Fresh Dark Store Catalog" with Smart Subcategory Balancing
   const groupedAisles = React.useMemo(() => {
     if (categoryParam !== "all" || activeSearch.trim() !== "") {
       return [];
     }
 
-    const map = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        slug: string;
-        imageUrl?: string | null;
-        products: ProductData[];
-      }
-    >();
+    interface CategoryGroup {
+      id: string;
+      name: string;
+      slug: string;
+      imageUrl?: string | null;
+      subCategoryBuckets: Map<string, ProductData[]>;
+      directProducts: ProductData[];
+    }
 
-    // Seed map with categories in displayRank order
+    const groupMap = new Map<string, CategoryGroup>();
+
+    // 1. Initialize groups with parent categories in displayRank order
     categories.forEach((cat) => {
-      map.set(cat.id, {
+      const bucketMap = new Map<string, ProductData[]>();
+      // Pre-seed subcategory buckets in subcategory displayRank order
+      (cat.subCategories || []).forEach((sub) => {
+        bucketMap.set(sub.id, []);
+      });
+
+      groupMap.set(cat.id, {
         id: cat.id,
         name: cat.name,
         slug: cat.slug,
         imageUrl: cat.imageUrl,
-        products: [],
+        subCategoryBuckets: bucketMap,
+        directProducts: [],
       });
     });
 
+    // 2. Distribute products into their respective parent & subcategory buckets
     products.forEach((prod) => {
       const catId = prod.category?.id;
-      if (catId && map.has(catId)) {
-        map.get(catId)!.products.push(prod);
-      } else {
-        // Check if prod belongs to a subcategory whose parent is in map
-        let assigned = false;
-        for (const parent of categories) {
-          if (parent.subCategories?.some((s) => s.id === catId)) {
-            map.get(parent.id)?.products.push(prod);
+      if (!catId) return;
+
+      // Case A: Product is assigned directly to a parent category
+      if (groupMap.has(catId)) {
+        groupMap.get(catId)!.directProducts.push(prod);
+        return;
+      }
+
+      // Case B: Product belongs to a subcategory under a known parent
+      let assigned = false;
+      for (const parent of categories) {
+        if (parent.subCategories?.some((s) => s.id === catId)) {
+          const group = groupMap.get(parent.id);
+          if (group) {
+            if (!group.subCategoryBuckets.has(catId)) {
+              group.subCategoryBuckets.set(catId, []);
+            }
+            group.subCategoryBuckets.get(catId)!.push(prod);
             assigned = true;
-            break;
           }
+          break;
         }
-        if (!assigned && prod.category) {
-          if (!map.has(prod.category.id)) {
-            map.set(prod.category.id, {
-              id: prod.category.id,
-              name: prod.category.name,
-              slug: prod.category.slug,
-              products: [],
-            });
-          }
-          map.get(prod.category.id)!.products.push(prod);
+      }
+
+      // Case C: Fallback standalone category not in parent list
+      if (!assigned && prod.category) {
+        if (!groupMap.has(prod.category.id)) {
+          groupMap.set(prod.category.id, {
+            id: prod.category.id,
+            name: prod.category.name,
+            slug: prod.category.slug,
+            imageUrl: null,
+            subCategoryBuckets: new Map(),
+            directProducts: [],
+          });
         }
+        groupMap.get(prod.category.id)!.directProducts.push(prod);
       }
     });
 
-    return Array.from(map.values())
-      .map((g) => ({ ...g, products: g.products.slice(0, MAX_RAIL_PRODUCTS) }))
-      .filter((g) => g.products.length > 0);
+    // 3. Assemble balanced product rails via round-robin across subcategories
+    const result: {
+      id: string;
+      name: string;
+      slug: string;
+      imageUrl?: string | null;
+      products: ProductData[];
+    }[] = [];
+
+    groupMap.forEach((group) => {
+      const balancedProducts: ProductData[] = [];
+      const seenProductIds = new Set<string>();
+
+      // Collect all subcategory buckets that have products
+      const activeBuckets: ProductData[][] = [];
+      group.subCategoryBuckets.forEach((bucket) => {
+        if (bucket.length > 0) activeBuckets.push([...bucket]);
+      });
+
+      // If there are direct products, add them as an extra bucket
+      if (group.directProducts.length > 0) {
+        activeBuckets.push([...group.directProducts]);
+      }
+
+      // Round-robin selection: pick 1 product from each subcategory in turn
+      let hasMore = true;
+      while (hasMore && balancedProducts.length < MAX_RAIL_PRODUCTS) {
+        hasMore = false;
+        for (const bucket of activeBuckets) {
+          if (bucket.length > 0 && balancedProducts.length < MAX_RAIL_PRODUCTS) {
+            const nextProd = bucket.shift()!;
+            if (!seenProductIds.has(nextProd.id)) {
+              seenProductIds.add(nextProd.id);
+              balancedProducts.push(nextProd);
+            }
+            if (bucket.length > 0) hasMore = true;
+          }
+        }
+      }
+
+      if (balancedProducts.length > 0) {
+        result.push({
+          id: group.id,
+          name: group.name,
+          slug: group.slug,
+          imageUrl: group.imageUrl,
+          products: balancedProducts,
+        });
+      }
+    });
+
+    return result;
   }, [categories, products, categoryParam, activeSearch]);
 
   // Cold-start splash screen runs only once per session
