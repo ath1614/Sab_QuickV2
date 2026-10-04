@@ -55,45 +55,93 @@ export async function getRecommendations(
     }
   });
 
-  // 2. Determine target companion tags based on affinity rules
+  // 2. Determine target companion tags and companion category slugs based on affinity rules
   const targetTagsSet = new Set<string>();
+  const targetCategorySlugs = new Set<string>();
 
   const hasTagMatch = (substrings: string[]) =>
     Array.from(cartTags).some((tag) =>
       substrings.some((sub) => tag.includes(sub))
     );
 
-  if (hasTagMatch(["dairy", "milk"])) {
-    ["bread-and-butter", "bakery", "biscuits", "tea-partner", "bread", "butter"].forEach(
+  // Dairy & Breakfast -> Bread, Bakery, Biscuits, Tea Partner
+  if (hasTagMatch(["dairy", "milk", "butter", "paneer", "curd", "cheese", "eggs"])) {
+    ["bread-and-butter", "bakery", "biscuits", "tea-partner", "bread", "butter", "cookies", "rusk", "breakfast"].forEach(
       (t) => targetTagsSet.add(t)
     );
+    ["bread-and-butter", "biscuits-and-cookies"].forEach((c) => targetCategorySlugs.add(c));
   }
 
-  if (hasTagMatch(["noodles", "instant", "instant-foods", "instant-snack"])) {
-    ["soft-drinks", "chips", "snacks", "cold-drink", "drinks", "cola"].forEach(
+  // Tea, Coffee & Beverages -> Milk, Sugar, Biscuits, Snacks
+  if (hasTagMatch(["tea", "coffee", "chai", "beverage", "hot-drinks"])) {
+    ["milk", "dairy", "biscuits", "cookies", "sugar", "rusk", "snacks"].forEach(
       (t) => targetTagsSet.add(t)
     );
+    ["milk", "biscuits-and-cookies"].forEach((c) => targetCategorySlugs.add(c));
   }
 
-  if (hasTagMatch(["chips", "snack", "snacks", "munchies"])) {
+  // Instant Foods & Noodles -> Cold Drinks, Chips, Snacks
+  if (hasTagMatch(["noodles", "instant", "instant-foods", "instant-snack", "maggi", "pasta"])) {
+    ["soft-drinks", "chips", "snacks", "cold-drink", "drinks", "cola", "sauce"].forEach(
+      (t) => targetTagsSet.add(t)
+    );
+    ["soft-drinks", "chips-and-crisps"].forEach((c) => targetCategorySlugs.add(c));
+  }
+
+  // Snacks, Munchies & Chips -> Cold Drinks, Juices, Dips
+  if (hasTagMatch(["chips", "snack", "snacks", "munchies", "crisps", "namkeen"])) {
     ["cold-drinks", "cold-drink", "drinks", "dips", "cola", "juice", "soft-drinks"].forEach(
+      (t) => targetTagsSet.add(t)
+    );
+    ["soft-drinks", "fruit-juices"].forEach((c) => targetCategorySlugs.add(c));
+  }
+
+  // Cold Drinks & Juices -> Snacks, Chips, Munchies
+  if (hasTagMatch(["drinks", "cola", "juice", "soft-drinks", "soda"])) {
+    ["chips", "snacks", "munchies", "crisps", "instant"].forEach(
+      (t) => targetTagsSet.add(t)
+    );
+    ["chips-and-crisps", "noodles-and-pasta"].forEach((c) => targetCategorySlugs.add(c));
+  }
+
+  // Staples (Atta, Rice, Dal) -> Spices, Cooking Oil, Salt
+  if (hasTagMatch(["atta", "flour", "rice", "dal", "pulses", "grains", "oil", "ghee"])) {
+    ["spices", "masala", "salt", "sugar", "oil", "ghee", "vegetables"].forEach(
+      (t) => targetTagsSet.add(t)
+    );
+  }
+
+  // Fresh Vegetables & Fruits -> Lemon, Chili, Coriander, Spices
+  if (hasTagMatch(["veggie", "vegetable", "fruit", "onion", "potato", "tomato"])) {
+    ["coriander", "lemon", "chili", "ginger", "garlic", "spices", "oil"].forEach(
+      (t) => targetTagsSet.add(t)
+    );
+  }
+
+  // Cleaning & Household
+  if (hasTagMatch(["detergent", "cleaner", "dishwash", "wash"])) {
+    ["scrubber", "sponge", "handwash", "soap", "trash-bags"].forEach(
       (t) => targetTagsSet.add(t)
     );
   }
 
   const targetTags = Array.from(targetTagsSet);
+  const companionCategories = Array.from(targetCategorySlugs);
 
   let recommendedProducts: any[] = [];
 
-  if (targetTags.length > 0) {
+  if (targetTags.length > 0 || companionCategories.length > 0) {
     recommendedProducts = await prisma.product.findMany({
       where: {
         id: { notIn: cleanCartIds },
         isAvailable: true,
         stockCount: { gt: 0 },
-        tags: {
-          hasSome: targetTags,
-        },
+        OR: [
+          ...(targetTags.length > 0 ? [{ tags: { hasSome: targetTags } }] : []),
+          ...(companionCategories.length > 0
+            ? [{ category: { slug: { in: companionCategories } } }]
+            : []),
+        ],
       },
       include: {
         category: {

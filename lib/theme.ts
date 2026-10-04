@@ -20,6 +20,10 @@ export interface ResolvedTheme {
   accentColor: string;
   saleTagText: string;
   bannerImageUrl: string | null;
+  /** Whether the dark store is open for live orders or in Coming Soon mode */
+  isStoreLive: boolean;
+  /** Projected launch ISO date string for live countdown */
+  launchDate: string | null;
   /** Which layer produced this theme — useful for owner debugging. */
   source: "campaign" | "manual" | "default";
   /** When a campaign is live, its id (for highlighting in the owner console). */
@@ -32,6 +36,8 @@ export const DEFAULT_THEME: ResolvedTheme = {
   accentColor: "#00C853",
   saleTagText: "⚡ Superfast Delivery Guarantee",
   bannerImageUrl: "/banners/forest-speed-hero.webp",
+  isStoreLive: true,
+  launchDate: null,
   source: "default",
 };
 
@@ -42,6 +48,8 @@ function manualToResolved(config: ThemeConfig): ResolvedTheme {
     accentColor: config.accentColor,
     saleTagText: config.saleTagText || DEFAULT_THEME.saleTagText,
     bannerImageUrl: config.bannerImageUrl,
+    isStoreLive: config.isStoreLive ?? true,
+    launchDate: config.launchDate ? config.launchDate.toISOString() : null,
     source: "manual",
   };
 }
@@ -53,6 +61,8 @@ function campaignToResolved(campaign: ThemeCampaign): ResolvedTheme {
     accentColor: campaign.accentColor,
     saleTagText: campaign.saleTagText || DEFAULT_THEME.saleTagText,
     bannerImageUrl: campaign.bannerImageUrl,
+    isStoreLive: true,
+    launchDate: null,
     source: "campaign",
     campaignId: campaign.id,
   };
@@ -63,22 +73,29 @@ export async function resolveActiveTheme(): Promise<ResolvedTheme> {
   const now = new Date();
 
   try {
-    const campaign = await prisma.themeCampaign.findFirst({
-      where: {
-        isActive: true,
-        validFrom: { lte: now },
-        validUntil: { gte: now },
-      },
-      orderBy: [{ priority: "desc" }, { validFrom: "desc" }],
-    });
+    const [campaign, manual] = await Promise.all([
+      prisma.themeCampaign.findFirst({
+        where: {
+          isActive: true,
+          validFrom: { lte: now },
+          validUntil: { gte: now },
+        },
+        orderBy: [{ priority: "desc" }, { validFrom: "desc" }],
+      }),
+      prisma.themeConfig.findUnique({
+        where: { id: "active_theme" },
+      }),
+    ]);
+
+    const isStoreLive = manual?.isStoreLive ?? true;
+    const launchDate = manual?.launchDate ? manual.launchDate.toISOString() : null;
 
     if (campaign) {
-      return campaignToResolved(campaign);
+      const res = campaignToResolved(campaign);
+      res.isStoreLive = isStoreLive;
+      res.launchDate = launchDate;
+      return res;
     }
-
-    const manual = await prisma.themeConfig.findUnique({
-      where: { id: "active_theme" },
-    });
 
     if (manual) {
       return manualToResolved(manual);

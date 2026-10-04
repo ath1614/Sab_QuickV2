@@ -90,8 +90,22 @@ export async function ensureDatabaseSchema() {
         CONSTRAINT "DeviceToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
     `);
+
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "DeviceToken_userId_idx" ON "DeviceToken"("userId");
+    `);
+
+    // 7. Ensure ThemeConfig has isStoreLive and launchDate for Pre-Launch Coming Soon mode
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ThemeConfig" ADD COLUMN IF NOT EXISTS "isStoreLive" BOOLEAN DEFAULT true;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "ThemeConfig" ADD COLUMN IF NOT EXISTS "launchDate" TIMESTAMP(3);`);
+
+    // 8. Ensure LaunchSubscriber table exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "LaunchSubscriber" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "contact" TEXT NOT NULL UNIQUE,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     isHealed = true;

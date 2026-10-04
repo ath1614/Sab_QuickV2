@@ -13,6 +13,8 @@ export async function GET() {
       accentColor: theme.accentColor,
       saleTagText: theme.saleTagText,
       bannerImageUrl: theme.bannerImageUrl,
+      isStoreLive: theme.isStoreLive ?? true,
+      launchDate: theme.launchDate ?? null,
       source: theme.source,
       campaignId: theme.campaignId ?? null,
     });
@@ -24,6 +26,8 @@ export async function GET() {
       accentColor: DEFAULT_THEME.accentColor,
       saleTagText: DEFAULT_THEME.saleTagText,
       bannerImageUrl: DEFAULT_THEME.bannerImageUrl,
+      isStoreLive: DEFAULT_THEME.isStoreLive,
+      launchDate: DEFAULT_THEME.launchDate,
       source: "default",
       campaignId: null,
     });

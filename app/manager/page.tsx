@@ -29,6 +29,8 @@ import {
   Store,
   ArrowLeft,
   Palette,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,6 +131,7 @@ export default function ManagerDispatchPage() {
   const [showDeliveredTab, setShowDeliveredTab] = React.useState(false);
   const [themeModalOpen, setThemeModalOpen] = React.useState(false);
   const [activeKanbanStage, setActiveKanbanStage] = React.useState<"PENDING" | "PACKING" | "READY" | "OUT">("PENDING");
+  const [isDownloadingBackup, setIsDownloadingBackup] = React.useState(false);
 
   // 1. Fetch live orders & riders
   const fetchOrdersAndRiders = React.useCallback(async (silent = false) => {
@@ -243,6 +246,30 @@ export default function ManagerDispatchPage() {
       console.error("Failed to toggle product stock:", e);
     } finally {
       setSkuUpdatingId(null);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    setIsDownloadingBackup(true);
+    try {
+      const res = await fetch("/api/owner/backup");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to export database backup");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sabquick_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to download backup");
+    } finally {
+      setIsDownloadingBackup(false);
     }
   };
 
@@ -386,6 +413,22 @@ export default function ManagerDispatchPage() {
             >
               <Palette className="w-3.5 h-3.5 text-primary" />
               <span>Theme</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadBackup}
+              disabled={isDownloadingBackup}
+              className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-primary shrink-0"
+              title="Download full JSON database snapshot"
+            >
+              {isDownloadingBackup ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-primary" />
+              )}
+              <span>Backup DB</span>
             </Button>
 
             <Link href="/" className="shrink-0">

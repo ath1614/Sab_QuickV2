@@ -58,6 +58,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // C. App Store & Google Play Reviewer Demo Account Bypass
+    const demoReviewPhone = process.env.DEMO_REVIEW_PHONE || "9999999999";
+    if (phone === demoReviewPhone) {
+      const demoOtp = process.env.DEMO_REVIEW_OTP || "1234";
+      await redis.set(`otp:phone:${phone}`, demoOtp, "EX", 86400);
+      return NextResponse.json({
+        success: true,
+        useFirebase: false,
+        message: "App Reviewer account detected. Use demo OTP to sign in.",
+        expiresIn: 86400,
+        cooldown: 0,
+        isNewUser: false,
+        freeOtp: demoOtp,
+      });
+    }
+
     // 2. Enforce strict 60-second rate-limiting cooldown per phone number via Redis
     const cooldownKey = `otp:cooldown:${phone}`;
     const inCooldown = await redis.get(cooldownKey);

@@ -34,6 +34,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
+import { ComingSoonView } from "@/components/store/ComingSoonView";
 
 interface ThemeInfo {
   themeName: string;
@@ -41,6 +43,8 @@ interface ThemeInfo {
   accentColor: string;
   saleTagText: string;
   bannerImageUrl?: string | null;
+  isStoreLive?: boolean;
+  launchDate?: string | null;
 }
 
 // Maximum cards mounted per rail on the home feed (per-card images dominate
@@ -50,6 +54,17 @@ const MAX_RAIL_PRODUCTS = 6;
 function StorefrontContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const [forcePreview, setForcePreview] = React.useState(false);
+
+  const userRole = session?.user?.role;
+  const userRoles: string[] =
+    (session?.user as any)?.roles?.length
+      ? (session?.user as any).roles
+      : [userRole];
+  const isStaffOrReviewer =
+    userRoles.some((r) => ["OWNER", "MANAGER", "PACKER", "RIDER"].includes(r)) ||
+    (session?.user as any)?.phone === "9999999999";
 
   // URL state
   const categoryParam = searchParams.get("category") || "all";
@@ -310,10 +325,44 @@ function StorefrontContent() {
     }, 100);
   };
 
+  const isPreLaunchMode = theme.isStoreLive === false;
+
+  if (isPreLaunchMode && !isStaffOrReviewer && !forcePreview) {
+    return (
+      <>
+        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+        <ComingSoonView
+          launchDate={theme.launchDate}
+          onEnterPreview={() => setForcePreview(true)}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/60 text-surface-dark font-sans selection:bg-primary selection:text-white">
       {/* Animated SabQuick Initial Splash Screen */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+
+      {/* Pre-launch Staff Preview Banner */}
+      {isPreLaunchMode && (
+        <div className="bg-amber-400 border-b border-amber-500 text-amber-950 px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-xs sticky top-0 z-50">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-900" />
+            <span>
+              <strong>PRE-LAUNCH PREVIEW MODE:</strong> The public storefront is currently in Coming Soon mode. You are viewing preview as staff/reviewer.
+            </span>
+          </div>
+          {userRoles.includes("OWNER") && (
+            <Link
+              href="/owner"
+              className="bg-amber-950 hover:bg-black text-white px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors shrink-0 shadow-xs"
+            >
+              Owner Hub &rarr;
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Main Authenticated Navbar */}
       <Navbar

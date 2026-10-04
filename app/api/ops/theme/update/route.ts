@@ -24,31 +24,52 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { themeName, primaryColor, accentColor, bannerImageUrl, saleTagText } = body;
+    const {
+      themeName,
+      primaryColor,
+      accentColor,
+      bannerImageUrl,
+      saleTagText,
+      isStoreLive,
+      launchDate,
+    } = body;
 
-    if (!themeName || !primaryColor || !accentColor) {
-      return NextResponse.json(
-        { error: "Missing required fields: themeName, primaryColor, and accentColor are required." },
-        { status: 400 }
-      );
-    }
+    const current = await prisma.themeConfig.findUnique({
+      where: { id: "active_theme" },
+    });
+
+    const finalThemeName = themeName || current?.themeName || "Standard";
+    const finalPrimaryColor = primaryColor || current?.primaryColor || "#0B6E4F";
+    const finalAccentColor = accentColor || current?.accentColor || "#00C853";
+    const finalBannerImageUrl =
+      bannerImageUrl !== undefined ? (bannerImageUrl || null) : (current?.bannerImageUrl || null);
+    const finalSaleTagText =
+      saleTagText !== undefined ? (saleTagText || null) : (current?.saleTagText || null);
+    const finalIsStoreLive =
+      isStoreLive !== undefined ? Boolean(isStoreLive) : (current?.isStoreLive ?? true);
+    const finalLaunchDate =
+      launchDate !== undefined ? (launchDate ? new Date(launchDate) : null) : (current?.launchDate ?? null);
 
     const updatedTheme = await prisma.themeConfig.upsert({
       where: { id: "active_theme" },
       update: {
-        themeName,
-        primaryColor,
-        accentColor,
-        bannerImageUrl: bannerImageUrl || null,
-        saleTagText: saleTagText || null,
+        themeName: finalThemeName,
+        primaryColor: finalPrimaryColor,
+        accentColor: finalAccentColor,
+        bannerImageUrl: finalBannerImageUrl,
+        saleTagText: finalSaleTagText,
+        isStoreLive: finalIsStoreLive,
+        launchDate: finalLaunchDate,
       },
       create: {
         id: "active_theme",
-        themeName,
-        primaryColor,
-        accentColor,
-        bannerImageUrl: bannerImageUrl || null,
-        saleTagText: saleTagText || null,
+        themeName: finalThemeName,
+        primaryColor: finalPrimaryColor,
+        accentColor: finalAccentColor,
+        bannerImageUrl: finalBannerImageUrl,
+        saleTagText: finalSaleTagText,
+        isStoreLive: finalIsStoreLive,
+        launchDate: finalLaunchDate,
       },
     });
 

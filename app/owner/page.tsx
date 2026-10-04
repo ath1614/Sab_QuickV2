@@ -32,6 +32,9 @@ import {
   Copy,
   Edit2,
   Calendar,
+  Download,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,6 +199,12 @@ export default function OwnerControlPage() {
   const [themeSaving, setThemeSaving] = React.useState(false);
   const [themeSuccessMsg, setThemeSuccessMsg] = React.useState("");
 
+  // Store Pre-launch & Live Ordering Status
+  const [isStoreLive, setIsStoreLive] = React.useState(true);
+  const [launchDate, setLaunchDate] = React.useState("");
+  const [isUpdatingStoreStatus, setIsUpdatingStoreStatus] = React.useState(false);
+  const [storeStatusMsg, setStoreStatusMsg] = React.useState<string | null>(null);
+
   // Scheduled Theme Campaigns (Phase 5 theme engine)
   interface ThemeCampaignItem {
     id: string;
@@ -254,6 +263,12 @@ export default function OwnerControlPage() {
       if (data.accentColor) setAccentColor(data.accentColor);
       if (data.saleTagText) setSaleTagText(data.saleTagText);
       if (data.bannerImageUrl) setBannerImageUrl(data.bannerImageUrl);
+      if (typeof data.isStoreLive === "boolean") setIsStoreLive(data.isStoreLive);
+      if (data.launchDate) {
+        setLaunchDate(new Date(data.launchDate).toISOString().slice(0, 16));
+      } else {
+        setLaunchDate("");
+      }
     } catch (e) {
       console.error("Theme fetch error:", e);
     }
@@ -556,6 +571,32 @@ export default function OwnerControlPage() {
     setTimeout(() => setCopiedCouponCode(null), 2000);
   };
 
+  const [isDownloadingBackup, setIsDownloadingBackup] = React.useState(false);
+
+  const handleDownloadBackup = async () => {
+    setIsDownloadingBackup(true);
+    try {
+      const res = await fetch("/api/owner/backup");
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to export database backup");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sabquick_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to download backup");
+    } finally {
+      setIsDownloadingBackup(false);
+    }
+  };
+
   React.useEffect(() => {
     if (authStatus === "authenticated") {
       fetchOperationsData();
@@ -641,6 +682,66 @@ export default function OwnerControlPage() {
       alert("Network error updating seasonal theme.");
     } finally {
       setThemeSaving(false);
+    }
+  };
+
+  // Toggle Storefront Pre-Launch / Live Ordering Mode
+  const handleToggleStoreLive = async (newStatus: boolean) => {
+    setIsUpdatingStoreStatus(true);
+    setStoreStatusMsg(null);
+    try {
+      const res = await fetch("/api/ops/theme/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isStoreLive: newStatus,
+          launchDate: launchDate ? new Date(launchDate).toISOString() : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update store status");
+      }
+
+      setIsStoreLive(newStatus);
+      setStoreStatusMsg(
+        newStatus
+          ? "Store is now LIVE and accepting customer orders!"
+          : "Store is now in Pre-Launch Coming Soon mode with countdown."
+      );
+      setTimeout(() => setStoreStatusMsg(null), 5000);
+    } catch (err: any) {
+      alert(err.message || "Failed to update store status");
+    } finally {
+      setIsUpdatingStoreStatus(false);
+    }
+  };
+
+  const handleSaveLaunchDate = async () => {
+    setIsUpdatingStoreStatus(true);
+    setStoreStatusMsg(null);
+    try {
+      const res = await fetch("/api/ops/theme/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          isStoreLive,
+          launchDate: launchDate ? new Date(launchDate).toISOString() : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save launch date");
+      }
+
+      setStoreStatusMsg("Target launch date successfully saved!");
+      setTimeout(() => setStoreStatusMsg(null), 5000);
+    } catch (err: any) {
+      alert(err.message || "Failed to save launch date");
+    } finally {
+      setIsUpdatingStoreStatus(false);
     }
   };
 
@@ -905,6 +1006,27 @@ export default function OwnerControlPage() {
               </Button>
             </Link>
 
+            <button
+              type="button"
+              onClick={handleDownloadBackup}
+              disabled={isDownloadingBackup}
+              className="shrink-0"
+              title="Download local JSON database backup"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-emerald-700 hover:border-emerald-300"
+              >
+                {isDownloadingBackup ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-emerald-600" />
+                )}
+                <span>Backup DB</span>
+              </Button>
+            </button>
+
             <Link href="/" className="shrink-0">
               <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
                 <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
@@ -1049,6 +1171,87 @@ export default function OwnerControlPage() {
 
         {/* CUSTOMERS CRM TAB */}
         {isOwner && activeOwnerTab === "customers" && <OwnerCustomersTab />}
+
+        {/* STORE LAUNCH & PRE-LAUNCH COMING SOON CONTROL */}
+        {isOwner && activeOwnerTab === "overview" && (
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 animate-in fade-in">
+            <div className="space-y-1.5 max-w-xl">
+              <div className="flex items-center gap-2.5">
+                <Badge
+                  className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                    isStoreLive
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : "bg-amber-100 text-amber-800 border-amber-300"
+                  }`}
+                  variant="outline"
+                >
+                  {isStoreLive ? "🟢 Store Live (Open)" : "🟡 Pre-Launch (Coming Soon)"}
+                </Badge>
+                <span className="text-xs text-slate-500 font-semibold">Storefront Mode</span>
+              </div>
+              <h2 className="text-lg font-black text-surface-dark tracking-tight">
+                {isStoreLive ? "Storefront is Live & Accepting Orders" : "Storefront is in Pre-Launch Mode"}
+              </h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {isStoreLive
+                  ? "Customers can browse full dark store catalog, add items to cart, and checkout with native UPI or Cashfree."
+                  : "Public visitors see a high-converting Coming Soon screen with countdown and notification signup. Staff and app reviewers can still test in preview mode."}
+              </p>
+              {storeStatusMsg && (
+                <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 pt-1">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{storeStatusMsg}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              {!isStoreLive && (
+                <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+                  <Calendar className="w-4 h-4 text-slate-500 shrink-0 ml-1" />
+                  <input
+                    type="datetime-local"
+                    value={launchDate}
+                    onChange={(e) => setLaunchDate(e.target.value)}
+                    className="text-xs bg-transparent border-0 font-medium text-slate-700 focus:outline-none"
+                    title="Launch Countdown Date & Time"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSaveLaunchDate}
+                    disabled={isUpdatingStoreStatus}
+                    className="h-7 px-2 text-[11px] font-bold text-primary hover:bg-slate-200 rounded-lg"
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                size="default"
+                onClick={() => handleToggleStoreLive(!isStoreLive)}
+                disabled={isUpdatingStoreStatus}
+                className={`rounded-2xl font-black text-xs px-5 shadow-sm transition-all gap-2 h-11 ${
+                  isStoreLive
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                }`}
+              >
+                {isUpdatingStoreStatus ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isStoreLive ? (
+                  <Clock className="w-4 h-4" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                <span>
+                  {isStoreLive ? "Switch to Coming Soon Mode" : "Launch Store Live Now"}
+                </span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* SECTION 1: FINANCIAL & SLA KPI METRIC CARDS */}
         {isOwner && activeOwnerTab === "overview" && (

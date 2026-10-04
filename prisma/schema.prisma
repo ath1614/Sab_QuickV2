@@ -216,13 +216,15 @@ model RiderProfile {
 }
 
 model ThemeConfig {
-  id             String   @id @default("active_theme")
-  themeName      String   @default("Standard")
-  primaryColor   String   @default("#0B6E4F")
-  accentColor    String   @default("#00C853")
+  id             String    @id @default("active_theme")
+  themeName      String    @default("Standard")
+  primaryColor   String    @default("#0B6E4F")
+  accentColor    String    @default("#00C853")
   bannerImageUrl String?
   saleTagText    String?
-  updatedAt      DateTime @updatedAt
+  isStoreLive    Boolean   @default(true)
+  launchDate     DateTime?
+  updatedAt      DateTime  @updatedAt
 }
 
 /// Scheduled seasonal theme campaign (Diwali, Holi, Summer Sale, ...).
@@ -255,4 +257,10 @@ model DeviceToken {
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+}
+
+model LaunchSubscriber {
+  id        String   @id @default(cuid())
+  contact   String   @unique
+  createdAt DateTime @default(now())
 }
