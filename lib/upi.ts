@@ -122,10 +122,23 @@ export async function launchUpiPayment({
 
   // 3. Mobile web browser fallback (Chrome/Firefox/Safari on Android)
   try {
+    if (!isIos && packageName && !Capacitor.isNativePlatform()) {
+      // Android Chrome intent scheme for targeted app launch
+      const rawParams = uri.replace(/^upi:\/\/pay\?/, "");
+      const intentUri = `intent://pay?${rawParams}#Intent;scheme=upi;package=${packageName};end;`;
+      window.location.href = intentUri;
+      return true;
+    }
+
     window.location.href = uri;
     return true;
   } catch (err) {
-    console.error("Failed to launch UPI via window.location:", err);
-    return false;
+    console.error("Failed to launch UPI via intent, falling back to uri:", err);
+    try {
+      window.location.href = uri;
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

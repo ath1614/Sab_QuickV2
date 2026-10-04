@@ -395,6 +395,13 @@ export default function ManagerDispatchPage() {
               </Button>
             </Link>
 
+            <Link href="/owner?tab=orders" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-primary">
+                <Package className="w-3.5 h-3.5 text-primary" />
+                <span>Orders Hub</span>
+              </Button>
+            </Link>
+
             {role === "OWNER" && (
               <Link href="/owner" className="shrink-0">
                 <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">

@@ -23,6 +23,12 @@ import {
   UpiAppConfig,
 } from "@/lib/upi";
 import { useCartStore } from "@/store/useCartStore";
+import {
+  GPayLogo,
+  PhonePeLogo,
+  PaytmLogo,
+  GenericUpiLogo,
+} from "@/components/cart/UpiAppLogos";
 
 interface UpiPaymentModalProps {
   isOpen: boolean;
@@ -51,6 +57,17 @@ export function UpiPaymentModal({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isDesktop, setIsDesktop] = React.useState(false);
 
+  // Body scroll lock when modal is open to prevent underlying storefront from scrolling
+  React.useEffect(() => {
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isOpen]);
+
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       setIsDesktop(window.innerWidth >= 768);
@@ -59,6 +76,19 @@ export function UpiPaymentModal({
       return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
+
+  const renderAppLogo = (appId: string) => {
+    switch (appId) {
+      case "gpay":
+        return <GPayLogo className="w-7 h-7" />;
+      case "phonepe":
+        return <PhonePeLogo className="w-7 h-7 rounded-xl" />;
+      case "paytm":
+        return <PaytmLogo className="w-10 h-5" />;
+      default:
+        return <GenericUpiLogo className="w-7 h-7" />;
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -241,11 +271,8 @@ export function UpiPaymentModal({
                       {app.badge}
                     </span>
                   )}
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-xs font-black text-xs"
-                    style={{ backgroundColor: app.color }}
-                  >
-                    {app.name.slice(0, 2).toUpperCase()}
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-100 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                    {renderAppLogo(app.id)}
                   </div>
                   <span className="text-xs font-bold text-slate-800">
                     {app.name}

@@ -399,6 +399,7 @@ export function CartDrawer() {
       // Direct Native UPI payment flow (Google Pay, PhonePe, Paytm, QR) — Mobile Apps
       if (paymentMethod === "ONLINE_UPI") {
         setIsPlacingOrder(false);
+        closeCart();
         setUpiModalData({
           isOpen: true,
           orderNumber: data.orderNumber,

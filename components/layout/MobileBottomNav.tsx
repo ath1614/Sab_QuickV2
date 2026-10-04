@@ -51,49 +51,61 @@ function MobileBottomNavInner() {
         {/* 1. Home Tab */}
         <Link
           href="/"
-          className={cn(
-            "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
-            isHomeActive
-              ? "text-primary font-bold"
-              : "text-muted-foreground hover:text-surface-dark"
-          )}
+          className="flex flex-col items-center justify-center h-full gap-0.5 select-none group"
         >
-          <div className="relative">
-            <Home className="w-5 h-5" />
-            {isHomeActive && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+          <div
+            className={cn(
+              "flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200",
+              isHomeActive
+                ? "bg-primary/15 text-primary scale-105"
+                : "text-slate-500 group-hover:text-slate-900"
             )}
+          >
+            <Home className={cn("w-5 h-5", isHomeActive && "stroke-[2.5px]")} />
           </div>
-          <span className="text-[10px] tracking-tight">Home</span>
+          <span
+            className={cn(
+              "text-[10px] tracking-tight transition-colors",
+              isHomeActive ? "font-bold text-primary" : "font-medium text-slate-500"
+            )}
+          >
+            Home
+          </span>
         </Link>
 
         {/* 2. Categories Tab — full-screen category browser (Flutter parity) */}
         <button
           type="button"
           onClick={() => router.push("/categories")}
-          className={cn(
-            "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
-            isCategoryActive
-              ? "text-primary font-bold"
-              : "text-muted-foreground hover:text-surface-dark"
-          )}
+          className="flex flex-col items-center justify-center h-full gap-0.5 select-none group"
         >
-          <div className="relative">
-            <LayoutGrid className="w-5 h-5" />
-            {isCategoryActive && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+          <div
+            className={cn(
+              "flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200",
+              isCategoryActive
+                ? "bg-primary/15 text-primary scale-105"
+                : "text-slate-500 group-hover:text-slate-900"
             )}
+          >
+            <LayoutGrid className={cn("w-5 h-5", isCategoryActive && "stroke-[2.5px]")} />
           </div>
-          <span className="text-[10px] tracking-tight">Categories</span>
+          <span
+            className={cn(
+              "text-[10px] tracking-tight transition-colors",
+              isCategoryActive ? "font-bold text-primary" : "font-medium text-slate-500"
+            )}
+          >
+            Categories
+          </span>
         </button>
 
         {/* 3. Cart Trigger (Center Hero with Live Items Badge & Price) */}
         <button
           type="button"
           onClick={openCart}
-          className="flex flex-col items-center justify-center h-full gap-1 text-surface-dark transition-transform active:scale-95 select-none relative group"
+          className="flex flex-col items-center justify-center h-full gap-0.5 text-surface-dark transition-transform active:scale-95 select-none relative group"
         >
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-primary text-white shadow-md shadow-primary/25">
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-primary text-white shadow-md shadow-primary/25 group-hover:brightness-105 transition-all">
             <ShoppingBag className="w-5 h-5" />
             {totalQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary-accent text-surface-dark text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white animate-in zoom-in-75">
@@ -109,20 +121,26 @@ function MobileBottomNavInner() {
         {/* 4. Orders Tab */}
         <Link
           href="/orders"
-          className={cn(
-            "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
-            isOrdersActive
-              ? "text-primary font-bold"
-              : "text-muted-foreground hover:text-surface-dark"
-          )}
+          className="flex flex-col items-center justify-center h-full gap-0.5 select-none group"
         >
-          <div className="relative">
-            <Clock className="w-5 h-5" />
-            {isOrdersActive && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+          <div
+            className={cn(
+              "flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200",
+              isOrdersActive
+                ? "bg-primary/15 text-primary scale-105"
+                : "text-slate-500 group-hover:text-slate-900"
             )}
+          >
+            <Clock className={cn("w-5 h-5", isOrdersActive && "stroke-[2.5px]")} />
           </div>
-          <span className="text-[10px] tracking-tight">Orders</span>
+          <span
+            className={cn(
+              "text-[10px] tracking-tight transition-colors",
+              isOrdersActive ? "font-bold text-primary" : "font-medium text-slate-500"
+            )}
+          >
+            Orders
+          </span>
         </Link>
 
         {/* 5. Account / Operations Tab */}
@@ -130,22 +148,26 @@ function MobileBottomNavInner() {
           <button
             type="button"
             onClick={() => setOperationsSheetOpen(true)}
-            className={cn(
-              "flex flex-col items-center justify-center h-full gap-1 transition-colors select-none",
-              user.role !== "CUSTOMER"
-                ? "text-primary font-bold"
-                : "text-muted-foreground hover:text-surface-dark"
-            )}
+            className="flex flex-col items-center justify-center h-full gap-0.5 select-none group"
             title={user.name || "My Account & Operations"}
           >
-            <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-surface-dark text-xs font-bold border border-border-subtle">
-              {user.role === "OWNER" ? (
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-              ) : (
-                (user.name?.[0] || "U").toUpperCase()
+            <div
+              className={cn(
+                "flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200",
+                user.role !== "CUSTOMER"
+                  ? "bg-primary/15 text-primary scale-105"
+                  : "text-slate-500 group-hover:text-slate-900"
               )}
+            >
+              <div className="relative flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-surface-dark text-[10px] font-bold border border-slate-200">
+                {user.role === "OWNER" ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                ) : (
+                  (user.name?.[0] || "U").toUpperCase()
+                )}
+              </div>
             </div>
-            <span className="text-[10px] tracking-tight truncate max-w-[55px]">
+            <span className="text-[10px] font-medium tracking-tight text-slate-500 truncate max-w-[55px]">
               {user.role !== "CUSTOMER" ? user.role : user.name?.split(" ")[0] || "Account"}
             </span>
           </button>
@@ -153,12 +175,12 @@ function MobileBottomNavInner() {
           <button
             type="button"
             onClick={openAuthModal}
-            className="flex flex-col items-center justify-center h-full gap-1 text-muted-foreground hover:text-primary transition-colors select-none"
+            className="flex flex-col items-center justify-center h-full gap-0.5 text-slate-500 hover:text-primary transition-colors select-none group"
           >
-            <div className="relative">
+            <div className="flex items-center justify-center w-10 h-7 rounded-full text-slate-500 group-hover:text-primary">
               <LogIn className="w-5 h-5" />
             </div>
-            <span className="text-[10px] tracking-tight">Sign In</span>
+            <span className="text-[10px] font-medium tracking-tight">Sign In</span>
           </button>
         )}
       </div>

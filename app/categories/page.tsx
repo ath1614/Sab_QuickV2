@@ -481,7 +481,7 @@ function CategoriesContent() {
                     </div>
 
                     {/* Subcategory Label */}
-                    <span className="text-[10px] sm:text-[11px] leading-tight line-clamp-2 text-center break-words px-0.5 max-w-full">
+                    <span className="text-[10px] sm:text-[11px] leading-[13px] line-clamp-2 text-center break-words hyphens-auto px-0.5 w-full max-w-full overflow-hidden text-ellipsis">
                       {sub.name}
                     </span>
                   </button>
@@ -673,9 +673,11 @@ function CategoriesContent() {
                     </div>
 
                     {/* Category Title */}
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-tight min-h-[28px] flex items-center justify-center mt-1.5 group-hover:text-primary transition-colors">
-                      {cat.name}
-                    </span>
+                    <div className="w-full flex items-center justify-center min-h-[32px] mt-1.5 px-0.5">
+                      <span className="block w-full text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-[13px] sm:leading-[15px] text-center break-words hyphens-auto group-hover:text-primary transition-colors">
+                        {cat.name}
+                      </span>
+                    </div>
                   </button>
                 );
               })}

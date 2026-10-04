@@ -687,7 +687,7 @@ function StorefrontContent() {
 
 export default function HomePage() {
   return (
-    <React.Suspense fallback={<CustomLoadingScreen message="Loading SabQuick Catalog..." />}>
+    <React.Suspense fallback={<SplashScreen durationMs={2000} forceShow />}>
       <StorefrontContent />
     </React.Suspense>
   );

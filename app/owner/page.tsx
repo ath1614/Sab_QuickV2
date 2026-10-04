@@ -141,6 +141,13 @@ export default function OwnerControlPage() {
     if (r.includes("MANAGER") && !r.includes("OWNER")) {
       setActiveOwnerTab("orders");
     }
+
+    if (typeof window !== "undefined") {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab === "orders" || urlTab === "overview" || urlTab === "customers" || urlTab === "staff" || urlTab === "coupons" || urlTab === "theme") {
+        setActiveOwnerTab(urlTab as any);
+      }
+    }
   }, [session?.user]);
 
   // Staff Hub State
@@ -942,14 +949,14 @@ export default function OwnerControlPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
-                    SabQuick <span className="text-primary">Owner Hub</span>
+                    SabQuick <span className="text-primary">{isOwner ? "Owner Hub" : "Operations Hub"}</span>
                   </h1>
                   <Badge variant="default" className="text-[9px] sm:text-[10px] uppercase font-black px-1.5 py-0 bg-primary">
-                    PRO
+                    {isOwner ? "PRO" : "MANAGER"}
                   </Badge>
                 </div>
                 <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  Financial metrics, catalog &amp; theme branding
+                  {isOwner ? "Financial metrics, catalog & theme branding" : "Live floor orchestration, SLA dispatch & live orders"}
                 </p>
               </div>
             </div>
