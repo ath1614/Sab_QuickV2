@@ -32,6 +32,7 @@ import {
   FileText,
   RotateCcw,
   UserX,
+  Download,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -455,7 +456,32 @@ export function MobileOperationsSheet({
                 <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
               </Link>
 
-              {/* 4. Delete Account */}
+              {/* 4. Download My Data (DPDP / Data Portability) */}
+              {session?.user && (
+                <a
+                  href="/api/user/export-data"
+                  download
+                  onClick={handleLinkClick}
+                  className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+                      <Download className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-surface-dark group-hover:text-primary transition-colors">
+                        Download My Data
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Export your profile, addresses &amp; order history (JSON)
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                </a>
+              )}
+
+              {/* 5. Delete Account */}
               <Link
                 href="/delete-account"
                 onClick={handleLinkClick}

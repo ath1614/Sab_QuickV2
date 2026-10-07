@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Loader2,
   MessageSquareCode,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,6 +135,26 @@ export default function DeleteAccountPage() {
               Submit a request to permanently purge your customer profile and personal records.
             </p>
           </div>
+
+          {/* Data Portability / Export */}
+          {session?.user && !success && (
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div>
+                <div className="font-bold text-slate-800">Want a copy of your records first?</div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Under DPDP Act portability, you can download your profile, saved addresses, and order history.
+                </p>
+              </div>
+              <a
+                href="/api/user/export-data"
+                download
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-primary hover:border-primary font-bold text-xs transition-colors shadow-2xs"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" />
+                <span>Download My Data (JSON)</span>
+              </a>
+            </div>
+          )}
 
           {success ? (
             <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-3 animate-in fade-in">

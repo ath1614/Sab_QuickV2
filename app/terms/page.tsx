@@ -101,6 +101,46 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">4</span>
+              Age Eligibility &amp; Parental Consent
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              In compliance with the Indian Contract Act, 1872, you must be at least <strong>18 years of age</strong> to register an account and transact on SabQuick. If you are under 18 years of age, you may use our platform only under the direct supervision and involvement of a parent or legal guardian who agrees to be bound by these Terms of Service.
+            </p>
+          </section>
+
+          {/* Section 5 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">5</span>
+              Customer Conduct &amp; Zero Abuse Policy
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              SabQuick maintains a zero-tolerance policy against abusive, disrespectful, or threatening behavior directed towards our dark store staff, customer support executives, or delivery riders. We reserve the immediate right to suspend or permanently block accounts found engaging in fraudulent chargebacks, placing fictitious orders, or harassing personnel.
+            </p>
+          </section>
+
+          {/* Section 6 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">6</span>
+              Grievance Redressal Mechanism &amp; Support
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Under the Consumer Protection (E-Commerce) Rules, 2020, SabQuick provides a dedicated Grievance Officer. All customer queries or grievances submitted via email will be acknowledged within <strong>48 hours</strong> and redressed within <strong>1 month</strong> from receipt.
+            </p>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 space-y-1 font-mono">
+              <div><strong>Grievance Officer:</strong> Anurag Soni</div>
+              <div><strong>Designation:</strong> Store Manager &amp; Compliance Lead</div>
+              <div><strong>Registered Address:</strong> Dark Store #01, Ambikapur, Chhattisgarh 497001, India</div>
+              <div><strong>Grievance Email:</strong> sabsupermart68@gmail.com</div>
+              <div><strong>Support Hotline:</strong> +91 9109066668 (Operational daily 8:00 AM – 10:00 PM)</div>
+            </div>
+          </section>
+
+          {/* Section 7 */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">7</span>
               Governing Law &amp; Jurisdiction
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
