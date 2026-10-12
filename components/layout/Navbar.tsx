@@ -221,20 +221,22 @@ export function Navbar({
               <div className="h-8 w-16 sm:h-9 sm:w-24 bg-slate-100 rounded-lg animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-1 sm:gap-2">
-                {/* Mobile Operations & Role Switcher Trigger */}
-                <button
-                  type="button"
-                  onClick={() => setOperationsSheetOpen(true)}
-                  className="sm:hidden flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-border-subtle text-surface-dark transition-colors shrink-0"
-                  title="Open Operations & Role Hub"
-                >
-                  <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black">
-                    {user.role === "OWNER" ? <Crown className="w-3 h-3 text-amber-500" /> : user.name?.[0]?.toUpperCase() || "U"}
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-slate-700 max-w-[55px] truncate">
-                    {user.role}
-                  </span>
-                </button>
+                {/* Mobile Operations & Role Switcher Trigger (Staff only, never for customers) */}
+                {user.role && user.role !== "CUSTOMER" && (
+                  <button
+                    type="button"
+                    onClick={() => setOperationsSheetOpen(true)}
+                    className="sm:hidden flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-border-subtle text-surface-dark transition-colors shrink-0"
+                    title="Open Operations & Role Hub"
+                  >
+                    <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black">
+                      {user.role === "OWNER" ? <Crown className="w-3 h-3 text-amber-500" /> : user.name?.[0]?.toUpperCase() || "U"}
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-slate-700 max-w-[55px] truncate">
+                      {user.role}
+                    </span>
+                  </button>
+                )}
 
                 {/* Desktop User Info & Role Badge - Clickable to open Account & Policies Sheet */}
                 <button
@@ -248,9 +250,11 @@ export function Navbar({
                       <span className="text-xs font-bold text-surface-dark truncate max-w-[120px] group-hover:text-primary transition-colors">
                         {user.name || user.email?.split("@")[0]}
                       </span>
-                      <Badge variant={getRoleBadgeVariant(user.role)} className="text-[9px] py-0 px-1.5 uppercase font-bold">
-                        {user.role}
-                      </Badge>
+                      {user.role && user.role !== "CUSTOMER" && (
+                        <Badge variant={getRoleBadgeVariant(user.role)} className="text-[9px] py-0 px-1.5 uppercase font-bold">
+                          {user.role}
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Phone verification indicator */}
@@ -315,12 +319,12 @@ export function Navbar({
                   </Link>
                 )}
 
-                {/* Logout Button */}
+                {/* Logout Button (Desktop only; mobile uses bottom navigation Account tab) */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="rounded-xl h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-red-600"
+                  className="hidden sm:inline-flex rounded-xl h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-red-600"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
