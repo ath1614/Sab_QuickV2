@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
 
       if (fast2smsKey) {
         try {
-          const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+          let res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
             method: "POST",
             headers: {
               authorization: fast2smsKey,
@@ -130,8 +130,30 @@ export async function POST(req: NextRequest) {
               numbers: phone,
             }),
           });
-          const d = await res.json().catch(() => ({}));
-          if (d.return) smsDispatched = true;
+          let d = await res.json().catch(() => ({}));
+
+          if (!d.return && (d.status_code === 996 || d.status_code === 400 || d.status_code === 411)) {
+            res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+              method: "POST",
+              headers: {
+                authorization: fast2smsKey,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                route: "q",
+                message: `SabQuick account deletion verification code: ${deletionOtp}. Valid for 5 mins.`,
+                numbers: phone,
+              }),
+            });
+            d = await res.json().catch(() => ({}));
+          }
+
+          if (d.return) {
+            smsDispatched = true;
+            console.log(`[Account Deletion] Fast2SMS dispatched successfully to +91 ${phone}:`, d.request_id || d.message);
+          } else {
+            console.warn(`[Account Deletion] Fast2SMS response error:`, d);
+          }
         } catch (smsErr) {
           console.error("[Account Deletion Fast2SMS Error]:", smsErr);
         }
