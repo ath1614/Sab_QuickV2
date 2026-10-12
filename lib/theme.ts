@@ -35,7 +35,7 @@ export const DEFAULT_THEME: ResolvedTheme = {
   primaryColor: "#0B6E4F",
   accentColor: "#00C853",
   saleTagText: "⚡ Superfast Delivery Guarantee",
-  bannerImageUrl: "/banners/forest-speed-hero.webp",
+  bannerImageUrl: null,
   isStoreLive: true,
   launchDate: null,
   source: "default",
