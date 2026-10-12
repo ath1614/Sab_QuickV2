@@ -146,7 +146,7 @@ async function runProductionReadinessTestSuite() {
       'prefix: "/owner", allowedRoles: ["OWNER"]',
       'prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"]',
       'prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"]',
-      'prefix: "/rider", allowedRoles: ["RIDER"]',
+      'prefix: "/rider", allowedRoles: ["RIDER", "OWNER", "MANAGER"]',
       'prefix: "/api/owner", allowedRoles: ["OWNER"]',
     ];
 
