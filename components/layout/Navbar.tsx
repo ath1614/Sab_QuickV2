@@ -252,27 +252,39 @@ export function Navbar({
           </div>
 
           {/* ========================================================= */}
-          {/* 2. MOBILE TIER 2: FULL-WIDTH STICKY SEARCH BAR            */}
+          {/* 2. MOBILE TIER 2: SPICY QUICK-COMMERCE SEARCH BAR        */}
           {/* ========================================================= */}
-          <div className="block sm:hidden pb-2.5 pt-0.5 w-full">
-            <div className="relative w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="block sm:hidden pb-2.5 pt-1 w-full">
+            <div className="relative w-full group">
+              {/* Left Search Icon with subtle emerald badge */}
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 pointer-events-none transition-transform group-focus-within:scale-105">
+                <Search className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
+
+              {/* The Input with generous, unambiguous padding */}
               <Input
                 type="text"
                 placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="pl-9.5 pr-8 h-10 w-full bg-slate-50 border-slate-200 focus-visible:ring-primary focus-visible:bg-white rounded-xl text-xs placeholder:text-slate-400 shadow-2xs transition-all"
+                className="pl-11 pr-20 h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-[12.5px] font-medium placeholder:text-slate-400 shadow-2xs transition-all"
               />
-              {searchQuery && (
+
+              {/* Right Side: Clear Button OR Spicy 10-Min Micro-Badge */}
+              {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => onSearchChange?.("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center active:scale-90 transition-all"
                   title="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5 stroke-[2.5]" />
                 </button>
+              ) : (
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
+                  <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
+                  <span>10 MINS</span>
+                </div>
               )}
             </div>
           </div>
@@ -322,24 +334,31 @@ export function Navbar({
             </div>
 
             {/* Desktop Search Input */}
-            <div className="flex flex-1 max-w-md relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="flex flex-1 max-w-md relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 pointer-events-none transition-transform group-focus-within:scale-105">
+                <Search className="w-3.5 h-3.5 stroke-[2.5]" />
+              </div>
               <Input
                 type="text"
                 placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="pl-10 pr-9 h-11 bg-slate-50 border-border-subtle focus-visible:ring-primary rounded-xl"
+                className="pl-11 pr-20 h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-xs placeholder:text-slate-400 shadow-2xs transition-all"
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => onSearchChange?.("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center active:scale-90 transition-all"
                   title="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5 stroke-[2.5]" />
                 </button>
+              ) : (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
+                  <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
+                  <span>10 MINS</span>
+                </div>
               )}
             </div>
 

@@ -83,8 +83,8 @@ export default function RiderApplyPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3.5 flex items-center justify-between">
+      {/* Top Header with Safe Area Notch Protection */}
+      <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3.5 flex items-center justify-between transition-all">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-7 w-auto" />

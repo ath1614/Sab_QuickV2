@@ -101,33 +101,30 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(NativeUpiPlugin.class);
     super.onCreate(savedInstanceState);
 
-    // The site draws its own edge-to-edge canvas (viewport-fit=cover +
-    // env(safe-area-inset-*) padding), so the system bars must be
-    // transparent with legible icons — never the dead black band from the
-    // default dark statusBarColor.
+    // Brand-themed status and navigation bars with high-contrast, crystal-clear white icons.
+    // Prevents white-on-white invisible battery percentage, charging amount, and clock.
     Window window = getWindow();
     if (window == null) return;
 
-    int fog = getColor(R.color.sqFog);
+    int brandDark = getColor(R.color.colorPrimaryDark);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      window.setStatusBarColor(fog);
-      window.setNavigationBarColor(fog);
+      window.setStatusBarColor(brandDark);
+      window.setNavigationBarColor(brandDark);
     }
 
     View decor = window.getDecorView();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       WindowInsetsController c = window.getInsetsController();
       if (c != null) {
-        // Light bars (dark icons) on the light fog background.
-        c.setSystemBarsAppearance(WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
-        c.setSystemBarsAppearance(WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+        // Dark background requires WHITE system icons (battery %, clock, wifi, notifications).
+        // Passing 0 as appearance clears APPEARANCE_LIGHT_STATUS_BARS, rendering crisp white icons.
+        c.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+        c.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
       }
     } else {
-      int flags = decor.getSystemUiVisibility()
-          | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-          | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+      int flags = decor.getSystemUiVisibility();
+      flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+      flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
       decor.setSystemUiVisibility(flags);
     }
   }
