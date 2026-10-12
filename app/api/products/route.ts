@@ -46,38 +46,41 @@ export async function GET(req: NextRequest) {
       const tokens = trimmedSearch
         .toLowerCase()
         .split(/\s+/)
-        .filter((t) => t.length > 1);
+        .filter((t) => t.length > 0);
 
-      const orConditions: Prisma.ProductWhereInput[] = [
-        { title: { contains: trimmedSearch, mode: "insensitive" } },
-        { description: { contains: trimmedSearch, mode: "insensitive" } },
-        { slug: { contains: trimmedSearch, mode: "insensitive" } },
-        { unitQuantity: { contains: trimmedSearch, mode: "insensitive" } },
-        {
-          category: {
-            OR: [
-              { name: { contains: trimmedSearch, mode: "insensitive" } },
-              { slug: { contains: trimmedSearch, mode: "insensitive" } },
-              {
-                parent: {
-                  OR: [
-                    { name: { contains: trimmedSearch, mode: "insensitive" } },
-                    { slug: { contains: trimmedSearch, mode: "insensitive" } },
-                  ],
+      if (tokens.length === 1) {
+        const singleToken = tokens[0];
+        where.OR = [
+          { title: { contains: singleToken, mode: "insensitive" } },
+          { description: { contains: singleToken, mode: "insensitive" } },
+          { slug: { contains: singleToken, mode: "insensitive" } },
+          { unitQuantity: { contains: singleToken, mode: "insensitive" } },
+          {
+            category: {
+              OR: [
+                { name: { contains: singleToken, mode: "insensitive" } },
+                { slug: { contains: singleToken, mode: "insensitive" } },
+                {
+                  parent: {
+                    OR: [
+                      { name: { contains: singleToken, mode: "insensitive" } },
+                      { slug: { contains: singleToken, mode: "insensitive" } },
+                    ],
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
-        },
-        { tags: { has: trimmedSearch.toLowerCase() } },
-      ];
-
-      if (tokens.length > 0) {
-        orConditions.push({ tags: { hasSome: tokens } });
-        // If multi-word query, match any token against title or category
-        tokens.forEach((token) => {
-          orConditions.push(
+          { tags: { has: singleToken } },
+        ];
+      } else if (tokens.length > 1) {
+        // Multi-word query (e.g. "Maggi noodles"):
+        // Every token must match the product so irrelevant single-word items are excluded
+        where.AND = tokens.map((token) => ({
+          OR: [
             { title: { contains: token, mode: "insensitive" } },
+            { description: { contains: token, mode: "insensitive" } },
+            { unitQuantity: { contains: token, mode: "insensitive" } },
             {
               category: {
                 OR: [
@@ -89,12 +92,11 @@ export async function GET(req: NextRequest) {
                   },
                 ],
               },
-            }
-          );
-        });
+            },
+            { tags: { has: token } },
+          ],
+        }));
       }
-
-      where.OR = orConditions;
     }
 
     // Filter by stock availability
@@ -103,13 +105,57 @@ export async function GET(req: NextRequest) {
       where.stockCount = { gt: 0 };
     }
 
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
       where,
       include: {
-        category: true,
+        category: {
+          include: {
+            parent: true,
+          },
+        },
       },
       orderBy: [{ isAvailable: "desc" }, { createdAt: "desc" }],
     });
+
+    // When searching, sort by relevance scoring matching Blinkit / Zepto
+    if (search) {
+      const qLower = search.trim().toLowerCase();
+      const tokens = qLower.split(/\s+/).filter((t) => t.length > 0);
+
+      products = products.sort((a, b) => {
+        let scoreA = 0;
+        let scoreB = 0;
+
+        const titleA = a.title.toLowerCase();
+        const titleB = b.title.toLowerCase();
+
+        // Exact match
+        if (titleA === qLower) scoreA += 200;
+        if (titleB === qLower) scoreB += 200;
+
+        // Starts with search phrase
+        if (titleA.startsWith(qLower)) scoreA += 100;
+        if (titleB.startsWith(qLower)) scoreB += 100;
+
+        // Contains full search phrase
+        if (titleA.includes(qLower)) scoreA += 60;
+        if (titleB.includes(qLower)) scoreB += 60;
+
+        // Token match scoring in title
+        tokens.forEach((t) => {
+          if (titleA.includes(t)) scoreA += 35;
+          if (titleB.includes(t)) scoreB += 35;
+          if (a.category?.name.toLowerCase().includes(t)) scoreA += 10;
+          if (b.category?.name.toLowerCase().includes(t)) scoreB += 10;
+        });
+
+        // In-stock priority
+        if (a.isAvailable && a.stockCount > 0) scoreA += 15;
+        if (b.isAvailable && b.stockCount > 0) scoreB += 15;
+
+        return scoreB - scoreA;
+      });
+    }
 
     return NextResponse.json({ products });
   } catch (error) {

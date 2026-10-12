@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const updateProductSchema = z.object({
   title: z.string().trim().min(1).optional(),
+  categoryId: z.string().trim().min(1).optional(),
   mrp: z.number().positive().optional(),
   salePrice: z.number().positive().optional(),
   stockCount: z.number().int().min(0).optional(),

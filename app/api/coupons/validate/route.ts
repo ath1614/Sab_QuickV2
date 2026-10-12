@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
 export const dynamic = "force-dynamic";
 
 const validateCouponSchema = z.object({
@@ -11,6 +14,7 @@ const validateCouponSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await req.json().catch(() => ({}));
     const parseResult = validateCouponSchema.safeParse(body);
 
@@ -23,6 +27,25 @@ export async function POST(req: NextRequest) {
 
     const { code, cartTotal } = parseResult.data;
     const cleanCode = code.trim().toUpperCase();
+
+    // Welcome offer restriction: First 2 orders only
+    if (cleanCode === "WELCOMEFREE" && session?.user?.id) {
+      const orderCount = await prisma.order.count({
+        where: {
+          customerId: session.user.id,
+          status: { not: "CANCELLED" },
+        },
+      });
+      if (orderCount >= 2) {
+        return NextResponse.json(
+          {
+            valid: false,
+            error: "WELCOMEFREE is only valid on your first 2 orders.",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const coupon = await prisma.coupon.findUnique({
       where: { code: cleanCode },

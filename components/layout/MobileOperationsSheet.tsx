@@ -355,6 +355,31 @@ export function MobileOperationsSheet({
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </Link>
 
+              {/* Become a Delivery Partner */}
+              <Link
+                href="/rider/apply"
+                onClick={handleLinkClick}
+                className="flex items-center justify-between p-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-50/50 hover:bg-emerald-50 transition-all text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                    <Bike className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-surface-dark flex items-center gap-1.5">
+                      <span>Become a Delivery Partner</span>
+                      <span className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
+                        ₹30/drop
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Earn ₹30 per order + 100% tips • Flexible local shifts
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-600" />
+              </Link>
+
               {onOpenLocationPicker && (
                 <button
                   type="button"

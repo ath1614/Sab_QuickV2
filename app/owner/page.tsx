@@ -988,6 +988,13 @@ export default function OwnerControlPage() {
               </Button>
             </Link>
 
+            <Link href="/owner/riders" className="shrink-0">
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700 hover:text-emerald-600 hover:border-emerald-300">
+                <Bike className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Fleet &amp; Riders</span>
+              </Button>
+            </Link>
+
             <button
               type="button"
               onClick={() => setActiveOwnerTab("coupons")}

@@ -11,7 +11,7 @@ export type PaymentMethodType = "ONLINE_UPI" | "CASHFREE" | "UPI_DOORSTEP" | "CA
 export type PaymentMethod = PaymentMethodType;
 
 export const FREE_DELIVERY_THRESHOLD = 199;
-export const STANDARD_DELIVERY_FEE = 15;
+export const STANDARD_DELIVERY_FEE = 25;
 export const HANDLING_FEE = 2;
 
 export interface AppliedCoupon {

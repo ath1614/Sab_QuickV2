@@ -396,8 +396,21 @@ export function CartDrawer() {
         return;
       }
 
-      // Online Payment via Cashfree (Unified for Mobile Apps & Web: PhonePe, GPay, Paytm, Cards)
-      if (paymentMethod === "ONLINE_UPI" || paymentMethod === "CASHFREE") {
+      // 1. Direct Native UPI Flow (Google Pay, PhonePe, Paytm intent & dynamic QR - Blinkit/Zepto parity)
+      if (paymentMethod === "ONLINE_UPI") {
+        setIsPlacingOrder(false);
+        closeCart();
+        setUpiModalData({
+          isOpen: true,
+          orderNumber: data.orderNumber,
+          orderId: data.orderId,
+          totalAmount: data.totalAmount,
+        });
+        return;
+      }
+
+      // 2. Online Payment via Cashfree (Unified for Web Browser & Desktop Cards/NetBanking)
+      if (paymentMethod === "CASHFREE") {
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
           setOrderError("Unable to load Cashfree payment gateway. Please try again or choose UPI on Delivery.");

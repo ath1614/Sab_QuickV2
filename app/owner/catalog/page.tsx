@@ -139,16 +139,81 @@ export default function OwnerCatalogPage() {
   const [prodImage, setProdImage] = React.useState("");
   const [prodTags, setProdTags] = React.useState("");
   const [prodDesc, setProdDesc] = React.useState("");
+  const [prodDiscountPercent, setProdDiscountPercent] = React.useState<string>("");
 
   // Edit Product Form
   const [editProdId, setEditProdId] = React.useState("");
+  const [editProdCategoryId, setEditProdCategoryId] = React.useState("");
   const [editProdTitle, setEditProdTitle] = React.useState("");
   const [editProdMrp, setEditProdMrp] = React.useState<string>("");
+  const [editProdDiscountPercent, setEditProdDiscountPercent] = React.useState<string>("");
   const [editProdSalePrice, setEditProdSalePrice] = React.useState<string>("");
   const [editProdStock, setEditProdStock] = React.useState<string>("");
   const [editProdUnitQty, setEditProdUnitQty] = React.useState("");
   const [editProdImage, setEditProdImage] = React.useState("");
   const [editProdDesc, setEditProdDesc] = React.useState("");
+
+  // Bi-directional pricing calculation handlers for Add Product
+  const handleAddMrpChange = (val: string) => {
+    setProdMrp(val);
+    const m = parseFloat(val);
+    const d = parseFloat(prodDiscountPercent);
+    if (!isNaN(m) && !isNaN(d) && m > 0 && d >= 0) {
+      const sp = Math.max(0, m * (1 - d / 100));
+      setProdSalePrice(sp.toFixed(2));
+    }
+  };
+
+  const handleAddDiscountChange = (val: string) => {
+    setProdDiscountPercent(val);
+    const m = parseFloat(prodMrp);
+    const d = parseFloat(val);
+    if (!isNaN(m) && !isNaN(d) && m > 0 && d >= 0 && d <= 100) {
+      const sp = Math.max(0, m * (1 - d / 100));
+      setProdSalePrice(sp.toFixed(2));
+    }
+  };
+
+  const handleAddSalePriceChange = (val: string) => {
+    setProdSalePrice(val);
+    const m = parseFloat(prodMrp);
+    const sp = parseFloat(val);
+    if (!isNaN(m) && !isNaN(sp) && m > 0 && sp <= m) {
+      const d = ((m - sp) / m) * 100;
+      setProdDiscountPercent(d.toFixed(1));
+    }
+  };
+
+  // Bi-directional pricing calculation handlers for Edit Product
+  const handleEditMrpChange = (val: string) => {
+    setEditProdMrp(val);
+    const m = parseFloat(val);
+    const d = parseFloat(editProdDiscountPercent);
+    if (!isNaN(m) && !isNaN(d) && m > 0 && d >= 0) {
+      const sp = Math.max(0, m * (1 - d / 100));
+      setEditProdSalePrice(sp.toFixed(2));
+    }
+  };
+
+  const handleEditDiscountChange = (val: string) => {
+    setEditProdDiscountPercent(val);
+    const m = parseFloat(editProdMrp);
+    const d = parseFloat(val);
+    if (!isNaN(m) && !isNaN(d) && m > 0 && d >= 0 && d <= 100) {
+      const sp = Math.max(0, m * (1 - d / 100));
+      setEditProdSalePrice(sp.toFixed(2));
+    }
+  };
+
+  const handleEditSalePriceChange = (val: string) => {
+    setEditProdSalePrice(val);
+    const m = parseFloat(editProdMrp);
+    const sp = parseFloat(val);
+    if (!isNaN(m) && !isNaN(sp) && m > 0 && sp <= m) {
+      const d = ((m - sp) / m) * 100;
+      setEditProdDiscountPercent(d.toFixed(1));
+    }
+  };
 
   // Delete Product Confirmation
   const [deleteProductModalOpen, setDeleteProductModalOpen] = React.useState<boolean>(false);
@@ -509,6 +574,7 @@ export default function OwnerCatalogPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          categoryId: editProdCategoryId || undefined,
           title: editProdTitle.trim(),
           mrp: numMrp,
           salePrice: numSalePrice,
@@ -534,8 +600,13 @@ export default function OwnerCatalogPage() {
   // Open Edit Modal
   const openEditModal = (prod: ProductData) => {
     setEditProdId(prod.id);
+    setEditProdCategoryId(prod.categoryId || "");
     setEditProdTitle(prod.title);
     setEditProdMrp(prod.mrp.toString());
+    const m = prod.mrp;
+    const sp = prod.salePrice;
+    const discount = m > 0 && sp <= m ? (((m - sp) / m) * 100).toFixed(1) : "0";
+    setEditProdDiscountPercent(discount);
     setEditProdSalePrice(prod.salePrice.toString());
     setEditProdStock(prod.stockCount.toString());
     setEditProdUnitQty(prod.unitQuantity);
@@ -1678,10 +1749,10 @@ export default function OwnerCatalogPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[11px] text-slate-300 font-bold block mb-1">
-                          MRP (Maximum Retail) *
+                          MRP *
                         </label>
                         <Input
                           required
@@ -1690,14 +1761,30 @@ export default function OwnerCatalogPage() {
                           min="1"
                           placeholder="e.g. 60"
                           value={prodMrp}
-                          onChange={(e) => setProdMrp(e.target.value)}
+                          onChange={(e) => handleAddMrpChange(e.target.value)}
                           className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-black"
                         />
                       </div>
 
                       <div>
+                        <label className="text-[11px] text-emerald-300 font-bold block mb-1">
+                          Discount %
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          placeholder="e.g. 20"
+                          value={prodDiscountPercent}
+                          onChange={(e) => handleAddDiscountChange(e.target.value)}
+                          className="h-10 bg-slate-900 border-2 border-emerald-500/50 focus:border-emerald-400 rounded-xl text-emerald-300 font-mono font-black"
+                        />
+                      </div>
+
+                      <div>
                         <label className="text-[11px] text-slate-300 font-bold block mb-1">
-                          Sale Price (Discounted) *
+                          Sale Price *
                         </label>
                         <Input
                           required
@@ -1706,7 +1793,7 @@ export default function OwnerCatalogPage() {
                           min="1"
                           placeholder="e.g. 48"
                           value={prodSalePrice}
-                          onChange={(e) => setProdSalePrice(e.target.value)}
+                          onChange={(e) => handleAddSalePriceChange(e.target.value)}
                           className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
                         />
                       </div>
@@ -1949,6 +2036,30 @@ export default function OwnerCatalogPage() {
             <form onSubmit={handleUpdateProduct} className="space-y-3.5 text-xs">
               <div>
                 <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Category / Subcategory *
+                </label>
+                <select
+                  required
+                  value={editProdCategoryId}
+                  onChange={(e) => setEditProdCategoryId(e.target.value)}
+                  className="w-full h-10 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-emerald-400"
+                >
+                  <option value="">Select Category / Subcategory</option>
+                  {categories.map((p) => (
+                    <optgroup key={p.id} label={p.name}>
+                      <option value={p.id}>{p.name} (Parent Aisle)</option>
+                      {p.subCategories.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {p.name} &gt; {s.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
                   Product Title *
                 </label>
                 <Input
@@ -1959,34 +2070,66 @@ export default function OwnerCatalogPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-xs font-black text-slate-200 block mb-1.5">
-                    MRP (₹) *
-                  </label>
-                  <Input
-                    required
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    value={editProdMrp}
-                    onChange={(e) => setEditProdMrp(e.target.value)}
-                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
-                  />
+              {/* PRICING FIELDS (MRP, DISCOUNT %, SALE PRICE) */}
+              <div className="p-3.5 bg-slate-950 border-2 border-slate-700 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    Auto Pricing Engine (₹)
+                  </span>
+                  {parseFloat(editProdDiscountPercent) > 0 && (
+                    <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
+                      {editProdDiscountPercent}% OFF
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="text-xs font-black text-slate-200 block mb-1.5">
-                    Selling Price (₹) *
-                  </label>
-                  <Input
-                    required
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    value={editProdSalePrice}
-                    onChange={(e) => setEditProdSalePrice(e.target.value)}
-                    className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
-                  />
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                      MRP (₹) *
+                    </label>
+                    <Input
+                      required
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      value={editProdMrp}
+                      onChange={(e) => handleEditMrpChange(e.target.value)}
+                      className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-emerald-300 font-bold block mb-1">
+                      Discount %
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      placeholder="0"
+                      value={editProdDiscountPercent}
+                      onChange={(e) => handleEditDiscountChange(e.target.value)}
+                      className="h-10 bg-slate-900 border-2 border-emerald-500/50 focus:border-emerald-400 rounded-xl text-emerald-300 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-slate-300 font-bold block mb-1">
+                      Sale Price (₹) *
+                    </label>
+                    <Input
+                      required
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      value={editProdSalePrice}
+                      onChange={(e) => handleEditSalePriceChange(e.target.value)}
+                      className="h-10 bg-slate-900 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-emerald-400 font-mono font-black"
+                    />
+                  </div>
                 </div>
               </div>
 

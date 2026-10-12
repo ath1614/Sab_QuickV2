@@ -108,6 +108,41 @@ export async function ensureDatabaseSchema() {
       );
     `);
 
+    // 9. Ensure WELCOMEFREE coupon exists (First 2 deliveries free welcome offer)
+    const welcomeCoupon = await prisma.coupon.findUnique({
+      where: { code: "WELCOMEFREE" },
+    });
+    if (!welcomeCoupon) {
+      await prisma.coupon.create({
+        data: {
+          code: "WELCOMEFREE",
+          description: "Welcome Offer • 100% Free Delivery on your first 2 orders!",
+          discountType: "FLAT",
+          discountValue: 25,
+          minOrderAmount: 49,
+          validFrom: new Date(),
+          validTill: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 5),
+          isActive: true,
+        },
+      });
+    }
+
+    // 10. Ensure RiderApplication table exists for Onboarding Portal
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "RiderApplication" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "phone" TEXT NOT NULL UNIQUE,
+        "city" TEXT NOT NULL,
+        "vehicleType" TEXT NOT NULL,
+        "licenseNumber" TEXT,
+        "emergencyPhone" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     isHealed = true;
   } catch (err) {
     console.error("[DB Self-Heal Warning]:", err);

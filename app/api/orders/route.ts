@@ -226,6 +226,18 @@ export async function POST(req: NextRequest) {
           throw new Error("Coupon usage limit has been reached.");
         }
 
+        if (cleanCode === "WELCOMEFREE") {
+          const userOrderCount = await tx.order.count({
+            where: {
+              customerId: user.id,
+              status: { not: "CANCELLED" },
+            },
+          });
+          if (userOrderCount >= 2) {
+            throw new Error("WELCOMEFREE coupon is only valid on your first 2 orders.");
+          }
+        }
+
         if (coupon.discountType === "FLAT") {
           discountAmount = coupon.discountValue;
         } else if (coupon.discountType === "PERCENTAGE") {
@@ -262,7 +274,7 @@ export async function POST(req: NextRequest) {
 
       const discountedSubtotal = Math.max(0, subtotal - discountAmount);
       // Deduct discountAmount before computing delivery fee and grand total
-      const deliveryFee = discountedSubtotal >= 199 ? 0 : 15;
+      const deliveryFee = discountedSubtotal >= 199 ? 0 : 25;
       const handlingFee = 2;
       const totalAmount =
         Math.round((discountedSubtotal + deliveryFee + handlingFee + tipAmount) * 100) / 100;
