@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const categoryIdOrSlug = searchParams.get("categoryId");
-    const search = searchParams.get("search")?.trim();
+    const search = (searchParams.get("search") || searchParams.get("q"))?.trim();
     const inStockOnly = searchParams.get("inStockOnly") === "true";
 
     const where: Prisma.ProductWhereInput = {};
