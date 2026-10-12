@@ -21,6 +21,7 @@ import {
   calculateCartTotals,
   formatCurrency,
   FREE_DELIVERY_THRESHOLD,
+  STANDARD_DELIVERY_FEE,
   PaymentMethod,
   MAX_PER_ITEM_LIMIT,
 } from "@/store/useCartStore";
@@ -61,6 +62,7 @@ import {
   Banknote,
   Ticket,
   Smartphone,
+  Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -281,7 +283,21 @@ export function CartDrawer() {
         const res = await fetch("/api/coupons");
         if (res.ok) {
           const data = await res.json();
-          setAvailableCoupons(data.coupons || []);
+          const list: AvailableCoupon[] = data.coupons || [];
+          setAvailableCoupons(list);
+
+          // Smart Auto-Apply: If new customer has no coupon active,
+          // and WELCOMEFREE is available and cart meets min requirement, auto-apply!
+          if (!appliedCoupon) {
+            const welcome = list.find((c) => c.code === "WELCOMEFREE");
+            if (welcome && totals.itemTotal >= welcome.minOrderAmount) {
+              applyCoupon({
+                code: "WELCOMEFREE",
+                discountAmount: 25,
+                description: welcome.description || "Welcome Offer • 100% Free Delivery on your first 2 orders!",
+              });
+            }
+          }
         }
       } catch (err) {
         console.warn("Failed to fetch available coupons:", err);
@@ -291,7 +307,7 @@ export function CartDrawer() {
     }
 
     loadCoupons();
-  }, [isOpen]);
+  }, [isOpen, totals.itemTotal, appliedCoupon, applyCoupon]);
 
   // Coupon Validation Handler (supports 1-click apply from list or manual code input)
   const handleApplyCoupon = async (codeToApply?: string) => {
@@ -1169,8 +1185,16 @@ export function CartDrawer() {
                                     <span className="font-mono font-black text-xs text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
                                       {coupon.code}
                                     </span>
+                                    {coupon.code === "WELCOMEFREE" && (
+                                      <span className="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                                        <Sparkles className="w-2.5 h-2.5" />
+                                        Welcome Gift
+                                      </span>
+                                    )}
                                     <span className="text-[11px] font-bold text-surface-dark">
-                                      {coupon.discountType === "FLAT"
+                                      {coupon.code === "WELCOMEFREE"
+                                        ? "100% FREE DELIVERY"
+                                        : coupon.discountType === "FLAT"
                                         ? `Flat ₹${coupon.discountValue} OFF`
                                         : `${coupon.discountValue}% OFF${
                                             coupon.maxDiscount ? ` (Up to ₹${coupon.maxDiscount})` : ""
@@ -1215,6 +1239,64 @@ export function CartDrawer() {
                   )}
                 </div>
 
+                {/* WELCOME GIFT CALLOUT CARD */}
+                {appliedCoupon?.code === "WELCOMEFREE" ? (
+                  <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Gift className="w-4 h-4 animate-bounce" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-black text-emerald-950 uppercase tracking-wider">
+                            Welcome Gift Active!
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-200/60 px-1.5 py-0.5 rounded">
+                            WELCOMEFREE
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 font-medium truncate">
+                          100% Free Delivery applied • Saved ₹{STANDARD_DELIVERY_FEE} on this order!
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black text-emerald-700 shrink-0 bg-white/80 px-2 py-1 rounded-lg border border-emerald-200">
+                      ₹{STANDARD_DELIVERY_FEE} SAVED
+                    </span>
+                  </div>
+                ) : !appliedCoupon && availableCoupons.some((c) => c.code === "WELCOMEFREE") ? (
+                  <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-300 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Gift className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-black text-amber-950 uppercase tracking-wider">
+                            First Order Gift Waiting!
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 font-medium truncate">
+                          {totals.itemTotal >= 49
+                            ? `Get 100% Free Delivery (Save ₹${STANDARD_DELIVERY_FEE})`
+                            : `Add ₹${Math.max(0, 49 - Math.ceil(totals.itemTotal))} more for 100% Free Delivery`}
+                        </p>
+                      </div>
+                    </div>
+                    {totals.itemTotal >= 49 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleApplyCoupon("WELCOMEFREE")}
+                        disabled={isValidatingCoupon}
+                        className="h-7 px-3 text-[11px] font-black bg-amber-600 hover:bg-amber-700 text-white rounded-lg shrink-0 shadow-xs"
+                      >
+                        APPLY FREE
+                      </Button>
+                    )}
+                  </div>
+                ) : null}
+
                 {/* 7. BILL SUMMARY BREAKDOWN */}
                 <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2 text-xs">
                   <h4 className="font-bold text-surface-dark text-xs pb-1 border-b border-slate-100">
@@ -1246,7 +1328,7 @@ export function CartDrawer() {
                       {totals.deliveryFee === 0 ? (
                         <>
                           <span className="line-through text-slate-400 mr-1.5 font-mono text-[11px]">
-                            ₹15
+                            ₹{STANDARD_DELIVERY_FEE}
                           </span>
                           <span className="font-bold text-primary">FREE</span>
                         </>

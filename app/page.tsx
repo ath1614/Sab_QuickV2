@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useSession } from "next-auth/react";
 import { ComingSoonView } from "@/components/store/ComingSoonView";
+import { WelcomeOfferBanner } from "@/components/store/WelcomeOfferBanner";
 
 interface ThemeInfo {
   themeName: string;
@@ -440,6 +441,9 @@ function StorefrontContent() {
         searchQuery={activeSearch}
         onSearchChange={setActiveSearch}
       />
+
+      {/* New Customer Welcome Promotional Strip (Free delivery on first 2 orders) */}
+      <WelcomeOfferBanner />
 
       {/* Category browsing lives on the Categories tab/page; the sticky
           top nav pill row was removed per product decision. */}
