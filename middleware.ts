@@ -5,13 +5,19 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Public rider onboarding portal is open to anyone wishing to join the delivery fleet
+  if (pathname === "/rider/apply") {
+    return NextResponse.next();
+  }
+
   // Role requirement definitions for internal staff portals and administrative endpoints
   const protectedRoutes = [
     { prefix: "/owner/catalog", allowedRoles: ["OWNER", "MANAGER"] },
+    { prefix: "/owner/riders", allowedRoles: ["OWNER", "MANAGER"] },
     { prefix: "/owner", allowedRoles: ["OWNER"] },
     { prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"] },
     { prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
-    { prefix: "/rider", allowedRoles: ["RIDER"] },
+    { prefix: "/rider", allowedRoles: ["RIDER", "OWNER", "MANAGER"] },
     { prefix: "/api/owner", allowedRoles: ["OWNER"] },
   ];
 
