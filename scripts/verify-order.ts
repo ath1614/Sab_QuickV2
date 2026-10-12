@@ -51,7 +51,7 @@ async function runTestSuite() {
       throw new Error("Empty cart totals failed.");
     }
 
-    // Case 1b: Subtotal under ₹199 (₹100) -> Delivery ₹15, Handling ₹2, Tip ₹0 -> Grand ₹117
+    // Case 1b: Subtotal under ₹199 (₹100) -> Delivery ₹25, Handling ₹2, Tip ₹0 -> Grand ₹127
     const underCart: CartItem[] = [{ product: dummyProductA, quantity: 1 }];
     const underTotals = calculateCartTotals(underCart, 0);
 
@@ -68,9 +68,9 @@ async function runTestSuite() {
         `Expected handlingFee ${HANDLING_FEE}, got ${underTotals.handlingFee}`
       );
     }
-    if (underTotals.grandTotal !== 117) {
+    if (underTotals.grandTotal !== 127) {
       throw new Error(
-        `Expected grandTotal 117, got ${underTotals.grandTotal}`
+        `Expected grandTotal 127, got ${underTotals.grandTotal}`
       );
     }
     if (underTotals.amountNeededForFreeDelivery !== 99) {
@@ -79,10 +79,10 @@ async function runTestSuite() {
       );
     }
 
-    // Case 1c: Subtotal under ₹199 with ₹20 tip -> Grand ₹137
+    // Case 1c: Subtotal under ₹199 with ₹20 tip -> Grand ₹147
     const tipTotals = calculateCartTotals(underCart, 20);
-    if (tipTotals.grandTotal !== 137) {
-      throw new Error(`Expected grandTotal 137, got ${tipTotals.grandTotal}`);
+    if (tipTotals.grandTotal !== 147) {
+      throw new Error(`Expected grandTotal 147, got ${tipTotals.grandTotal}`);
     }
 
     // Case 1d: Subtotal over ₹199 (₹100 + ₹150 = ₹250) -> Free delivery!
