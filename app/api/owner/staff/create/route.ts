@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { hashPasscode } from "@/lib/passcode";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         role: primaryRole,
         roles: assignedRoles,
         phoneVerified: true,
-        ...(pin ? { pin } : {}),
+        ...(pin ? { pin: hashPasscode(pin) } : {}),
       },
       create: {
         phone,
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
         role: primaryRole,
         roles: assignedRoles,
         phoneVerified: true,
-        pin: pin || "1234",
+        pin: hashPasscode(pin || "1234"),
       },
       select: {
         id: true,

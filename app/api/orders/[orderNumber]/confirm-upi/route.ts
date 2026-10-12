@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
+import { getCashfreeOrderPayments, isCashfreeConfigured } from "@/lib/cashfree";
+import { updateOrderStatus } from "@/lib/orderStatus";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +15,14 @@ const confirmUpiSchema = z.object({
   appUsed: z.string().optional(),
 });
 
+/**
+ * Verified UPI confirmation endpoint.
+ *
+ * Security: Closes the previous unverified client payment exploit.
+ * Only marks an order as PAID if:
+ * 1. Cashfree confirms a successful payment for this orderNumber matching totalAmount, OR
+ * 2. An authorized Store Owner/Manager manually confirms bank settlement.
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { orderNumber: string } }
@@ -50,46 +61,72 @@ export async function POST(
     }
 
     // Verify ownership
-    if (order.customerId !== session.user.id && session.user.role !== "OWNER") {
+    const isOwnerOrStaff = ["OWNER", "MANAGER"].includes(session.user.role);
+    if (order.customerId !== session.user.id && !isOwnerOrStaff) {
       return NextResponse.json(
         { success: false, error: "Access denied to this order." },
         { status: 403 }
       );
     }
 
-    const txnId = utr || `UPI-${Date.now()}`;
+    // If order is already paid, return early
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      return NextResponse.json({
+        success: true,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        message: "Order is already paid and confirmed.",
+      });
+    }
+
+    let isVerified = false;
+    let verifiedTxnId = utr || `UPI-${Date.now()}`;
+
+    // A. Store Owner / Manager manual verification override
+    if (isOwnerOrStaff) {
+      isVerified = true;
+    } else {
+      // B. Customer verification: Query Cashfree gateway for real bank confirmation
+      const payments = await getCashfreeOrderPayments(order.orderNumber);
+      const successfulPayment = payments.find(
+        (p) => p.payment_status === "SUCCESS" && p.payment_amount >= order.totalAmount
+      );
+
+      if (successfulPayment) {
+        isVerified = true;
+        verifiedTxnId = String(successfulPayment.cf_payment_id || utr || `CF-${Date.now()}`);
+      } else if (!isCashfreeConfigured && process.env.NODE_ENV !== "production") {
+        // Dev fallback only
+        isVerified = true;
+        verifiedTxnId = `DEV_MOCK_${Date.now()}`;
+      }
+    }
+
+    if (!isVerified) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "No verified payment found with the payment gateway. Please complete payment in your UPI app or contact support.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Transition order to PAID and CONFIRMED
     const updatedOrder = await prisma.order.update({
       where: { id: order.id },
       data: {
-        paymentStatus: "PAID",
-        status: "CONFIRMED",
-        paymentTxnId: txnId,
+        paymentStatus: PaymentStatus.PAID,
+        status: OrderStatus.CONFIRMED,
+        paymentTxnId: verifiedTxnId,
         offlineCollectionMethod: appUsed,
       },
     });
 
-    // Notify dark store dispatch channel via Redis
-    try {
-      await redis.publish(
-        "orders:dispatch",
-        JSON.stringify({
-          orderId: updatedOrder.id,
-          orderNumber: updatedOrder.orderNumber,
-          status: updatedOrder.status,
-          customerId: updatedOrder.customerId,
-          totalAmount: updatedOrder.totalAmount,
-          deliveryOtp: updatedOrder.deliveryOtp,
-          paymentMethod: updatedOrder.paymentMethod,
-          paymentStatus: updatedOrder.paymentStatus,
-          paymentTxnId: txnId,
-          createdAt: updatedOrder.createdAt,
-        })
-      );
-    } catch (redisErr) {
-      console.warn("[Redis publish error on confirm-upi]:", redisErr);
-    }
+    // Notify dark store dispatch via Redis Pub/Sub
+    await updateOrderStatus(order.id, OrderStatus.CONFIRMED);
 
     return NextResponse.json({
       success: true,
@@ -97,7 +134,7 @@ export async function POST(
       orderId: updatedOrder.id,
       status: updatedOrder.status,
       paymentStatus: updatedOrder.paymentStatus,
-      paymentTxnId: txnId,
+      paymentTxnId: verifiedTxnId,
     });
   } catch (error: any) {
     console.error("[confirm-upi error]:", error);

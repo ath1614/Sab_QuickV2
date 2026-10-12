@@ -13,9 +13,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!["OWNER", "MANAGER"].includes(session.user.role)) {
+    if (session.user.role !== "OWNER") {
       return NextResponse.json(
-        { error: "Forbidden: Owner or Manager role required to export database backup." },
+        { error: "Forbidden: Store Owner role strictly required to export database backup." },
         { status: 403 }
       );
     }

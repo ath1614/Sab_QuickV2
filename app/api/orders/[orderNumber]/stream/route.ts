@@ -78,7 +78,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
           orderId: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
-          deliveryOtp: order.deliveryOtp,
+          deliveryOtp: isOwner ? order.deliveryOtp : undefined,
           subtotal: order.subtotal,
           deliveryFee: order.deliveryFee,
           handlingFee: order.handlingFee,

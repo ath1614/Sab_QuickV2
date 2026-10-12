@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/orderStatus";
@@ -42,6 +44,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verify ownership
+    const session = await getServerSession(authOptions);
+    if (
+      session?.user?.id &&
+      order.customerId !== session.user.id &&
+      !["OWNER", "MANAGER"].includes(session.user.role)
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: Access denied to verify this order." },
+        { status: 403 }
+      );
+    }
+
     // If already paid, return early with success
     if (order.paymentStatus === PaymentStatus.PAID) {
       return NextResponse.json({
@@ -59,6 +74,15 @@ export async function POST(req: NextRequest) {
     const successfulPayment = payments.find(
       (p) => p.payment_status === "SUCCESS"
     );
+
+    if (successfulPayment && successfulPayment.payment_amount < order.totalAmount) {
+      return NextResponse.json(
+        {
+          error: `Payment amount ₹${successfulPayment.payment_amount} does not match required order total ₹${order.totalAmount}.`,
+        },
+        { status: 400 }
+      );
+    }
 
     if (!successfulPayment) {
       // In dev with mock configuration

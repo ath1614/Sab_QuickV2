@@ -26,12 +26,13 @@ export async function POST(req: NextRequest) {
     const { phone } = parseResult.data;
 
     // 1. Check if phone belongs to Owner or internal Staff
+    const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
     const existingUser = await prisma.user.findUnique({
       where: { phone },
       select: { id: true, name: true, role: true, email: true },
     });
 
-    const isOwner = phone === "9109066668" || existingUser?.role === "OWNER";
+    const isOwner = phone === ownerPhone || existingUser?.role === "OWNER";
     const isStaff = Boolean(existingUser && existingUser.role !== "CUSTOMER");
 
     // A. Store Owner authentication via Passcode (Zero SMS consumed)
@@ -66,11 +67,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         useFirebase: false,
-        message: "App Reviewer account detected. Use demo OTP to sign in.",
+        message: "App Reviewer account detected. Please enter your 4-digit review passcode.",
         expiresIn: 86400,
         cooldown: 0,
         isNewUser: false,
-        freeOtp: demoOtp,
+        freeOtp: process.env.NODE_ENV === "production" ? undefined : demoOtp,
       });
     }
 

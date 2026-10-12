@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/orderStatus";
 import { z } from "zod";
@@ -74,13 +75,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Rate-limit OTP attempts per order (prevent brute-forcing 1000-9999)
+    const otpAttemptsKey = `order:otp-attempts:${orderId}`;
+    const attempts = await redis.incr(otpAttemptsKey);
+    if (attempts === 1) {
+      await redis.expire(otpAttemptsKey, 3600);
+    }
+    if (attempts > 5) {
+      return NextResponse.json(
+        { error: "Too many incorrect OTP attempts for this order. Please contact customer support." },
+        { status: 429 }
+      );
+    }
+
     // Compare OTP
     if (enteredOtp.trim() !== order.deliveryOtp.trim()) {
+      const remaining = Math.max(0, 5 - attempts);
       return NextResponse.json(
-        { error: "Invalid Delivery OTP. Please verify the 4-digit code with customer." },
+        {
+          error: `Invalid Delivery OTP. ${remaining} attempt(s) remaining. Please verify with customer.`,
+        },
         { status: 400 }
       );
     }
+
+    // OTP matched: reset attempts and mark delivered
+    await redis.del(otpAttemptsKey);
 
     // OTP matched: Update order to DELIVERED and paymentStatus to PAID
     await prisma.order.update({

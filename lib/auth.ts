@@ -14,6 +14,14 @@ import {
   recordOtpFailure,
   resetOtpAttempts,
 } from "@/lib/otp";
+import {
+  hashPasscode,
+  verifyPasscode,
+  isPasscodeHashed,
+  isPinLocked,
+  recordPinFailure,
+  resetPinAttempts,
+} from "@/lib/passcode";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
@@ -170,46 +178,61 @@ export const authOptions: NextAuthOptions = {
 
         // 1. PIN / Passcode Authentication (For Owner and Staff)
         if (pin) {
-          // A. Owner Verification: the owner passcode lives in the database
-          // (provisioned to 140974 for 9109066668 via seed/first-login) and is
-          // compared with a constant-time equality check.
-          if (phone === "9109066668") {
+          // Check brute-force lockout
+          if (await isPinLocked(phone)) {
+            throw new Error(
+              "Too many incorrect PIN attempts. Access locked for 15 minutes to protect your account."
+            );
+          }
+
+          const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
+
+          // A. Owner Verification
+          if (phone === ownerPhone) {
             const ownerRecord = await prisma.user.findUnique({
-              where: { phone: "9109066668" },
+              where: { phone: ownerPhone },
               select: { id: true, pin: true },
             });
 
             let storedOwnerPin = ownerRecord?.pin ?? null;
 
-            // Self-heal: a fresh database may have the owner row without a PIN.
-            // Provision it from OWNER_PASSCODE (defaults to the documented passcode).
             if (ownerRecord && !storedOwnerPin) {
               const provisioned = process.env.OWNER_PASSCODE || "140974";
+              const hashed = hashPasscode(provisioned);
               await prisma.user.update({
                 where: { id: ownerRecord.id },
-                data: { pin: provisioned },
+                data: { pin: hashed },
               });
-              storedOwnerPin = provisioned;
+              storedOwnerPin = hashed;
             }
 
-            const ownerPinOk =
-              !!storedOwnerPin &&
-              storedOwnerPin.length === pin.length &&
-              crypto.timingSafeEqual(Buffer.from(storedOwnerPin), Buffer.from(pin));
+            const ownerPinOk = verifyPasscode(pin, storedOwnerPin);
 
             if (!ownerPinOk) {
+              await recordPinFailure(phone);
               throw new Error("Incorrect Owner Passcode. Access denied.");
             }
 
+            // PIN verified successfully: reset lockout counter
+            await resetPinAttempts(phone);
+
+            // Transparent migration: if stored PIN was legacy plaintext, upgrade to scrypt hash
+            if (storedOwnerPin && !isPasscodeHashed(storedOwnerPin)) {
+              await prisma.user.update({
+                where: { phone: ownerPhone },
+                data: { pin: hashPasscode(pin) },
+              });
+            }
+
             const ownerUser = await prisma.user.upsert({
-              where: { phone: "9109066668" },
-              update: { role: Role.OWNER, phoneVerified: true, pin: "140974" },
+              where: { phone: ownerPhone },
+              update: { role: Role.OWNER, phoneVerified: true },
               create: {
-                phone: "9109066668",
-                name: "Anurag Soni",
-                email: "sabsupermart68@gmail.com",
+                phone: ownerPhone,
+                name: process.env.OWNER_NAME || "Anurag Soni",
+                email: process.env.OWNER_EMAIL || "sabsupermart68@gmail.com",
                 role: Role.OWNER,
-                pin: "140974",
+                pin: hashPasscode(pin),
                 phoneVerified: true,
               },
             });
@@ -234,12 +257,22 @@ export const authOptions: NextAuthOptions = {
             throw new Error("No staff account found for this mobile number.");
           }
 
-          if (
-            !staffUser.pin ||
-            staffUser.pin.length !== pin.length ||
-            !crypto.timingSafeEqual(Buffer.from(staffUser.pin), Buffer.from(pin))
-          ) {
+          const staffPinOk = verifyPasscode(pin, staffUser.pin);
+
+          if (!staffPinOk) {
+            await recordPinFailure(phone);
             throw new Error("Incorrect Staff PIN. Please check with the store owner.");
+          }
+
+          // PIN verified successfully: reset lockout counter
+          await resetPinAttempts(phone);
+
+          // Transparent migration: if stored PIN was legacy plaintext, upgrade to scrypt hash
+          if (staffUser.pin && !isPasscodeHashed(staffUser.pin)) {
+            await prisma.user.update({
+              where: { id: staffUser.id },
+              data: { pin: hashPasscode(pin) },
+            });
           }
 
           return {

@@ -61,6 +61,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 
+    // Enforce rider assignment: a rider can only record collection on their assigned orders
+    if (userRoles.includes("RIDER") && order.riderId !== collectorId && session.user.role !== "OWNER") {
+      return NextResponse.json(
+        { error: "Forbidden: You are not the assigned delivery partner for this order." },
+        { status: 403 }
+      );
+    }
+
     if (order.paymentStatus === PaymentStatus.PAID && order.offlineCollectedAt) {
       return NextResponse.json(
         {

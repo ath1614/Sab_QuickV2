@@ -28,7 +28,31 @@ export async function POST(req: NextRequest) {
 
     const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = parseResult.data;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || "your_razorpay_secret";
+    const secret = process.env.RAZORPAY_KEY_SECRET?.trim();
+    if (!secret || secret === "your_razorpay_secret") {
+      return NextResponse.json(
+        { error: "Razorpay payment gateway secret is not configured on this server." },
+        { status: 500 }
+      );
+    }
+
+    // Verify order exists and matches razorpayOrderId
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [{ id: orderId }, { orderNumber: orderId }],
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    }
+
+    if (order.razorpayOrderId && order.razorpayOrderId !== razorpayOrderId) {
+      return NextResponse.json(
+        { error: "Razorpay order ID does not match registered order." },
+        { status: 400 }
+      );
+    }
 
     // Verify HMAC SHA256 signature
     const expectedSignature = crypto
@@ -45,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     // Update order in PostgreSQL
     const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: order.id },
       data: {
         paymentStatus: PaymentStatus.PAID,
         status: OrderStatus.CONFIRMED,
