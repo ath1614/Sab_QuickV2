@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "197455053731",
+    "project_id": "sabquick-17da6",
+    "storage_bucket": "sabquick-17da6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:197455053731:android:3e00e8b15d65c3bb061016",
+        "android_client_info": {
+          "package_name": "com.sabquick.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbGGhlWnPJm2BkwuGWXzpgqA0p233WrHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

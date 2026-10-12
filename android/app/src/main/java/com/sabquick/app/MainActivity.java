@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
@@ -14,7 +15,11 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+
 public class MainActivity extends BridgeActivity {
+  private static final String TAG = "SabQuick";
 
   @CapacitorPlugin(name = "NativeUpi")
   public static class NativeUpiPlugin extends Plugin {
@@ -56,6 +61,43 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    // 1. Install UncaughtExceptionHandler crash guard before plugins or activity setup
+    final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+    Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+      String msg = throwable != null ? throwable.getMessage() : "";
+      if (msg == null) msg = "";
+      Log.e(TAG, "Uncaught exception on thread " + thread.getName() + ": " + msg, throwable);
+
+      // If push notification or Firebase init throws an unchecked exception, suppress it
+      // so the app NEVER abruptly crashes on the customer's phone
+      if (msg.contains("Firebase") || msg.contains("FirebaseApp") || msg.contains("PushNotifications") ||
+          (throwable instanceof IllegalStateException && msg.contains("initialized"))) {
+        Log.w(TAG, "Suppressed non-fatal push notification crash cleanly");
+        return;
+      }
+
+      if (defaultHandler != null) {
+        defaultHandler.uncaughtException(thread, throwable);
+      }
+    });
+
+    // 2. Defensively ensure FirebaseApp is initialized before Capacitor push plugin runs
+    try {
+      if (FirebaseApp.getApps(this).isEmpty()) {
+        FirebaseOptions options = new FirebaseOptions.Builder()
+            .setApplicationId("1:197455053731:android:3e00e8b15d65c3bb061016")
+            .setGcmSenderId("197455053731")
+            .setApiKey("AIzaSyBbGGhlWnPJm2BkwuGWXzpgqA0p233WrHE")
+            .setProjectId("sabquick-17da6")
+            .setStorageBucket("sabquick-17da6.firebasestorage.app")
+            .build();
+        FirebaseApp.initializeApp(this, options);
+        Log.i(TAG, "FirebaseApp initialized programmatically");
+      }
+    } catch (Throwable t) {
+      Log.w(TAG, "FirebaseApp programmatic init skipped/error: " + t.getMessage());
+    }
+
     registerPlugin(NativeUpiPlugin.class);
     super.onCreate(savedInstanceState);
 

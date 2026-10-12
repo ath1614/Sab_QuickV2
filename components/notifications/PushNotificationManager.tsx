@@ -63,8 +63,12 @@ export function PushNotificationManager() {
           }
 
           if (permStatus.receive === "granted") {
-            // Register with APNs / FCM
-            await PushNotifications.register();
+            try {
+              // Register with APNs / FCM
+              await PushNotifications.register();
+            } catch (regCallErr) {
+              console.warn("[PushNotifications] Push registration call handled safely:", regCallErr);
+            }
           }
 
           // Registration Token Handler
