@@ -13,9 +13,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.role !== "OWNER") {
+    const userRole = session.user.role;
+    const userRoles: string[] = (session.user as any)?.roles?.length
+      ? (session.user as any).roles
+      : [userRole];
+    const isAllowed = userRoles.includes("OWNER") || userRoles.includes("MANAGER");
+
+    if (!isAllowed) {
       return NextResponse.json(
-        { error: "Forbidden: Store Owner role strictly required to export database backup." },
+        { error: "Forbidden: Store Owner or Manager role strictly required to export database backup." },
         { status: 403 }
       );
     }

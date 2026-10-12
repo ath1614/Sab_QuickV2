@@ -121,6 +121,16 @@ const THEME_PRESETS = SHARED_THEME_PRESETS.map((p) => ({
 
 export default function OwnerControlPage() {
   const { data: session, status: authStatus } = useSession();
+  const role = session?.user?.role;
+  const userRoles: string[] =
+    (session?.user as any)?.roles?.length
+      ? (session?.user as any).roles
+      : role
+        ? [role]
+        : [];
+  const isOwner = userRoles.includes("OWNER");
+  const isManager = userRoles.includes("MANAGER");
+
   const [analytics, setAnalytics] = React.useState<AnalyticsData | null>(null);
   const [allProducts, setAllProducts] = React.useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -132,13 +142,7 @@ export default function OwnerControlPage() {
   >("overview");
   // Managers get the Orders Hub by default (their primary console).
   React.useEffect(() => {
-    const r: string[] =
-      (session?.user as any)?.roles?.length
-        ? (session?.user as any).roles
-        : session?.user?.role
-          ? [session.user.role]
-          : [];
-    if (r.includes("MANAGER") && !r.includes("OWNER")) {
+    if (isManager && !isOwner) {
       setActiveOwnerTab("orders");
     }
 
@@ -148,7 +152,7 @@ export default function OwnerControlPage() {
         setActiveOwnerTab(urlTab as any);
       }
     }
-  }, [session?.user]);
+  }, [session?.user, isManager, isOwner]);
 
   // Staff Hub State
   const [staffList, setStaffList] = React.useState<StaffMember[]>([]);
@@ -608,14 +612,16 @@ export default function OwnerControlPage() {
     if (authStatus === "authenticated") {
       fetchOperationsData();
       fetchCurrentTheme();
-      fetchStaff();
-      fetchCoupons();
+      if (isOwner) {
+        fetchStaff();
+        fetchCoupons();
+      }
       const interval = setInterval(() => {
         fetchOperationsData(true);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [authStatus, fetchOperationsData, fetchCurrentTheme, fetchStaff, fetchCoupons]);
+  }, [authStatus, isOwner, fetchOperationsData, fetchCurrentTheme, fetchStaff, fetchCoupons]);
 
   // Instant Stock Toggle Handler
   const handleToggleStock = async (productId: string, currentAvailable: boolean) => {
@@ -880,13 +886,6 @@ export default function OwnerControlPage() {
     );
   }
 
-  const role = session?.user?.role;
-  const userRoles: string[] =
-    (session?.user as any)?.roles?.length
-      ? (session?.user as any).roles
-      : [role];
-  const isOwner = userRoles.includes("OWNER");
-  const isManager = userRoles.includes("MANAGER");
   if (!isOwner && !isManager) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -968,8 +967,10 @@ export default function OwnerControlPage() {
               onClick={() => {
                 fetchOperationsData();
                 fetchCurrentTheme();
-                fetchStaff();
-                fetchCoupons();
+                if (isOwner) {
+                  fetchStaff();
+                  fetchCoupons();
+                }
               }}
               disabled={isRefreshing}
               className="sm:hidden h-8 w-8 p-0 rounded-xl shrink-0"
@@ -1054,8 +1055,10 @@ export default function OwnerControlPage() {
               onClick={() => {
                 fetchOperationsData();
                 fetchCurrentTheme();
-                fetchStaff();
-                fetchCoupons();
+                if (isOwner) {
+                  fetchStaff();
+                  fetchCoupons();
+                }
               }}
               disabled={isRefreshing}
               className="hidden sm:inline-flex h-9 px-3 rounded-xl text-xs font-semibold gap-1.5 shrink-0"

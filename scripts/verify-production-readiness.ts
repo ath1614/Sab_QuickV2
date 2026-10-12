@@ -143,11 +143,11 @@ async function runProductionReadinessTestSuite() {
 
     // Verify protected routes in middleware
     const requiredGuardedRoutes = [
-      'prefix: "/owner", allowedRoles: ["OWNER"]',
+      'prefix: "/owner", allowedRoles: ["OWNER", "MANAGER"]',
       'prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"]',
       'prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"]',
       'prefix: "/rider", allowedRoles: ["RIDER", "OWNER", "MANAGER"]',
-      'prefix: "/api/owner", allowedRoles: ["OWNER"]',
+      'prefix: "/api/owner", allowedRoles: ["OWNER", "MANAGER"]',
     ];
 
     for (const routeRule of requiredGuardedRoutes) {

@@ -14,11 +14,11 @@ export async function middleware(req: NextRequest) {
   const protectedRoutes = [
     { prefix: "/owner/catalog", allowedRoles: ["OWNER", "MANAGER"] },
     { prefix: "/owner/riders", allowedRoles: ["OWNER", "MANAGER"] },
-    { prefix: "/owner", allowedRoles: ["OWNER"] },
+    { prefix: "/owner", allowedRoles: ["OWNER", "MANAGER"] },
     { prefix: "/manager", allowedRoles: ["MANAGER", "OWNER"] },
     { prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
     { prefix: "/rider", allowedRoles: ["RIDER", "OWNER", "MANAGER"] },
-    { prefix: "/api/owner", allowedRoles: ["OWNER"] },
+    { prefix: "/api/owner", allowedRoles: ["OWNER", "MANAGER"] },
   ];
 
   const matchedRule = protectedRoutes.find((r) => pathname.startsWith(r.prefix));
