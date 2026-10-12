@@ -47,6 +47,19 @@ export async function POST(req: NextRequest) {
     // Update status and broadcast via SSE
     const updated = await updateOrderStatus(orderId, status, riderId);
 
+    // If rider was assigned, dispatch high-priority push notification to rider
+    if (riderId) {
+      try {
+        const { sendRiderAssignedAlert } = await import("@/lib/notifications");
+        sendRiderAssignedAlert(riderId, {
+          id: updated.id,
+          orderNumber: updated.orderNumber,
+        }).catch((e) => console.warn("[FCM Rider Alert Warning]:", e));
+      } catch (importErr) {
+        console.warn("[FCM Import Warning]:", importErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       orderId: updated.id,

@@ -127,10 +127,26 @@ export async function POST(req: NextRequest) {
         cashfreePaymentId: String(successfulPayment.cf_payment_id),
         cashfreePaymentStatus: "SUCCESS",
       },
+      include: {
+        items: true,
+      },
     });
 
     // Broadcast to packers and rider dispatch via Redis Pub/Sub
     await updateOrderStatus(order.id, OrderStatus.CONFIRMED);
+
+    // Dispatch New Order Alert to store staff (Packers, Managers, Owner)
+    try {
+      const { sendNewOrderStaffAlert } = await import("@/lib/notifications");
+      sendNewOrderStaffAlert({
+        id: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
+        totalAmount: updatedOrder.totalAmount,
+        itemCount: updatedOrder.items.length,
+      }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+    } catch (pushErr) {
+      console.warn("[Push Notification Import Warning]:", pushErr);
+    }
 
     return NextResponse.json({
       success: true,

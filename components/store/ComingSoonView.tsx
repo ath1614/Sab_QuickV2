@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { ArrowRight, CheckCircle2, AlertCircle, Loader2, Lock } from "lucide-react";
-import { Logo } from "@/components/brand/Logo";
-import { useAuthModalStore } from "@/store/useAuthModalStore";
+import { CheckCircle2, AlertCircle, Loader2, Sparkles, Bell } from "lucide-react";
 
 interface ComingSoonViewProps {
   launchDate?: string | null;
@@ -13,9 +11,6 @@ interface ComingSoonViewProps {
 }
 
 export function ComingSoonView({ launchDate, onEnterPreview }: ComingSoonViewProps) {
-  const { data: session } = useSession();
-  const { openAuthModal } = useAuthModalStore();
-
   const [contact, setContact] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [subscribed, setSubscribed] = React.useState(false);
@@ -48,126 +43,100 @@ export function ComingSoonView({ launchDate, onEnterPreview }: ComingSoonViewPro
     }
   };
 
-  const userRole = session?.user?.role;
-  const userRoles: string[] =
-    (session?.user as any)?.roles?.length
-      ? (session?.user as any).roles
-      : [userRole];
-  const isStaffOrReviewer =
-    userRoles.some((r) => ["OWNER", "MANAGER", "PACKER", "RIDER"].includes(r)) ||
-    (session?.user as any)?.phone === "9999999999";
-
   return (
-    <div className="min-h-screen bg-[#FBFBFB] text-slate-800 flex flex-col justify-between selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Top Header */}
-      <header className="w-full max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
-        <Logo variant="compact" height={34} />
+    <div className="min-h-screen bg-white text-slate-800 flex flex-col justify-between px-4 py-8 sm:py-12 selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Top spacing */}
+      <div className="w-full max-w-md mx-auto" />
 
-        <div className="flex items-center gap-3">
-          {session ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 hidden sm:inline">
-                {session.user?.name || session.user?.phone || session.user?.email}
-              </span>
-              {isStaffOrReviewer && onEnterPreview && (
-                <button
-                  type="button"
-                  onClick={onEnterPreview}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs"
-                >
-                  <span>Preview Store</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={openAuthModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 bg-white transition-colors"
-            >
-              <Lock className="w-3 h-3 text-slate-400" />
-              <span>Staff Login</span>
-            </button>
-          )}
+      {/* Main Center Container — 100% Mobile First */}
+      <main className="w-full max-w-md mx-auto flex flex-col items-center text-center my-auto">
+        {/* Large Prominent SabQuick Official Brand Logo */}
+        <div className="w-full max-w-[280px] sm:max-w-[340px] mb-8 transition-transform hover:scale-102">
+          <Image
+            src="/brand/sabquick-official-logo.png"
+            alt="SabQuick - A Complete Provision Store | Right to Your Door"
+            width={340}
+            height={160}
+            className="w-full h-auto object-contain mx-auto"
+            priority
+          />
         </div>
-      </header>
 
-      {/* Main Minimalist Content */}
-      <main className="max-w-xl mx-auto px-6 py-16 flex flex-col items-center text-center my-auto">
-        {/* Subtle pill indicator */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-xs font-medium mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        {/* Minimalist Live Dark Store Pill */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-800 text-xs font-semibold mb-5 shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Ambikapur Dark Store</span>
         </div>
 
-        {/* Clean, Plain Heading */}
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 mb-4">
+        {/* Crisp Plain Typography Heading */}
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 mb-3">
           Coming Soon
         </h1>
 
-        {/* Minimalist Subtext */}
-        <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-md mb-8">
-          We&apos;re preparing our local dark store to deliver fresh groceries and daily essentials to your doorstep in minutes.
+        {/* Clean, Plain Subtext */}
+        <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-sm mb-8 px-2">
+          We&apos;re stocking up our dark store to bring fresh groceries, fruits, veggies and daily essentials right to your doorstep in 10 minutes.
         </p>
 
-        {/* Clean Light Subscription Input */}
-        <div className="w-full max-w-md">
+        {/* Large Mobile-First Notification Trigger */}
+        <div className="w-full max-w-sm px-2">
           {subscribed ? (
-            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>You&apos;re on the list. We&apos;ll notify you when delivery opens.</span>
+            <div className="w-full p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-semibold flex items-center justify-center gap-2 shadow-xs">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>You&apos;re on the priority list! We&apos;ll notify you on launch.</span>
             </div>
           ) : (
-            <form onSubmit={handleSubscribe} className="space-y-2">
-              <div className="flex items-center bg-white border border-slate-200 rounded-full p-1.5 shadow-xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/10 transition-all">
+            <form onSubmit={handleSubscribe} className="w-full space-y-3">
+              <div className="relative w-full">
                 <input
                   type="text"
                   placeholder="Enter mobile number or email"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  className="flex-1 px-4 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-hidden"
+                  className="w-full h-13 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 outline-hidden transition-all shadow-xs"
                   required
                 />
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 sm:px-5 py-2.5 rounded-full transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    "Notify Me"
-                  )}
-                </button>
               </div>
 
+              {/* Large Mobile-First Primary Button */}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-13 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-60 cursor-pointer"
+              >
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Bell className="w-4 h-4" />
+                    <span>Get Notified on Launch</span>
+                  </>
+                )}
+              </button>
+
               {notifyError && (
-                <p className="text-xs text-rose-600 flex items-center justify-center gap-1 mt-1">
-                  <AlertCircle className="w-3 h-3" />
+                <p className="text-xs text-rose-600 flex items-center justify-center gap-1.5 pt-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>{notifyError}</span>
                 </p>
               )}
             </form>
           )}
         </div>
-
-        {/* Discreet reviewer note */}
-        <p className="text-[11px] text-slate-400 mt-10">
-          App Reviewers: Log in using test phone <span className="font-mono text-slate-600 font-semibold">9999999999</span> to preview the store.
-        </p>
       </main>
 
       {/* Clean Minimalist Footer */}
-      <footer className="w-full max-w-5xl mx-auto px-6 py-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+      <footer className="w-full max-w-md mx-auto pt-8 border-t border-slate-100 flex flex-col items-center justify-center text-center text-xs text-slate-400 gap-2">
         <p>&copy; {new Date().getFullYear()} SabQuick. All rights reserved.</p>
         <div className="flex items-center gap-4">
           <Link href="/privacy" className="hover:text-slate-600 transition-colors">
             Privacy Policy
           </Link>
+          <span className="text-slate-300">&bull;</span>
           <Link href="/terms" className="hover:text-slate-600 transition-colors">
-            Terms
+            Terms of Service
           </Link>
+          <span className="text-slate-300">&bull;</span>
           <Link href="/refund" className="hover:text-slate-600 transition-colors">
             Refunds
           </Link>

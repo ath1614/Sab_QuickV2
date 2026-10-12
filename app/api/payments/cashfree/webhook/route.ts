@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (order && order.paymentStatus !== PaymentStatus.PAID) {
-        await prisma.order.update({
+        const updatedOrder = await prisma.order.update({
           where: { id: order.id },
           data: {
             paymentStatus: PaymentStatus.PAID,
@@ -74,9 +74,25 @@ export async function POST(req: NextRequest) {
             cashfreePaymentId: String(cfPaymentId || order.cashfreePaymentId || "webhook_verified"),
             cashfreePaymentStatus: "SUCCESS",
           },
+          include: {
+            items: true,
+          },
         });
 
         await updateOrderStatus(order.id, OrderStatus.CONFIRMED);
+
+        try {
+          const { sendNewOrderStaffAlert } = await import("@/lib/notifications");
+          sendNewOrderStaffAlert({
+            id: updatedOrder.id,
+            orderNumber: updatedOrder.orderNumber,
+            totalAmount: updatedOrder.totalAmount,
+            itemCount: updatedOrder.items.length,
+          }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+        } catch (pushErr) {
+          console.warn("[Push Notification Import Warning]:", pushErr);
+        }
+
         console.log(`Order ${order.orderNumber} successfully confirmed via Cashfree webhook.`);
       }
     }

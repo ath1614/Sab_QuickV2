@@ -168,9 +168,10 @@ export async function sendOrderStatusPushNotification(
 
       case OrderStatus.OUT_FOR_DELIVERY:
         title = "Out for Delivery! 🚴💨";
+        const otpNote = order.deliveryOtp ? ` • Share OTP ${order.deliveryOtp}` : "";
         body = order.rider?.name
-          ? `${order.rider.name} is on the way with your order #${order.orderNumber} (10-15 mins).`
-          : `Your SabQuick rider is speeding to your doorstep with order #${order.orderNumber} (10-15 mins).`;
+          ? `${order.rider.name} is on the way with your order #${order.orderNumber}${otpNote} (10-15 mins).`
+          : `Your SabQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (10-15 mins).`;
         break;
 
       case OrderStatus.DELIVERED:
@@ -223,6 +224,32 @@ export async function sendNewOrderStaffAlert(order: {
       orderId: order.id,
       orderNumber: order.orderNumber,
       url: `/packer`,
+    },
+  });
+}
+
+/**
+ * Alerts assigned delivery partner (Rider) when an order is ready for pickup.
+ */
+export async function sendRiderAssignedAlert(
+  riderId: string,
+  order: {
+    id: string;
+    orderNumber: string;
+  }
+): Promise<void> {
+  const title = `🚴 New Delivery Assigned!`;
+  const body = `Order #${order.orderNumber} is ready for pickup at SabQuick Dark Store.`;
+
+  await sendPushToUser(riderId, {
+    title,
+    body,
+    channelId: "sabquick_staff_orders",
+    sound: "order_alert",
+    data: {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      url: `/rider/dashboard`,
     },
   });
 }
