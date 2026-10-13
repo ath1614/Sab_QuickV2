@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   THEME_PRESETS as SHARED_THEME_PRESETS,
 } from "@/components/theme/themePresets";
+import { ThemeHeroPreview } from "@/components/theme/ThemeHeroPreview";
 import { Sparkles, Palette, Zap, CheckCircle2, ArrowLeft, RefreshCw, X } from "lucide-react";
 
 // Adapter: the shared 16-preset gallery (single source of truth, also used
@@ -273,26 +274,13 @@ export function SeasonalThemeModal({
             </div>
 
             {/* Live Visual Preview */}
-            <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-2">
-              <span className="text-[10px] font-mono uppercase text-slate-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                Live Customer Hero Preview
-              </span>
-              <div
-                className="p-4 rounded-xl border border-white/10 flex flex-col gap-2 transition-all shadow-inner"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, #064E3B 60%, #0f172a 100%)`,
-                }}
-              >
-                <div className="inline-flex items-center gap-1.5 w-fit text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-xs text-slate-900" style={{ backgroundColor: accentColor }}>
-                  <Zap className="w-3 h-3 fill-current" />
-                  <span>Superfast Delivery</span>
-                </div>
-                <h3 className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-sm">
-                  {saleTagText || "Superfast Delivery Guarantee"}
-                </h3>
-              </div>
-            </div>
+            <ThemeHeroPreview
+              themeName={themeName}
+              primaryColor={primaryColor}
+              accentColor={accentColor}
+              saleTagText={saleTagText}
+              bannerImageUrl={bannerImageUrl}
+            />
 
             {/* Error & Success Alerts */}
             {themeSuccessMsg && (

@@ -41,6 +41,21 @@ export function getBannerForTheme(themeName?: string | null, bannerImageUrl?: st
   if (lower.includes("diwali")) {
     return "/brand/banners/diwali-theme.jpg";
   }
+  if (lower.includes("save") || lower.includes("discount") || lower.includes("sale") || lower.includes("tiranga") || lower.includes("independence")) {
+    return "/brand/banners/big-save-theme.jpg";
+  }
+  if (lower.includes("midnight") || lower.includes("cravings") || lower.includes("night") || lower.includes("summer") || lower.includes("monsoon")) {
+    return "/brand/banners/midnight-theme.jpg";
+  }
+  if (lower.includes("holi")) {
+    return "/brand/banners/holi-theme.jpg";
+  }
+  if (lower.includes("eid")) {
+    return "/brand/banners/eid-theme.jpg";
+  }
+  if (lower.includes("christmas") || lower.includes("year") || lower.includes("holiday")) {
+    return "/brand/banners/christmas-theme.jpg";
+  }
   return "/brand/banners/original-theme.jpg";
 }
 

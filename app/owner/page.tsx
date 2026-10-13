@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/brand/Logo";
 import { THEME_PRESETS as SHARED_THEME_PRESETS } from "@/components/theme/themePresets";
+import { ThemeHeroPreview } from "@/components/theme/ThemeHeroPreview";
 import { OwnerOrdersTab } from "@/components/owner/OwnerOrdersTab";
 import { OwnerCustomersTab } from "@/components/owner/OwnerCustomersTab";
 import {
@@ -1376,16 +1377,27 @@ export default function OwnerControlPage() {
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Presets:
               </span>
-              {THEME_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleApplyPreset(preset)}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors"
-                >
-                  {preset.name.split(" ")[0]}
-                </button>
-              ))}
+              {THEME_PRESETS.map((preset) => {
+                const isSelected = themeName === preset.name;
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                      isSelected
+                        ? "border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary"
+                        : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                      style={{ backgroundColor: preset.primary }}
+                    />
+                    <span>{preset.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1553,6 +1565,17 @@ export default function OwnerControlPage() {
                 </p>
               )}
             </form>
+          </div>
+
+          {/* ---------- Live Visual Customer Storefront Preview ---------- */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 space-y-3">
+            <ThemeHeroPreview
+              themeName={themeName}
+              primaryColor={primaryColor}
+              accentColor={accentColor}
+              saleTagText={saleTagText}
+              bannerImageUrl={bannerImageUrl}
+            />
           </div>
 
           {/* ---------- Manual Theme Override Form ---------- */}
