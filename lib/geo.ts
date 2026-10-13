@@ -70,9 +70,9 @@ export function calculateEstimatedDeliveryMinutes(distanceKm: number): number {
   const totalMinutes = packingTimeMinutes + transitTimeMinutes;
 
   if (distanceKm <= STORE_CONFIG.maxRadiusKm) {
-    // Within geofence: show a stable estimated floor.
-    // Public copy guarantees "Superfast Delivery" without strict minute SLA promises.
-    return Math.max(8, totalMinutes);
+    // Within geofence: standard baseline estimate floor (10-15 mins).
+    // Public copy guarantees "Superfast Delivery" without strict SLA time claims.
+    return Math.min(15, Math.max(10, totalMinutes));
   }
 
   return totalMinutes;

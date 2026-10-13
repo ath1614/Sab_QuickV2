@@ -109,12 +109,11 @@ export async function ensureDatabaseSchema() {
     `);
 
     // 9. Ensure WELCOMEFREE coupon exists (First 2 deliveries free welcome offer)
-    const welcomeCoupon = await prisma.coupon.findUnique({
-      where: { code: "WELCOMEFREE" },
-    });
-    if (!welcomeCoupon) {
-      await prisma.coupon.create({
-        data: {
+    await prisma.coupon
+      .upsert({
+        where: { code: "WELCOMEFREE" },
+        update: {},
+        create: {
           code: "WELCOMEFREE",
           description: "Welcome Offer • 100% Free Delivery on your first 2 orders!",
           discountType: "FLAT",
@@ -124,8 +123,8 @@ export async function ensureDatabaseSchema() {
           validTill: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 5),
           isActive: true,
         },
-      });
-    }
+      })
+      .catch(() => {});
 
     // 10. Ensure RiderApplication table exists for Onboarding Portal
     await prisma.$executeRawUnsafe(`
