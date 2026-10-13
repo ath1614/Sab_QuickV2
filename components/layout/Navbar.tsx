@@ -180,7 +180,7 @@ export function Navbar({
                 <img
                   src="/brand/navbar-logo.png"
                   alt="SabQuick"
-                  className="h-8 max-w-[120px] w-auto object-contain shrink-0"
+                  className="h-8 max-w-[135px] w-auto object-contain shrink-0"
                 />
               </Link>
 
