@@ -174,6 +174,27 @@ export function UpiPaymentModal({
     }
   };
 
+  const [isCancellingOrder, setIsCancellingOrder] = React.useState(false);
+
+  const handleCancelOrder = async () => {
+    setIsCancellingOrder(true);
+    try {
+      await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          reason: "Customer cancelled payment in UPI app chooser",
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to cancel pending UPI order:", err);
+    } finally {
+      setIsCancellingOrder(false);
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]">
@@ -361,10 +382,11 @@ export function UpiPaymentModal({
 
             <button
               type="button"
-              onClick={onClose}
-              className="text-[11px] text-slate-400 hover:text-slate-600 py-1 px-2"
+              onClick={handleCancelOrder}
+              disabled={isCancellingOrder || isConfirming || isSwitchingCod}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-700 py-1 px-2.5 rounded-lg hover:bg-rose-50 transition-colors disabled:opacity-50"
             >
-              Cancel Order
+              {isCancellingOrder ? "Cancelling..." : "Cancel Order"}
             </button>
           </div>
         </div>

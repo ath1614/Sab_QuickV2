@@ -41,10 +41,19 @@ export function getBannerForTheme(themeName?: string | null, bannerImageUrl?: st
   if (lower.includes("diwali")) {
     return "/brand/banners/diwali-theme.jpg";
   }
-  if (lower.includes("save") || lower.includes("discount") || lower.includes("sale") || lower.includes("tiranga") || lower.includes("independence")) {
+  if (lower.includes("raksh") || lower.includes("rakhi")) {
+    return "/brand/banners/raksha-bandhan-theme.jpg";
+  }
+  if (lower.includes("tiranga") || lower.includes("independence")) {
+    return "/brand/banners/independence-theme.jpg";
+  }
+  if (lower.includes("summer") || lower.includes("chill")) {
+    return "/brand/banners/summer-chill-theme.jpg";
+  }
+  if (lower.includes("save") || lower.includes("discount") || lower.includes("sale")) {
     return "/brand/banners/big-save-theme.jpg";
   }
-  if (lower.includes("midnight") || lower.includes("cravings") || lower.includes("night") || lower.includes("summer") || lower.includes("monsoon")) {
+  if (lower.includes("midnight") || lower.includes("cravings") || lower.includes("night")) {
     return "/brand/banners/midnight-theme.jpg";
   }
   if (lower.includes("holi")) {
