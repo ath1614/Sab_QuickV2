@@ -25,7 +25,6 @@ import { ParentCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductCard, ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 import { AisleProductRow } from "@/components/catalog/AisleProductRow";
-import { SearchBar } from "@/components/catalog/SearchBar";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
 import { SplashScreen } from "@/components/brand/SplashScreen";
@@ -78,6 +77,7 @@ function StorefrontContent() {
     primaryColor: "#0B6E4F",
     accentColor: "#00C853",
     saleTagText: "⚡ Superfast Delivery Guarantee",
+    bannerImageUrl: "/brand/banners/original-theme.jpg",
   });
   const [categories, setCategories] = React.useState<ParentCategoryItem[]>([]);
   const [products, setProducts] = React.useState<ProductData[]>([]);
@@ -472,16 +472,13 @@ function StorefrontContent() {
             from the theme engine (live campaign > manual pin > brand default).
             Mobile diet: ~34% of viewport (was 46%) so products stay above the fold. */}
         <section
-          className="relative z-30 rounded-3xl bg-surface-dark bg-gradient-to-r from-primary via-[#064E3B] to-slate-900 text-white p-4 sm:p-8 shadow-xl border border-white/10"
-          style={
-            theme.bannerImageUrl
-              ? {
-                  backgroundImage: `linear-gradient(to right, rgba(4,36,28,0.86), rgba(4,36,28,0.55) 55%, rgba(4,36,28,0.35)), url(${theme.bannerImageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }
-              : undefined
-          }
+          className="relative z-30 rounded-3xl overflow-hidden bg-surface-dark text-white p-5 sm:p-8 md:p-10 shadow-xl border border-white/10"
+          style={{
+            backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.35) 80%, rgba(0,0,0,0.10) 100%), url(${theme.bannerImageUrl || "/brand/banners/original-theme.jpg"})`,
+            backgroundSize: "cover",
+            backgroundPosition: "right center",
+            backgroundRepeat: "no-repeat",
+          }}
         >
           {/* Background Ambient Circles (Clipped within card bounds) */}
           <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
@@ -489,33 +486,65 @@ function StorefrontContent() {
             <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
           </div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
-            <div className="space-y-2 sm:space-y-3 max-w-xl">
-              <div className="flex items-center gap-2.5">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
+            {/* Left Content Area: Typography, Badges & Quick Action Tags */}
+            <div className="space-y-3 sm:space-y-4 max-w-xl">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="accent"
-                  className="gap-1.5 uppercase font-black tracking-wider text-[10px] sm:text-[11px] py-0.5 sm:py-1 px-2 sm:px-3 bg-primary-accent text-surface-dark shadow-sm"
+                  className="gap-1.5 uppercase font-black tracking-wider text-[10px] sm:text-[11px] py-0.5 sm:py-1 px-2.5 sm:px-3 bg-primary-accent text-surface-dark shadow-xs"
                 >
                   <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-surface-dark" />
-                  Superfast Delivery
+                  10-Min Superfast Delivery
                 </Badge>
+                <span className="inline-flex items-center text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/15 text-white/90 border border-white/20 backdrop-blur-xs">
+                  {theme.themeName.toLowerCase().includes("festiv") ||
+                  theme.themeName.toLowerCase().includes("navratri") ||
+                  theme.themeName.toLowerCase().includes("diwali")
+                    ? "✨ Festive Edition"
+                    : "⚡ Fresh Dark Store"}
+                </span>
               </div>
-              <h1 className="text-lg sm:text-3xl md:text-4xl font-display font-bold tracking-tight leading-tight text-white drop-shadow-md line-clamp-2">
+
+              <h1 className="text-xl sm:text-3xl md:text-4xl font-display font-black tracking-tight leading-tight text-white drop-shadow-md">
                 {theme.saleTagText}
               </h1>
-              <p className="hidden sm:block text-xs md:text-sm text-emerald-100/90 leading-relaxed font-medium drop-shadow-xs max-w-lg">
-                Fresh milk, dairy staples, farm produce, and midnight munchies dispatched from our Ambikapur dark store within minutes.
+
+              <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-medium drop-shadow-xs max-w-lg">
+                Fresh milk, dairy staples, puja samagri, and midnight munchies dispatched from our Ambikapur dark store within minutes.
               </p>
+
+              {/* Quick Action Badges / CTAs */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <a
+                  href="#product-grid"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-accent hover:bg-primary-accent/90 text-surface-dark font-black text-xs shadow-md transition-all active:scale-95"
+                >
+                  <span>Shop Essentials</span>
+                  <span className="text-sm font-bold">&darr;</span>
+                </a>
+                <Link
+                  href="/categories"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs border border-white/20 backdrop-blur-xs transition-all active:scale-95"
+                >
+                  <span>All Categories &rarr;</span>
+                </Link>
+              </div>
             </div>
 
-            {/* Live SearchBar Integrated into Hero */}
-            <div className="w-full md:w-auto md:min-w-[360px] lg:min-w-[440px]">
-              <SearchBar
-                initialQuery={activeSearch}
-                onSearchSubmit={handleSearchSubmit}
-                onAddToCart={addItem}
-                placeholder="Search milk, bread, chips, colas..."
-              />
+            {/* Right Side Visual Highlight / Festival Samagri Quick Pill (Desktop & Tablet) */}
+            <div className="hidden lg:flex flex-col items-end justify-center shrink-0">
+              <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-xl text-right max-w-xs space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">
+                  ⚡ 2.5 KM Geofence SLA
+                </span>
+                <p className="text-sm font-black text-white leading-snug">
+                  Doorstep delivery in 10 minutes or delivery is on us!
+                </p>
+                <p className="text-[11px] text-emerald-200/80">
+                  Puja Samagri • Vrat Essentials • Fresh Dairy
+                </p>
+              </div>
             </div>
           </div>
         </section>

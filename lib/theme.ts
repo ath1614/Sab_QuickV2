@@ -30,12 +30,26 @@ export interface ResolvedTheme {
   campaignId?: string;
 }
 
+export function getBannerForTheme(themeName?: string | null, bannerImageUrl?: string | null): string {
+  if (bannerImageUrl && bannerImageUrl.trim() !== "") {
+    return bannerImageUrl;
+  }
+  const lower = (themeName || "").toLowerCase();
+  if (lower.includes("navratri")) {
+    return "/brand/banners/navratri-theme.jpg";
+  }
+  if (lower.includes("diwali")) {
+    return "/brand/banners/diwali-theme.jpg";
+  }
+  return "/brand/banners/original-theme.jpg";
+}
+
 export const DEFAULT_THEME: ResolvedTheme = {
   themeName: "Forest Speed (Standard)",
   primaryColor: "#0B6E4F",
   accentColor: "#00C853",
   saleTagText: "⚡ Superfast Delivery Guarantee",
-  bannerImageUrl: null,
+  bannerImageUrl: "/brand/banners/original-theme.jpg",
   isStoreLive: true,
   launchDate: null,
   source: "default",
@@ -47,7 +61,7 @@ function manualToResolved(config: ThemeConfig): ResolvedTheme {
     primaryColor: config.primaryColor,
     accentColor: config.accentColor,
     saleTagText: config.saleTagText || DEFAULT_THEME.saleTagText,
-    bannerImageUrl: config.bannerImageUrl,
+    bannerImageUrl: getBannerForTheme(config.themeName, config.bannerImageUrl),
     isStoreLive: config.isStoreLive ?? true,
     launchDate: config.launchDate ? config.launchDate.toISOString() : null,
     source: "manual",
@@ -60,7 +74,7 @@ function campaignToResolved(campaign: ThemeCampaign): ResolvedTheme {
     primaryColor: campaign.primaryColor,
     accentColor: campaign.accentColor,
     saleTagText: campaign.saleTagText || DEFAULT_THEME.saleTagText,
-    bannerImageUrl: campaign.bannerImageUrl,
+    bannerImageUrl: getBannerForTheme(campaign.name, campaign.bannerImageUrl),
     isStoreLive: true,
     launchDate: null,
     source: "campaign",

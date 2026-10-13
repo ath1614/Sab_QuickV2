@@ -19,7 +19,7 @@ const THEME_PRESETS = SHARED_THEME_PRESETS.map((p) => ({
   primary: p.primaryColor,
   accent: p.accentColor,
   saleTag: p.saleTagText,
-  bannerUrl: p.key === "standard" ? "/banners/forest-speed-hero.webp" : "",
+  bannerUrl: p.bannerImageUrl || (p.key === "standard" ? "/brand/banners/original-theme.jpg" : ""),
 }));
 
 interface SeasonalThemeModalProps {
