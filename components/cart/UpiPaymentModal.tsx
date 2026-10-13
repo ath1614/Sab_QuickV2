@@ -54,6 +54,7 @@ export function UpiPaymentModal({
   const [showUtrInput, setShowUtrInput] = React.useState(false);
   const [isConfirming, setIsConfirming] = React.useState(false);
   const [isSwitchingCod, setIsSwitchingCod] = React.useState(false);
+  const [isCancellingOrder, setIsCancellingOrder] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [isDesktop, setIsDesktop] = React.useState(false);
 
@@ -173,8 +174,6 @@ export function UpiPaymentModal({
       setIsSwitchingCod(false);
     }
   };
-
-  const [isCancellingOrder, setIsCancellingOrder] = React.useState(false);
 
   const handleCancelOrder = async () => {
     setIsCancellingOrder(true);
