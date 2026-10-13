@@ -13,21 +13,28 @@ export interface ServiceabilityResult {
   maxRadiusKm: number;
 }
 
+const parseCoord = (val: string | undefined, staleList: string[], fallback: number): number => {
+  if (!val) return fallback;
+  if (staleList.includes(val.trim())) return fallback;
+  const num = parseFloat(val);
+  return Number.isFinite(num) ? num : fallback;
+};
+
 export const STORE_CONFIG: StoreConfig = {
-  lat: parseFloat(
-    process.env.NEXT_PUBLIC_STORE_LAT ||
-      process.env.STORE_LATITUDE ||
-      "23.131617"
+  lat: parseCoord(
+    process.env.NEXT_PUBLIC_STORE_LAT || process.env.STORE_LATITUDE,
+    ["23.129243", "28.6139", "28.6289"],
+    23.131617
   ),
-  lng: parseFloat(
-    process.env.NEXT_PUBLIC_STORE_LNG ||
-      process.env.STORE_LONGITUDE ||
-      "83.191015"
+  lng: parseCoord(
+    process.env.NEXT_PUBLIC_STORE_LNG || process.env.STORE_LONGITUDE,
+    ["83.190082", "77.2090", "77.2065"],
+    83.191015
   ),
-  maxRadiusKm: parseFloat(
-    process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM ||
-      process.env.STORE_MAX_RADIUS_KM ||
-      "3.5"
+  maxRadiusKm: parseCoord(
+    process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM || process.env.STORE_MAX_RADIUS_KM,
+    ["2.5", "2", "3"],
+    3.5
   ),
 };
 

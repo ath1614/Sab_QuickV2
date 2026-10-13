@@ -188,12 +188,22 @@ jobs:
             set -e
             cd /opt/sabquick
             git pull origin main
+            # Update store coordinates and geofence in production .env.prod
+            sed -i 's/^NEXT_PUBLIC_STORE_LAT=.*/NEXT_PUBLIC_STORE_LAT=23.131617/' .env.prod || true
+            sed -i 's/^NEXT_PUBLIC_STORE_LNG=.*/NEXT_PUBLIC_STORE_LNG=83.191015/' .env.prod || true
+            sed -i 's/^NEXT_PUBLIC_STORE_MAX_RADIUS_KM=.*/NEXT_PUBLIC_STORE_MAX_RADIUS_KM=3.5/' .env.prod || true
+            sed -i 's/^STORE_LATITUDE=.*/STORE_LATITUDE=23.131617/' .env.prod || true
+            sed -i 's/^STORE_LONGITUDE=.*/STORE_LONGITUDE=83.191015/' .env.prod || true
+            sed -i 's/^STORE_MAX_RADIUS_KM=.*/STORE_MAX_RADIUS_KM=3.5/' .env.prod || true
+            sed -i 's/^HUB_LATITUDE=.*/HUB_LATITUDE=23.131617/' .env.prod || true
+            sed -i 's/^HUB_LONGITUDE=.*/HUB_LONGITUDE=83.191015/' .env.prod || true
+            sed -i 's/^GEOFENCE_RADIUS_KM=.*/GEOFENCE_RADIUS_KM=3.5/' .env.prod || true
             # Apply database migrations to production PostgreSQL container
             docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS pin TEXT;"' || true
             for f in $(find prisma/migrations -name "migration.sql" | sort); do
               docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$f" || true
             done
-            docker compose --env-file .env.prod -f docker-compose.prod.yml build app
+            docker compose --env-file .env.prod -f docker-compose.prod.yml build --build-arg NEXT_PUBLIC_STORE_LAT=23.131617 --build-arg NEXT_PUBLIC_STORE_LNG=83.191015 --build-arg NEXT_PUBLIC_STORE_MAX_RADIUS_KM=3.5 app
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --force-recreate app
             docker exec sabquick-caddy-prod caddy reload --config /etc/caddy/Caddyfile
             docker ps
