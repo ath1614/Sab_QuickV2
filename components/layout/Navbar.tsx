@@ -60,10 +60,10 @@ const DEFAULT_STORE_ADDRESS: SavedAddressData = {
   label: "Home",
   flatBuilding: "Gandhi Chowk",
   streetArea: "Ambikapur, Chhattisgarh",
-  latitude: 23.129243,
-  longitude: 83.190082,
+  latitude: 23.131617,
+  longitude: 83.191015,
   distanceKm: 0.5,
-  estimatedMinutes: 10,
+  estimatedMinutes: 8,
 };
 
 const SEARCH_PLACEHOLDERS = [
@@ -191,7 +191,7 @@ export function Navbar({
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
                   <span className="text-[10px] font-black text-emerald-950 uppercase tracking-tight">
-                    10 Mins
+                    Superfast
                   </span>
                 </div>
 
@@ -283,7 +283,7 @@ export function Navbar({
               ) : (
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
-                  <span>10 MINS</span>
+                  <span>SUPERFAST</span>
                 </div>
               )}
             </div>
@@ -357,7 +357,7 @@ export function Navbar({
               ) : (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
-                  <span>10 MINS</span>
+                  <span>SUPERFAST</span>
                 </div>
               )}
             </div>

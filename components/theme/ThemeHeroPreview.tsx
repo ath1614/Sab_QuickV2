@@ -149,10 +149,10 @@ export function ThemeHeroPreview({
                     className="text-[9px] font-black uppercase tracking-wider block"
                     style={{ color: accentColor || "#34D399" }}
                   >
-                    ⚡ 2.5 KM Geofence
+                    ⚡ 3.5 KM Geofence
                   </span>
                   <p className="text-[11px] font-black text-white leading-tight">
-                    10-Min or on us!
+                    Superfast Delivery
                   </p>
                   <p className="text-[9px] text-white/70 truncate">
                     {themeName} Active

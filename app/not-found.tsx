@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "404 - Page Not Found | SabQuick Ambikapur",
-  description: "The page you are looking for does not exist. Return to SabQuick for 10-minute grocery delivery.",
+  description: "The page you are looking for does not exist. Return to SabQuick for superfast grocery delivery.",
 };
 
 export default function NotFound() {

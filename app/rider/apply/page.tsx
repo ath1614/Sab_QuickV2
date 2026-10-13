@@ -120,7 +120,7 @@ export default function RiderApplyPage() {
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-            Deliver groceries in your local neighborhood within 10 minutes. Get guaranteed payout per order, instant doorstep settlement, and 100% customer tips.
+            Deliver groceries in your local neighborhood superfast. Get guaranteed payout per order, instant doorstep settlement, and 100% customer tips.
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export default function RiderApplyPage() {
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">&lt; 2.5 km Radius</h4>
+              <h4 className="text-xs font-bold text-white">&lt; 3.5 km Radius</h4>
               <p className="text-[11px] text-slate-400">Short local trips, quick turnaround time.</p>
             </div>
           </div>

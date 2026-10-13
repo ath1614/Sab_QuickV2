@@ -17,17 +17,17 @@ export const STORE_CONFIG: StoreConfig = {
   lat: parseFloat(
     process.env.NEXT_PUBLIC_STORE_LAT ||
       process.env.STORE_LATITUDE ||
-      "23.129243"
+      "23.131617"
   ),
   lng: parseFloat(
     process.env.NEXT_PUBLIC_STORE_LNG ||
       process.env.STORE_LONGITUDE ||
-      "83.190082"
+      "83.191015"
   ),
   maxRadiusKm: parseFloat(
     process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM ||
       process.env.STORE_MAX_RADIUS_KM ||
-      "2.5"
+      "3.5"
   ),
 };
 
@@ -62,7 +62,7 @@ export function calculateHaversineDistance(
 /**
  * Calculates estimated quick-commerce delivery time in minutes.
  * Formula: estimatedMinutes = 3 (packing) + ceil(distanceKm * 4) (transit)
- * Capped at 15 minutes for addresses <= 2.5 km.
+ * Public copy guarantees Superfast Delivery without fixed minute guarantees.
  */
 export function calculateEstimatedDeliveryMinutes(distanceKm: number): number {
   const packingTimeMinutes = 3;
@@ -70,16 +70,16 @@ export function calculateEstimatedDeliveryMinutes(distanceKm: number): number {
   const totalMinutes = packingTimeMinutes + transitTimeMinutes;
 
   if (distanceKm <= STORE_CONFIG.maxRadiusKm) {
-    // Within geofence: show a stable 10-minute floor as the ETA estimate.
-    // Public copy must stay "Superfast" (no minute-count guarantees).
-    return Math.min(15, Math.max(10, totalMinutes));
+    // Within geofence: show a stable estimated floor.
+    // Public copy guarantees "Superfast Delivery" without strict minute SLA promises.
+    return Math.max(8, totalMinutes);
   }
 
   return totalMinutes;
 }
 
 /**
- * Verifies if customer coordinates fall within the SabQuick 2.5 km dark store geofence.
+ * Verifies if customer coordinates fall within the SabQuick 3.5 km dark store geofence.
  */
 export function checkDeliveryServiceability(
   customerLat: number,

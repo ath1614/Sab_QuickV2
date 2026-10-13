@@ -72,10 +72,10 @@ export function LocationPickerModal({
   onAddressSaved,
   currentAddress,
 }: LocationPickerModalProps) {
-  // Default coordinates: Ambikapur, Chhattisgarh within geofence (23.129243, 83.190082)
+  // Default coordinates: Ambikapur, Chhattisgarh within geofence (23.131617, 83.191015)
   const [coords, setCoords] = React.useState<{ lat: number; lng: number }>({
-    lat: currentAddress?.latitude || 23.129243,
-    lng: currentAddress?.longitude || 83.190082,
+    lat: currentAddress?.latitude || 23.131617,
+    lng: currentAddress?.longitude || 83.191015,
   });
 
   const [label, setLabel] = React.useState<"Home" | "Work" | "Other">(
@@ -139,7 +139,7 @@ export function LocationPickerModal({
 
     if (!serviceability.isServiceable) {
       setErrorMsg(
-        `Delivery is unavailable. This location is ${serviceability.distanceKm} km away (Max radius: 2.5 km).`
+        `Delivery is unavailable. This location is ${serviceability.distanceKm} km away (Max radius: 3.5 km).`
       );
       return;
     }
@@ -229,17 +229,17 @@ export function LocationPickerModal({
             {serviceability.isServiceable ? (
               <Badge variant="accent" className="text-xs gap-1 py-1 font-bold">
                 <Zap className="w-3.5 h-3.5 fill-surface-dark" />
-                Delivering in {serviceability.estimatedMinutes} mins ({serviceability.distanceKm} km away)
+                Superfast Delivery ({serviceability.distanceKm} km away)
               </Badge>
             ) : (
               <Badge variant="destructive" className="text-xs gap-1 py-1 font-bold">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                Out of range ({serviceability.distanceKm} km away - Max 2.5 km)
+                Out of range ({serviceability.distanceKm} km away - Max 3.5 km)
               </Badge>
             )}
           </div>
           <DialogDescription className="text-xs">
-            Drag the pin or click on the map to pinpoint your exact doorstep within SabQuick&apos;s 2.5 km dark store zone.
+            Drag the pin or click on the map to pinpoint your exact doorstep within SabQuick&apos;s 3.5 km dark store zone.
           </DialogDescription>
         </DialogHeader>
 
@@ -367,12 +367,11 @@ export function LocationPickerModal({
               </>
             ) : serviceability.isServiceable ? (
               <>
-                <ShieldCheck className="w-4 h-4" /> Save & Deliver Here (
-                {serviceability.estimatedMinutes} Mins SLA)
+                <ShieldCheck className="w-4 h-4" /> Save & Deliver Here (Superfast Delivery)
               </>
             ) : (
               <>
-                <AlertTriangle className="w-4 h-4" /> Cannot Deliver Outside 2.5 km
+                <AlertTriangle className="w-4 h-4" /> Cannot Deliver Outside 3.5 km
                 Zone
               </>
             )}

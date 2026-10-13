@@ -109,8 +109,8 @@ export async function POST(req: NextRequest) {
           userId: staffUser.id,
           vehicleDetails: vehicleDetails || "EV Delivery Scooter",
           isOnline: true,
-          currentLat: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "23.129243"),
-          currentLng: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "83.190082"),
+          currentLat: parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "23.131617"),
+          currentLng: parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "83.191015"),
         },
       });
     }

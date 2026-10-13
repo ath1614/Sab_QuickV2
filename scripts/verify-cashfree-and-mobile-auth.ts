@@ -93,8 +93,8 @@ async function main() {
         flatBuilding: "Shop 12, Ground Floor",
         streetArea: "Main Market Road",
         landmark: "Near Clock Tower",
-        latitude: 23.1292,
-        longitude: 83.1901,
+        latitude: 23.1316,
+        longitude: 83.1910,
       },
     });
   }

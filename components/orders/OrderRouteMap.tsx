@@ -147,7 +147,7 @@ export default function OrderRouteMap({
       <div className="absolute bottom-3 right-3 z-[400] pointer-events-none">
         <div className="bg-surface-dark/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-mono tracking-wider shadow-sm flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-primary-accent" />
-          <span>GEOFENCE ACTIVE &bull; 2.5 KM</span>
+          <span>GEOFENCE ACTIVE &bull; 3.5 KM</span>
         </div>
       </div>
     </div>

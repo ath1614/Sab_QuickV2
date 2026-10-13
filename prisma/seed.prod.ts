@@ -68,7 +68,7 @@ async function main() {
       themeName: "Forest Speed (Standard)",
       primaryColor: "#0B6E4F",
       accentColor: "#00C853",
-      saleTagText: "⚡ 10-15 Min Delivery Guarantee",
+      saleTagText: "⚡ Superfast Delivery Guarantee",
       bannerImageUrl: "/banners/forest-speed-hero.webp",
     },
     create: {
@@ -76,7 +76,7 @@ async function main() {
       themeName: "Forest Speed (Standard)",
       primaryColor: "#0B6E4F",
       accentColor: "#00C853",
-      saleTagText: "⚡ 10-15 Min Delivery Guarantee",
+      saleTagText: "⚡ Superfast Delivery Guarantee",
       bannerImageUrl: "/banners/forest-speed-hero.webp",
     },
   });
@@ -107,9 +107,9 @@ async function main() {
   console.log(`   ✓ Store Owner: ${owner.name} (+91 ${owner.phone}) [${owner.role}]`);
 
   // 4. Report Dark Store Hub & Geofence Coordinates
-  const hubLat = parseFloat(process.env.HUB_LATITUDE || process.env.NEXT_PUBLIC_STORE_LAT || "28.6139");
-  const hubLng = parseFloat(process.env.HUB_LONGITUDE || process.env.NEXT_PUBLIC_STORE_LNG || "77.2090");
-  const geofenceKm = parseFloat(process.env.GEOFENCE_RADIUS_KM || process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM || "2.5");
+  const hubLat = parseFloat(process.env.HUB_LATITUDE || process.env.NEXT_PUBLIC_STORE_LAT || "23.131617");
+  const hubLng = parseFloat(process.env.HUB_LONGITUDE || process.env.NEXT_PUBLIC_STORE_LNG || "83.191015");
+  const geofenceKm = parseFloat(process.env.GEOFENCE_RADIUS_KM || process.env.NEXT_PUBLIC_STORE_MAX_RADIUS_KM || "3.5");
 
   console.log("📍 Dark Store Operational Geometry:");
   console.log(`   * Hub Coordinates: (${hubLat}, ${hubLng})`);

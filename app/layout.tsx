@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     template: "%s | SabQuick",
   },
   description:
-    "SabQuick delivers fresh groceries, daily essentials, and midnight munchies to your doorstep superfast within a 2.5 km geofence.",
+    "SabQuick delivers fresh groceries, daily essentials, and midnight munchies to your doorstep superfast within a 3.5 km geofence.",
   applicationName: "SabQuick",
   appleWebApp: {
     capable: true,
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SabQuick | Superfast Grocery Delivery",
     description:
-      "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep superfast within a 2.5 km geofence.",
+      "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep superfast within a 3.5 km geofence.",
     url: "https://srv1985371.hstgr.cloud",
     siteName: "SabQuick",
     images: [

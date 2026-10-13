@@ -24,7 +24,7 @@ async function main() {
       themeName: "Forest Speed (Standard)",
       primaryColor: "#0B6E4F",
       accentColor: "#00C853",
-      saleTagText: "⚡ 10-15 Min Delivery Guarantee",
+      saleTagText: "⚡ Superfast Delivery Guarantee",
       bannerImageUrl: "/banners/forest-speed-hero.webp",
     },
   });
@@ -65,8 +65,8 @@ async function main() {
     },
   });
 
-  const storeLat = parseFloat(process.env.STORE_LATITUDE || process.env.NEXT_PUBLIC_STORE_LAT || "23.129243");
-  const storeLng = parseFloat(process.env.STORE_LONGITUDE || process.env.NEXT_PUBLIC_STORE_LNG || "83.190082");
+  const storeLat = parseFloat(process.env.STORE_LATITUDE || process.env.NEXT_PUBLIC_STORE_LAT || "23.131617");
+  const storeLng = parseFloat(process.env.STORE_LONGITUDE || process.env.NEXT_PUBLIC_STORE_LNG || "83.191015");
 
   // Rider 1
   const rider1 = await prisma.user.create({

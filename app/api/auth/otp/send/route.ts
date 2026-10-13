@@ -110,38 +110,20 @@ export async function POST(req: NextRequest) {
 
     if (fast2smsKey) {
       try {
-        console.log(`[SMS GATEWAY] Dispatching OTP via Fast2SMS to +91 ${phone}...`);
-        let res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        console.log(`[SMS GATEWAY] Dispatching OTP via Fast2SMS Quick Route to +91 ${phone}...`);
+        const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
           method: "POST",
           headers: {
             authorization: fast2smsKey,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            route: "otp",
-            variables_values: otpCode,
+            route: "q",
+            message: `Your SabQuick login OTP is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
             numbers: phone,
           }),
         });
-        let d = await res.json().catch(() => ({}));
-
-        // If route "otp" requires website verification (code 996), fall back immediately to Quick route "q"
-        if (!d.return && (d.status_code === 996 || d.status_code === 400 || d.status_code === 411)) {
-          console.log(`[SMS GATEWAY] Route "otp" returned ${d.status_code}. Falling back to Quick route "q"...`);
-          res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-            method: "POST",
-            headers: {
-              authorization: fast2smsKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              route: "q",
-              message: `SabQuick verification code: ${otpCode}. Valid for 5 mins.`,
-              numbers: phone,
-            }),
-          });
-          d = await res.json().catch(() => ({}));
-        }
+        const d = await res.json().catch(() => ({}));
 
         if (d.return) {
           smsDispatched = true;
@@ -167,30 +149,21 @@ export async function POST(req: NextRequest) {
       console.log(`======================================================\n`);
     }
 
-    // Zero-Captcha Policy:
-    // We permanently disable client-side reCAPTCHA (useFirebase: false) so customers
-    // never encounter fire-hydrant/traffic-light captcha challenges or WebView freezes.
-    //
-    // OTP DELIVERY MODES (OTP_DELIVERY_MODE env):
-    //   - "auto" (default): if an SMS gateway is configured -> send real SMS and
-    //     never reflect the code in the response. Without a gateway -> "display"
-    //     mode (below) so login keeps working.
-    //   - "display": the code is returned and shown in the app UI. This is the
-    //     current production login mechanism (no SMS provider configured yet).
-    //     Trade-off: possession of the endpoint = ability to request a code for
-    //     any number. Documented in AUTH_FLOWS.md. Configure FAST2SMS_API_KEY or
-    //     TWOFACTOR_API_KEY and login automatically upgrades to real SMS OTP.
+    // STRICT PRODUCTION POLICY:
+    // Under no circumstance is the demo/free OTP returned or displayed in production.
+    const isProduction = process.env.NODE_ENV === "production";
     const hasSmsGateway = Boolean(fast2smsKey || twoFactorKey);
     const otpDeliveryMode = process.env.OTP_DELIVERY_MODE || "auto";
     const exposeDevCode =
-      otpDeliveryMode === "display" || (otpDeliveryMode === "auto" && !hasSmsGateway);
+      !isProduction &&
+      (otpDeliveryMode === "display" || (otpDeliveryMode === "auto" && !hasSmsGateway));
 
     return NextResponse.json({
       success: true,
       useFirebase: false,
       message: smsDispatched
         ? "Verification code sent to your mobile phone"
-        : "Verification code ready",
+        : "Verification code sent",
       expiresIn: 300,
       cooldown: 60,
       isNewUser,

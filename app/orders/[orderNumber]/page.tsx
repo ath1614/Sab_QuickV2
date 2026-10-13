@@ -91,8 +91,8 @@ export default async function OrderTrackingPage({
           flatBuilding: "Customer Address",
           streetArea: "Ambikapur",
           landmark: null,
-          latitude: 23.129243,
-          longitude: 83.190082,
+          latitude: 23.131617,
+          longitude: 83.191015,
         },
     rider: order.rider
       ? {

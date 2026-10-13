@@ -170,8 +170,8 @@ export async function sendOrderStatusPushNotification(
         title = "Out for Delivery! 🚴💨";
         const otpNote = order.deliveryOtp ? ` • Share OTP ${order.deliveryOtp}` : "";
         body = order.rider?.name
-          ? `${order.rider.name} is on the way with your order #${order.orderNumber}${otpNote} (10-15 mins).`
-          : `Your SabQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (10-15 mins).`;
+          ? `${order.rider.name} is on the way with your order #${order.orderNumber}${otpNote} (superfast delivery).`
+          : `Your SabQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (superfast delivery).`;
         break;
 
       case OrderStatus.DELIVERED:

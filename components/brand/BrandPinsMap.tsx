@@ -38,11 +38,11 @@ export default function BrandPinsMap() {
       <div style="font-size: 12px; line-height: 1.4;">
         <strong style="color: #0B6E4F;">SabQuick Dark Store Hub #01</strong><br/>
         Central Delhi Dispatch Station<br/>
-        <span style="color: #00C853; font-weight: bold;">Geofence SLA: 2.5 km</span>
+        <span style="color: #00C853; font-weight: bold;">Geofence: 3.5 km</span>
       </div>
     `);
 
-    // 2. Geofence Boundary Circle (2.5 km)
+    // 2. Geofence Boundary Circle (3.5 km)
     L.circle([STORE_CONFIG.lat, STORE_CONFIG.lng], {
       radius: STORE_CONFIG.maxRadiusKm * 1000,
       color: "#0B6E4F",
@@ -63,7 +63,7 @@ export default function BrandPinsMap() {
     customerInMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
         <strong style="color: #111827;">Customer Pin (In Range)</strong><br/>
-        <span style="color: #00C853; font-weight: bold;">0.9 km &bull; 11 Mins ETA</span>
+        <span style="color: #00C853; font-weight: bold;">0.9 km &bull; Superfast Delivery</span>
       </div>
     `);
 
@@ -78,7 +78,7 @@ export default function BrandPinsMap() {
     customerOutMarker.bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
         <strong style="color: #EF4444;">Customer Pin (Out of Range)</strong><br/>
-        <span style="color: #EF4444; font-weight: bold;">3.4 km &bull; Outside 2.5 km Geofence</span>
+        <span style="color: #EF4444; font-weight: bold;">3.9 km &bull; Outside 3.5 km Geofence</span>
       </div>
     `);
 
@@ -126,7 +126,7 @@ export default function BrandPinsMap() {
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       <div className="absolute top-3 left-3 z-[400] pointer-events-none bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-border-subtle shadow-sm text-xs font-bold text-surface-dark flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-primary-accent animate-ping" />
-        <span>Live Telemetry &bull; 2.5 km Active Geofence</span>
+        <span>Live Telemetry &bull; 3.5 km Active Geofence</span>
       </div>
     </div>
   );

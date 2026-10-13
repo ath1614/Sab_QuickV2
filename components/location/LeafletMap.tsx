@@ -61,11 +61,11 @@ export default function LeafletMap({
       <div style="font-family: inherit; font-size: 12px; padding: 2px;">
         <strong style="color: #0B6E4F;">SabQuick Dark Store Hub #01</strong><br/>
         Ambikapur Dark Store Hub, Chhattisgarh<br/>
-        <span style="color: #64748b; font-size: 11px;">Geofence SLA: 2.5 km (Superfast)</span>
+        <span style="color: #64748b; font-size: 11px;">Geofence SLA: 3.5 km (Superfast)</span>
       </div>
     `);
 
-    // 2.5 km Geofence Boundary Circle
+    // 3.5 km Geofence Boundary Circle
     const geofenceCircle = L.circle([STORE_CONFIG.lat, STORE_CONFIG.lng], {
       radius: STORE_CONFIG.maxRadiusKm * 1000,
       color: "#0B6E4F",
@@ -186,8 +186,8 @@ export default function LeafletMap({
           />
           <span className="text-surface-dark">
             {isServiceable
-              ? `${distanceKm} km from Dark Store (Inside 2.5 km)`
-              : `${distanceKm} km from Dark Store (Outside 2.5 km)`}
+              ? `${distanceKm} km from Dark Store (Inside 3.5 km)`
+              : `${distanceKm} km from Dark Store (Outside 3.5 km)`}
           </span>
         </div>
       </div>

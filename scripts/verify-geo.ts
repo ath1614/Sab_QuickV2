@@ -27,8 +27,8 @@ async function runGeoVerification() {
   console.log(` - Estimated Delivery Time: ${inRangeResult.estimatedMinutes} mins`);
   console.log(` - Is Serviceable: ${inRangeResult.isServiceable ? "✅ YES (Serviceable)" : "❌ NO"}`);
 
-  if (!inRangeResult.isServiceable || inRangeResult.distanceKm > 2.5) {
-    throw new Error("Location should be serviceable within 2.5 km!");
+  if (!inRangeResult.isServiceable || inRangeResult.distanceKm > 3.5) {
+    throw new Error("Location should be serviceable within 3.5 km!");
   }
 
   // 2. Test Out-of-Service Location (~10 km from Store Hub)
@@ -43,20 +43,20 @@ async function runGeoVerification() {
   console.log(` - Is Serviceable: ${!outOfRangeResult.isServiceable ? "✅ NO (Correctly Out of Range)" : "❌ ERROR"}`);
 
   if (outOfRangeResult.isServiceable) {
-    throw new Error("Destination should NOT be serviceable (> 2.5 km)!");
+    throw new Error("Destination should NOT be serviceable (> 3.5 km)!");
   }
 
   // 3. Test SLA Calculation Formula
   console.log("\n⏱️  3. Testing SLA Calculation Progression...");
-  const testDistances = [0.5, 1.0, 1.5, 2.0, 2.5, 3.5];
+  const testDistances = [0.5, 1.0, 1.5, 2.0, 2.5, 3.5, 4.5];
   testDistances.forEach((dist) => {
     const mins = calculateEstimatedDeliveryMinutes(dist);
     const packing = 3;
     const transit = Math.ceil(dist * 4);
-    const within = dist <= 2.5;
+    const within = dist <= 3.5;
     console.log(
       ` - Distance: ${dist.toFixed(1)} km -> ${packing}m (packing) + ${transit}m (transit) = ETA: ${mins} mins ${
-        within ? "✅ (Within 10-15 Min SLA Guarantee)" : "⚠️ (Beyond 2.5 km SLA)"
+        within ? "✅ (Within 3.5 km Superfast Geofence)" : "⚠️ (Beyond 3.5 km Geofence)"
       }`
     );
   });
@@ -72,7 +72,7 @@ async function runGeoVerification() {
   }
 
   // Simulation A: Attempt to save Karol Bagh address (should be rejected)
-  console.log(" - Testing validation rejection for out-of-range address (> 2.5 km)...");
+  console.log(" - Testing validation rejection for out-of-range address (> 3.5 km)...");
   const unserviceableCheck = checkDeliveryServiceability(outOfRangeLat, outOfRangeLng);
   if (!unserviceableCheck.isServiceable) {
     console.log(`   ✅ Successfully blocked saving address: Outside ${unserviceableCheck.maxRadiusKm} km radius (${unserviceableCheck.distanceKm} km away)`);
@@ -81,7 +81,7 @@ async function runGeoVerification() {
   }
 
   // Simulation B: Save valid in-geofence address for demo customer
-  console.log(" - Testing address insertion for in-geofence address (<= 2.5 km)...");
+  console.log(" - Testing address insertion for in-geofence address (<= 3.5 km)...");
   const serviceableCheck = checkDeliveryServiceability(inRangeLat, inRangeLng);
   if (serviceableCheck.isServiceable) {
     const savedAddress = await prisma.address.create({

@@ -144,7 +144,7 @@ export function Logo({
           letterSpacing="2"
           textAnchor="middle"
         >
-          GEOFENCE VERIFIED SLA: 2.5 KM
+          GEOFENCE VERIFIED: 3.5 KM
         </text>
       </svg>
     );

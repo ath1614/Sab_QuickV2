@@ -226,7 +226,7 @@ export function PhoneVerificationDrawer({
             </div>
           </div>
           <SheetDescription className="text-xs pt-1">
-            SabQuick riders require an authenticated mobile number to share live delivery OTPs and dispatch updates within your 2.5 km geofence.
+            SabQuick riders require an authenticated mobile number to share live delivery OTPs and dispatch updates within your 3.5 km geofence.
           </SheetDescription>
         </SheetHeader>
 

@@ -536,10 +536,10 @@ function StorefrontContent() {
             <div className="hidden lg:flex flex-col items-end justify-center shrink-0">
               <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-xl text-right max-w-xs space-y-1.5">
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">
-                  ⚡ 2.5 KM Geofence SLA
+                  ⚡ 3.5 KM Geofence
                 </span>
                 <p className="text-sm font-black text-white leading-snug">
-                  Doorstep delivery in 10 minutes or delivery is on us!
+                  Superfast doorstep delivery straight from our local dark store!
                 </p>
                 <p className="text-[11px] text-emerald-200/80">
                   Puja Samagri • Vrat Essentials • Fresh Dairy
@@ -572,7 +572,7 @@ function StorefrontContent() {
               </span>
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Superfast doorstep delivery within your 2.5 km geofence.
+              Superfast doorstep delivery within your 3.5 km geofence.
             </p>
           </div>
 

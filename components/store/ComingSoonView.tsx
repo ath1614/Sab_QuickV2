@@ -75,7 +75,7 @@ export function ComingSoonView({ launchDate, onEnterPreview }: ComingSoonViewPro
 
         {/* Clean, Plain Subtext */}
         <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-sm mb-8 px-2">
-          We&apos;re stocking up our dark store to bring fresh groceries, fruits, veggies and daily essentials right to your doorstep in 10 minutes.
+          We&apos;re stocking up our dark store to bring fresh groceries, fruits, veggies and daily essentials right to your doorstep superfast.
         </p>
 
         {/* Large Mobile-First Notification Trigger */}
