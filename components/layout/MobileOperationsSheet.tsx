@@ -398,7 +398,7 @@ export function MobileOperationsSheet({
                         Delivery Geofence &amp; Map Pin
                       </div>
                       <p className="text-[11px] text-slate-500">
-                        Check 2.5 km dark-store SLA coverage &amp; doorstep pin
+                        Check 3.5 km dark-store superfast coverage &amp; doorstep pin
                       </p>
                     </div>
                   </div>

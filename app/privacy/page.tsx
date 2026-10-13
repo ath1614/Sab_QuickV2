@@ -81,7 +81,7 @@ export default function PrivacyPolicyPage() {
                   <span>Doorstep Delivery Address &amp; Precise GPS Location</span>
                 </div>
                 <p className="pl-6 text-slate-600">
-                  Collected with explicit user permission (<code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">ACCESS_FINE_LOCATION</code> / <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">NSLocationWhenInUseUsageDescription</code>) solely to verify that your doorstep lies within our guaranteed <strong>2.5 km dark store fulfillment geofence</strong> and to navigate delivery riders to your delivery pin. Location data is never shared with third-party advertisers.
+                  Collected with explicit user permission (<code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">ACCESS_FINE_LOCATION</code> / <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">NSLocationWhenInUseUsageDescription</code>) solely to verify that your doorstep lies within our guaranteed <strong>3.5 km dark store fulfillment geofence</strong> and to navigate delivery riders to your delivery pin. Location data is never shared with third-party advertisers.
                 </p>
               </div>
 

@@ -67,7 +67,7 @@ export function createHubPin(): L.DivIcon {
 
 /**
  * 2. Customer Destination Drop Pin
- * 34x42px teardrop pin with inner target ring that turns Kinetic Green (#00C853) when <= 2.5km and Crimson Red (#EF4444) when out of range.
+ * 34x42px teardrop pin with inner target ring that turns Kinetic Green (#00C853) when <= 3.5km and Crimson Red (#EF4444) when out of range.
  */
 export function createCustomerPin(isServiceable: boolean = true): L.DivIcon {
   const targetColor = isServiceable ? "#00C853" : "#EF4444";

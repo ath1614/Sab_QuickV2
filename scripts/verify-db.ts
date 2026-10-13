@@ -47,9 +47,9 @@ async function verify() {
   });
 
   // 2. Geofence Verification for Customer
-  const STORE_LAT = parseFloat(process.env.STORE_LATITUDE || "28.6139");
-  const STORE_LNG = parseFloat(process.env.STORE_LONGITUDE || "77.2090");
-  const MAX_RADIUS = parseFloat(process.env.STORE_MAX_RADIUS_KM || "2.5");
+  const STORE_LAT = parseFloat(process.env.STORE_LATITUDE || "23.131617");
+  const STORE_LNG = parseFloat(process.env.STORE_LONGITUDE || "83.191015");
+  const MAX_RADIUS = parseFloat(process.env.STORE_MAX_RADIUS_KM || "3.5");
 
   const customer = users.find((u) => u.role === "CUSTOMER");
   if (customer && customer.addresses.length > 0) {

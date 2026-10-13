@@ -67,7 +67,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>SabQuick uses your location to verify delivery within our 10-15 minute 2.5 km dark store geofence.</string>
+	<string>SabQuick uses your location to verify delivery within our superfast 3.5 km dark store geofence.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>SabQuick uses your camera to scan delivery QR codes and OTP receipts.</string>
 	<key>CFBundleURLTypes</key>

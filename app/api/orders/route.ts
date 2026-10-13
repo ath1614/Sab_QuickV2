@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     const { addressId, items, tipAmount, paymentMethod, couponCode } = parseResult.data;
 
-    // 4. Verify delivery address and 2.5 km Geofence
+    // 4. Verify delivery address and 3.5 km Geofence
     const address = await prisma.address.findUnique({
       where: { id: addressId },
     });

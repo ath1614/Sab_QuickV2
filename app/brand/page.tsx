@@ -501,7 +501,7 @@ export default function BrandShowcasePage() {
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-surface-dark">createCustomerPin(isServiceable)</h3>
-                    <p className="text-[11px] text-muted-foreground">Dynamic target ring (Green inside 2.5km / Red outside)</p>
+                    <p className="text-[11px] text-muted-foreground">Dynamic target ring (Green inside 3.5km / Red outside)</p>
                   </div>
                 </div>
               </div>

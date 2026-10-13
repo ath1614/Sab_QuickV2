@@ -125,7 +125,7 @@ const OG_IMAGE_SVG = `
     Fresh dairy staples, farm produce, pantry essentials &amp; midnight munchies.
   </text>
   <text x="100" y="460" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20">
-    Dispatched instantly within a strict 2.5 km dark store geofence.
+    Dispatched instantly within a strict 3.5 km dark store geofence.
   </text>
 
   {/* Bottom Feature Bar */}
