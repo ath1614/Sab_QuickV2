@@ -10,8 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Capacitor } from "@capacitor/core";
-import { launchNativeCashfree } from "@/lib/upi";
 import {
   Smartphone,
   Banknote,
@@ -32,7 +30,19 @@ interface PaymentSelectionModalProps {
   onOpenChange: (open: boolean) => void;
   totalAmount: number;
   activeAddressSummary?: string;
-  onSelectPayment: (method: "CASHFREE" | "ONLINE_UPI" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY", extra?: { upiId?: string; upiApp?: string }) => void;
+  onSelectPayment: (
+    method: "CASHFREE" | "ONLINE_UPI" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY",
+    extra?: {
+      upiId?: string;
+      upiApp?: string;
+      /**
+       * UPI_INTENT = open the chosen UPI app directly (native app),
+       * UPI_CHOOSER = Cashfree's UPI app list,
+       * CARDS = hosted Cashfree page.
+       */
+      flow?: "UPI_INTENT" | "UPI_CHOOSER" | "CARDS";
+    }
+  ) => void;
   isProcessing: boolean;
 }
 
@@ -52,14 +62,16 @@ export function PaymentSelectionModal({
   const [upiIdError, setUpiIdError] = React.useState("");
 
   const handlePay = () => {
+    // Each of these opens that exact UPI app on the phone via the native
+    // Cashfree UPI Intent flow - the app is never shown a Cashfree web page.
     if (selectedMethod === "PHONEPE") {
-      onSelectPayment("CASHFREE", { upiApp: "phonepe" });
+      onSelectPayment("CASHFREE", { upiApp: "phonepe", flow: "UPI_INTENT" });
     } else if (selectedMethod === "GPAY") {
-      onSelectPayment("CASHFREE", { upiApp: "gpay" });
+      onSelectPayment("CASHFREE", { upiApp: "gpay", flow: "UPI_INTENT" });
     } else if (selectedMethod === "PAYTM") {
-      onSelectPayment("CASHFREE", { upiApp: "paytm" });
+      onSelectPayment("CASHFREE", { upiApp: "paytm", flow: "UPI_INTENT" });
     } else if (selectedMethod === "OTHER_UPI") {
-      onSelectPayment("CASHFREE");
+      onSelectPayment("CASHFREE", { flow: "UPI_CHOOSER" });
     } else if (selectedMethod === "UPI_ID") {
       const trimmed = upiIdInput.trim();
       if (!trimmed || !trimmed.includes("@")) {
@@ -73,7 +85,7 @@ export function PaymentSelectionModal({
     } else if (selectedMethod === "COD") {
       onSelectPayment("CASH_ON_DELIVERY");
     } else if (selectedMethod === "CARDS") {
-      onSelectPayment("CASHFREE");
+      onSelectPayment("CASHFREE", { flow: "CARDS" });
     }
   };
 
@@ -95,7 +107,7 @@ export function PaymentSelectionModal({
                 Select Payment Method
               </DialogTitle>
               <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3 text-emerald-600" /> 10-15 Min Superfast Delivery
+                <Clock className="w-3 h-3 text-emerald-600" /> Superfast Delivery
               </p>
             </div>
           </div>

@@ -282,6 +282,48 @@ export function setupCashfreeModalAdjuster(): () => void {
 /**
  * Client-side: Dynamically loads the Cashfree v3 JS SDK.
  */
+/**
+ * Client-side: asks our server whether Cashfree has actually settled an order.
+ *
+ * The UPI app / native SDK callback only reports that the customer finished the
+ * flow - it is never proof of payment. Cashfree recommends verifying server-side
+ * and fulfilling only on a confirmed status, so every success path funnels
+ * through here.
+ *
+ * Retries cover the short delay between the UPI app confirmation and Cashfree
+ * reflecting the payment on the order.
+ */
+export async function verifyCashfreePaymentOnServer(
+  orderId: string,
+  attempts = 3,
+  delayMs = 1500
+): Promise<{ ok: boolean; error?: string }> {
+  let lastError = "Payment could not be verified with the bank yet.";
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const res = await fetch("/api/payments/cashfree/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (res.ok) return { ok: true };
+
+      const data = await res.json().catch(() => ({}));
+      if (data?.error) lastError = data.error;
+    } catch (err: any) {
+      lastError = err?.message || lastError;
+    }
+
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
+
 export function loadCashfreeSdk(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window === "undefined") {

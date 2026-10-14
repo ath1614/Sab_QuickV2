@@ -32,8 +32,13 @@ import {
 } from "@/components/location/LocationPickerModal";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { loadCashfreeSdk, setupCashfreeModalAdjuster } from "@/lib/cashfree";
+import {
+  loadCashfreeSdk,
+  setupCashfreeModalAdjuster,
+  verifyCashfreePaymentOnServer,
+} from "@/lib/cashfree";
 import { Capacitor } from "@capacitor/core";
+import { launchNativeCashfreeUpiIntent, getUpiAppPackage } from "@/lib/upi";
 import {
   OrderCelebrationModal,
   OrderCelebrationData,
@@ -370,7 +375,12 @@ export function CartDrawer() {
 
   const executePlaceOrder = async (
     targetPaymentMethod: "CASHFREE" | "ONLINE_UPI" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY",
-    extra?: { upiId?: string; upiApp?: string }
+    extra?: {
+      upiId?: string;
+      upiApp?: string;
+      /** Which Cashfree experience the customer picked on the payment screen. */
+      flow?: "UPI_INTENT" | "UPI_CHOOSER" | "CARDS";
+    }
   ) => {
     if (!activeAddress || !activeAddress.id) {
       setSavedAddressesModalOpen(true);
@@ -461,6 +471,142 @@ export function CartDrawer() {
           return;
         }
 
+        /**
+         * NATIVE APP PATH - the real UPI Intent flow.
+         *
+         * Cashfree's hosted web checkout cannot launch UPI apps from inside a
+         * WebView, so on the phone we hand the payment session to the native
+         * Cashfree SDK, which opens the selected UPI app directly (PhonePe,
+         * Google Pay, Paytm) with the amount pre-filled.
+         *
+         * Only for a *specific* app: Cashfree's own app-picker sheet can come up
+         * empty on a sideloaded build with no way forward, so "any UPI app" and
+         * cards go straight to the hosted page, which is what it is good at.
+         */
+        const nativeUpiBlocked = (() => {
+          try {
+            return sessionStorage.getItem("sq_native_upi_blocked") === "1";
+          } catch {
+            return false;
+          }
+        })();
+
+        // A concrete package must resolve, otherwise the native side would fall
+        // back to Cashfree's own app-picker sheet (unusable when it comes up empty).
+        const chosenUpiPackage = getUpiAppPackage(extra?.upiApp);
+
+        if (
+          Capacitor.isNativePlatform() &&
+          extra?.flow === "UPI_INTENT" &&
+          Boolean(chosenUpiPackage) &&
+          !nativeUpiBlocked
+        ) {
+          const cashfreeEnvironment =
+            String(
+              cfData.mode || process.env.NEXT_PUBLIC_CASHFREE_ENV || "production"
+            ).toUpperCase() === "SANDBOX"
+              ? ("SANDBOX" as const)
+              : ("PRODUCTION" as const);
+
+          setIsPlacingOrder(true);
+          setIsCashfreeActive(true);
+
+          const nativeResult = await launchNativeCashfreeUpiIntent({
+            paymentSessionId: cfData.paymentSessionId,
+            orderId: data.orderNumber,
+            packageName: chosenUpiPackage,
+            environment: cashfreeEnvironment,
+          });
+
+          /**
+           * Two situations must NOT fail the order; both fall through to the
+           * hosted Cashfree page with the same order:
+           *
+           *  - UNAVAILABLE: the installed APK predates this native method.
+           *  - installer_package_not_approved: Cashfree Integrity blocks its
+           *    native SDK when the APK was not installed from a regulated store
+           *    (sideloaded builds). That is a Cashfree policy block, not a
+           *    customer mistake, so the hosted page is the usable path.
+           */
+          const sdkBlockedByCashfree =
+            nativeResult.code === "installer_package_not_approved" ||
+            nativeResult.code === "feature_not_enabled";
+
+          if (sdkBlockedByCashfree) {
+            // Cashfree will keep rejecting this installation until the app is
+            // distributed through Play Store (or the installer is whitelisted),
+            // so stop paying the round trip on every further payment attempt.
+            try {
+              sessionStorage.setItem("sq_native_upi_blocked", "1");
+            } catch {
+              // Private mode / storage disabled: harmless, we just retry once more.
+            }
+          }
+
+          const useHostedFallback =
+            nativeResult.status === "UNAVAILABLE" || sdkBlockedByCashfree;
+
+          if (!useHostedFallback) {
+            // The SDK callback only says the customer came back from the UPI
+            // app; the server (and Cashfree) decides whether money moved.
+            const verified = await verifyCashfreePaymentOnServer(
+              data.orderId,
+              nativeResult.status === "SUCCESS" ? 4 : 2,
+              1500
+            );
+
+            setIsCashfreeActive(false);
+            setIsPlacingOrder(false);
+
+            if (verified.ok) {
+              closeCart();
+              clearCart();
+              setCelebrationOrder({
+                orderNumber: data.orderNumber,
+                totalAmount: data.totalAmount,
+                deliveryOtp: data.deliveryOtp,
+                totalSavings,
+                savingsBreakdown: {
+                  mrpSavings,
+                  couponSavings,
+                  couponCode: appliedCoupon?.code,
+                  deliverySavings,
+                },
+                paymentMethod: "CASHFREE",
+              });
+              setShowCelebration(true);
+              return;
+            }
+
+            await cancelUnconfirmedOrder(
+              data.orderId,
+              "Native UPI payment not completed"
+            );
+            setPaymentFailureBanner({
+              title: "Payment Unsuccessful \u2022 Order Not Placed",
+              message:
+                nativeResult.status === "SUCCESS"
+                  ? verified.error ||
+                    "We could not confirm your payment with the bank yet. Your items are still in your cart."
+                  : nativeResult.error ||
+                    "The payment was not completed in your UPI app. Your items are still in your cart.",
+              orderNumber: data.orderNumber,
+            });
+            return;
+          }
+
+          setIsCashfreeActive(false);
+          setIsPlacingOrder(false);
+          console.warn(
+            `[Native UPI] ${
+              sdkBlockedByCashfree
+                ? "Cashfree blocked its native SDK for this installation"
+                : "Plugin method unavailable"
+            }, using the hosted checkout instead:`,
+            nativeResult.error
+          );
+        }
+
         // Unified Cashfree Flow (Web SDK with _self redirect on mobile to trigger native UPI apps)
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
@@ -483,6 +629,8 @@ export function CartDrawer() {
           mode: cfData.mode || "production",
         });
 
+        // On the phone this is the fallback for cards and for APKs that predate
+        // the native UPI intent method: Cashfree's hosted page in the same frame.
         const isMobileDevice =
           typeof window !== "undefined" &&
           (window.innerWidth < 768 ||

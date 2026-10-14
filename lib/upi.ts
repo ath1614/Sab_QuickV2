@@ -15,16 +15,100 @@ export interface CashfreeNativeResult {
   status: "SUCCESS" | "FAILED";
   orderId: string;
   error?: string;
+  /** Cashfree error code, e.g. installer_package_not_approved. */
+  code?: string;
+  /** True when the requested UPI app was missing and Cashfree's app list was shown instead. */
+  fallback?: boolean;
+  missingPackage?: string;
+}
+
+/**
+ * Result of a native attempt, widened with UNAVAILABLE.
+ *
+ * UNAVAILABLE means the installed APK predates this plugin method, so the
+ * caller must fall back to Cashfree's hosted web page. That keeps the phone's
+ * live-site JS working against an older APK instead of dead-ending checkout.
+ */
+export interface NativeUpiLaunchResult {
+  status: "SUCCESS" | "FAILED" | "UNAVAILABLE";
+  orderId?: string;
+  error?: string;
+  /** Cashfree error code, e.g. installer_package_not_approved. */
+  code?: string;
+  /** True when the requested UPI app was missing and Cashfree's app list was shown instead. */
+  fallback?: boolean;
+  missingPackage?: string;
+}
+
+export interface CashfreeUpiIntentOptions extends CashfreeNativeOptions {
+  /** UPI app package name to open directly, e.g. com.phonepe.app. */
+  packageName?: string;
 }
 
 export interface NativeUpiPlugin {
   launchUpi(options: { uri: string; packageName?: string }): Promise<void>;
+  launchCashfreeUpiIntent?(options: CashfreeUpiIntentOptions): Promise<CashfreeNativeResult>;
   launchCashfreeNativeUpi?(options: CashfreeNativeOptions): Promise<CashfreeNativeResult>;
   launchCashfreeNativeDrop?(options: CashfreeNativeOptions): Promise<CashfreeNativeResult>;
   getAvailableUpiApps?(): Promise<{ apps: InstalledUpiApp[]; count: number }>;
 }
 
+/**
+ * Package names of the UPI apps we offer as one-tap buttons.
+ * These are handed to Cashfree's native SDK (CFUPI.Mode.INTENT + setUPIID) so
+ * the chosen app opens directly - no Cashfree web page in between.
+ */
+export const UPI_APP_PACKAGES: Record<string, string> = {
+  gpay: "com.google.android.apps.nbu.paisa.user",
+  phonepe: "com.phonepe.app",
+  paytm: "net.one97.paytm",
+  bhim: "in.org.npci.upiapp",
+  cred: "com.dreamplug.androidapp",
+};
+
+export function getUpiAppPackage(appId?: string): string | undefined {
+  if (!appId) return undefined;
+  return UPI_APP_PACKAGES[appId.trim().toLowerCase()];
+}
+
 export const NativeUpi = registerPlugin<NativeUpiPlugin>("NativeUpi");
+
+/**
+ * Opens ONE specific UPI app straight from the native Cashfree SDK.
+ *
+ * Cashfree's Element flow (CFUPI.Mode.INTENT + setUPIID(packageName)) is the
+ * documented way to launch a chosen UPI app; the SDK still settles the payment
+ * against the Cashfree order, so nothing is trusted from the client.
+ *
+ * Returns status UNAVAILABLE when the installed APK does not expose this method
+ * (older build) so the caller can fall back to the hosted checkout page.
+ */
+export async function launchNativeCashfreeUpiIntent(
+  options: CashfreeUpiIntentOptions
+): Promise<NativeUpiLaunchResult> {
+  if (!Capacitor.isNativePlatform()) {
+    return { status: "UNAVAILABLE", orderId: options.orderId, error: "Not a native platform" };
+  }
+
+  const launch = NativeUpi.launchCashfreeUpiIntent;
+  if (typeof launch !== "function") {
+    return { status: "UNAVAILABLE", orderId: options.orderId, error: "Native UPI intent not supported" };
+  }
+
+  try {
+    const result = await launch.call(NativeUpi, options);
+    if (result && result.status) return result;
+    // Native side resolved without a status: treat as success and let the
+    // server-side verification decide.
+    return { status: "SUCCESS", orderId: options.orderId };
+  } catch (e: any) {
+    const message = String(e?.message || e || "Native UPI launch failed");
+    if (/not implemented|method_not_implemented|not available|no such method/i.test(message)) {
+      return { status: "UNAVAILABLE", orderId: options.orderId, error: message };
+    }
+    return { status: "FAILED", orderId: options.orderId, error: message };
+  }
+}
 
 export async function launchNativeCashfree(
   options: CashfreeNativeOptions

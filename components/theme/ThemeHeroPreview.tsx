@@ -108,7 +108,7 @@ export function ThemeHeroPreview({
                   }}
                 >
                   <Zap className="w-2.5 h-2.5 fill-current" />
-                  10-Min Superfast
+                  Superfast
                 </span>
                 <span className="inline-flex items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 text-white/90 border border-white/20 backdrop-blur-xs">
                   {isFestive ? "✨ Festive Edition" : "⚡ Fresh Dark Store"}
