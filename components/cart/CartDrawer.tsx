@@ -39,7 +39,6 @@ import {
   OrderCelebrationData,
 } from "@/components/orders/OrderCelebrationModal";
 import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
-import { launchNativeCashfree } from "@/lib/upi";
 import { SavedAddressesModal } from "@/components/address/SavedAddressesModal";
 import { PaymentSelectionModal } from "@/components/cart/PaymentSelectionModal";
 import {
@@ -462,58 +461,7 @@ export function CartDrawer() {
           return;
         }
 
-        // Branch 1: Native Mobile App via Capacitor
-        if (Capacitor.isNativePlatform()) {
-          setIsPlacingOrder(false);
-          const nativeRes = await launchNativeCashfree({
-            paymentSessionId: cfData.paymentSessionId,
-            orderId: data.orderNumber || data.orderId,
-            environment: cfData.mode === "sandbox" ? "SANDBOX" : "PRODUCTION",
-          });
-
-          if (nativeRes?.status === "SUCCESS") {
-            try {
-              const verifyRes = await fetch("/api/payments/cashfree/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ orderId: data.orderId }),
-              });
-
-              if (verifyRes.ok) {
-                closeCart();
-                clearCart();
-                setCelebrationOrder({
-                  orderNumber: data.orderNumber,
-                  totalAmount: data.totalAmount,
-                  deliveryOtp: data.deliveryOtp,
-                  totalSavings,
-                  savingsBreakdown: {
-                    mrpSavings,
-                    couponSavings,
-                    couponCode: appliedCoupon?.code,
-                    deliverySavings,
-                  },
-                  paymentMethod: "CASHFREE",
-                });
-                setShowCelebration(true);
-                return;
-              }
-            } catch (vErr) {
-              console.error("Verification error:", vErr);
-            }
-          }
-
-          // Payment cancelled or dropped
-          await cancelUnconfirmedOrder(data.orderId, nativeRes?.error || "Payment cancelled in UPI app");
-          setPaymentFailureBanner({
-            title: "Payment Not Completed • Order Not Placed",
-            message: nativeRes?.error || "The UPI payment was cancelled. Your items are still preserved in your cart.",
-            orderNumber: data.orderNumber,
-          });
-          return;
-        }
-
-        // Branch 2: Web Browser
+        // Unified Cashfree Flow (Web SDK with _self redirect on mobile to trigger native UPI apps)
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
           setOrderError("Unable to load Cashfree payment gateway.");

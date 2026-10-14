@@ -317,36 +317,66 @@ public class MainActivity extends BridgeActivity {
       if (getBridge() != null && getBridge().getWebView() != null) {
         WebView webView = getBridge().getWebView();
         webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+          private boolean handlePaymentScheme(WebView view, Uri uri, String urlStr) {
+            if (urlStr == null) return false;
+            String lower = urlStr.toLowerCase();
+            if (lower.startsWith("upi://") ||
+                lower.startsWith("intent://") ||
+                lower.startsWith("phonepe://") ||
+                lower.startsWith("tez://") ||
+                lower.startsWith("gpay://") ||
+                lower.startsWith("paytmmp://") ||
+                lower.startsWith("bhim://") ||
+                lower.startsWith("credpay://") ||
+                lower.startsWith("mobikwik://") ||
+                lower.startsWith("whatsapp://")) {
+              try {
+                Intent intent;
+                if (lower.startsWith("intent://")) {
+                  intent = Intent.parseUri(urlStr, Intent.URI_INTENT_SCHEME);
+                } else {
+                  intent = new Intent(Intent.ACTION_VIEW, uri != null ? uri : Uri.parse(urlStr));
+                }
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                view.getContext().startActivity(intent);
+                Log.i(TAG, "Successfully launched native payment app for: " + lower.substring(0, Math.min(25, lower.length())));
+                return true;
+              } catch (Exception ex) {
+                Log.w(TAG, "WebViewClient payment intercept error: " + ex.getMessage());
+                try {
+                  if (lower.startsWith("intent://")) {
+                    Intent parsed = Intent.parseUri(urlStr, Intent.URI_INTENT_SCHEME);
+                    String fallbackUrl = parsed.getStringExtra("browser_fallback_url");
+                    if (fallbackUrl != null && !fallbackUrl.isEmpty()) {
+                      view.loadUrl(fallbackUrl);
+                      return true;
+                    }
+                  }
+                } catch (Exception ignored) {}
+                return true;
+              }
+            }
+            return false;
+          }
+
           @Override
           public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             if (request != null && request.getUrl() != null) {
-              String urlStr = request.getUrl().toString();
-              if (urlStr.startsWith("upi://") ||
-                  urlStr.startsWith("intent://") ||
-                  urlStr.startsWith("phonepe://") ||
-                  urlStr.startsWith("tez://") ||
-                  urlStr.startsWith("gpay://") ||
-                  urlStr.startsWith("paytmmp://") ||
-                  urlStr.startsWith("bhim://") ||
-                  urlStr.startsWith("credpay://") ||
-                  urlStr.startsWith("mobikwik://")) {
-                try {
-                  Intent intent;
-                  if (urlStr.startsWith("intent://")) {
-                    intent = Intent.parseUri(urlStr, Intent.URI_INTENT_SCHEME);
-                  } else {
-                    intent = new Intent(Intent.ACTION_VIEW, request.getUrl());
-                  }
-                  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                  view.getContext().startActivity(intent);
-                  return true;
-                } catch (Exception ex) {
-                  Log.e(TAG, "WebViewClient UPI intercept failed: " + ex.getMessage());
-                  return true;
-                }
+              if (handlePaymentScheme(view, request.getUrl(), request.getUrl().toString())) {
+                return true;
               }
             }
             return super.shouldOverrideUrlLoading(view, request);
+          }
+
+          @Override
+          public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            if (url != null) {
+              if (handlePaymentScheme(view, Uri.parse(url), url)) {
+                return true;
+              }
+            }
+            return super.shouldOverrideUrlLoading(view, url);
           }
         });
       }
