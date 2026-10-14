@@ -204,6 +204,16 @@ jobs:
               docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$f" || true
             done
             docker compose --env-file .env.prod -f docker-compose.prod.yml build --build-arg NEXT_PUBLIC_STORE_LAT=23.131617 --build-arg NEXT_PUBLIC_STORE_LNG=83.191015 --build-arg NEXT_PUBLIC_STORE_MAX_RADIUS_KM=3.5 app
+            # An interrupted recreate leaves a container holding the temporary
+            # "<hash>_sabquick-app-prod" name behind. That name clash then makes
+            # every following `up --force-recreate` fail with a Docker conflict,
+            # so quarantine those leftovers before recreating the app.
+            docker ps -a --format '{{.ID}}|{{.Names}}' | awk -F'|' '$2 ~ /_sabquick-app-prod$/ {print $1}' | while read cid; do
+              echo "Quarantining stale container $cid"
+              docker rename "$cid" "stale-app-$cid" || true
+            done
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --force-recreate app
             docker exec sabquick-caddy-prod caddy reload --config /etc/caddy/Caddyfile
+            # Best-effort removal of quarantined leftovers, never fails the deploy
+            docker ps -a --format '{{.ID}}|{{.Names}}' | awk -F'|' '$2 ~ /^stale-app-/ {print $1}' | xargs -r docker rm -f || true
             docker ps
