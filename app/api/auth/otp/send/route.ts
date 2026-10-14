@@ -3,6 +3,7 @@ import { z } from "zod";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
 import { resetOtpAttempts } from "@/lib/otp";
+import { sendOtpSms } from "@/lib/sms";
 
 const sendOtpSchema = z.object({
   phone: z
@@ -103,56 +104,19 @@ export async function POST(req: NextRequest) {
 
     const isNewUser = !existingUser || !existingUser.name;
 
-    // 6. Direct SMS Dispatch Gateway Integration (Fast2SMS / 2Factor / MSG91)
-    let smsDispatched = false;
-    const fast2smsKey = process.env.FAST2SMS_API_KEY || process.env.SMS_GATEWAY_API_KEY;
-    const twoFactorKey = process.env.TWOFACTOR_API_KEY;
-
-    if (fast2smsKey) {
-      try {
-        console.log(`[SMS GATEWAY] Dispatching OTP via Fast2SMS Quick Route to +91 ${phone}...`);
-        const res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-          method: "POST",
-          headers: {
-            authorization: fast2smsKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            route: "q",
-            message: `Your SabQuick login OTP is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
-            numbers: phone,
-          }),
-        });
-        const d = await res.json().catch(() => ({}));
-
-        if (d.return) {
-          smsDispatched = true;
-          console.log(`[SMS GATEWAY] Fast2SMS dispatched OTP successfully to +91 ${phone}:`, d.request_id || d.message);
-        } else {
-          console.warn(`[SMS GATEWAY] Fast2SMS response error:`, d);
-        }
-      } catch (smsErr) {
-        console.error("[Fast2SMS Gateway Error]:", smsErr);
-      }
-    } else if (twoFactorKey) {
-      try {
-        console.log(`[SMS GATEWAY] Dispatching OTP via 2Factor to +91 ${phone}...`);
-        await fetch(`https://2factor.in/API/V1/${twoFactorKey}/SMS/${phone}/${otpCode}/`);
-        smsDispatched = true;
-      } catch (smsErr) {
-        console.error("[2Factor Gateway Error]:", smsErr);
-      }
-    } else {
-      // Direct console log for development and staging
-      console.log(`\n======================================================`);
-      console.log(`[SABQUICK OTP] >>> Phone: +91 ${phone} | Code: ${otpCode} | Role: ${existingUser?.role || "CUSTOMER"} <<<`);
-      console.log(`======================================================\n`);
-    }
+    // 6. Direct SMS Dispatch Gateway Integration (Renflair / Fast2SMS / 2Factor)
+    const smsResult = await sendOtpSms(phone, otpCode);
+    const smsDispatched = smsResult.success;
 
     // STRICT PRODUCTION POLICY:
     // Under no circumstance is the demo/free OTP returned or displayed in production.
     const isProduction = process.env.NODE_ENV === "production";
-    const hasSmsGateway = Boolean(fast2smsKey || twoFactorKey);
+    const hasSmsGateway = Boolean(
+      process.env.RENFLAIR_API_KEY ||
+      process.env.FAST2SMS_API_KEY ||
+      process.env.SMS_GATEWAY_API_KEY ||
+      process.env.TWOFACTOR_API_KEY
+    );
     const otpDeliveryMode = process.env.OTP_DELIVERY_MODE || "auto";
     const exposeDevCode =
       !isProduction &&

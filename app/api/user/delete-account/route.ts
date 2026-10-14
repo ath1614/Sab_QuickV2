@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { isOtpLocked, otpAttemptsKey } from "@/lib/otp";
+import { sendOtpSms } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -111,64 +112,9 @@ export async function POST(req: NextRequest) {
       await redis.set(`${DELETION_OTP_PREFIX}${phone}`, deletionOtp, "EX", 300);
       await redis.set(cooldownKey, "1", "EX", 60);
 
-      // Dispatch via the same SMS gateways used for login OTPs.
-      const fast2smsKey = process.env.FAST2SMS_API_KEY || process.env.SMS_GATEWAY_API_KEY;
-      const twoFactorKey = process.env.TWOFACTOR_API_KEY;
-      let smsDispatched = false;
-
-      if (fast2smsKey) {
-        try {
-          let res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-            method: "POST",
-            headers: {
-              authorization: fast2smsKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              route: "otp",
-              variables_values: deletionOtp,
-              numbers: phone,
-            }),
-          });
-          let d = await res.json().catch(() => ({}));
-
-          if (!d.return && (d.status_code === 996 || d.status_code === 400 || d.status_code === 411)) {
-            res = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-              method: "POST",
-              headers: {
-                authorization: fast2smsKey,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                route: "q",
-                message: `SabQuick account deletion verification code: ${deletionOtp}. Valid for 5 mins.`,
-                numbers: phone,
-              }),
-            });
-            d = await res.json().catch(() => ({}));
-          }
-
-          if (d.return) {
-            smsDispatched = true;
-            console.log(`[Account Deletion] Fast2SMS dispatched successfully to +91 ${phone}:`, d.request_id || d.message);
-          } else {
-            console.warn(`[Account Deletion] Fast2SMS response error:`, d);
-          }
-        } catch (smsErr) {
-          console.error("[Account Deletion Fast2SMS Error]:", smsErr);
-        }
-      } else if (twoFactorKey) {
-        try {
-          await fetch(`https://2factor.in/API/V1/${twoFactorKey}/SMS/${phone}/${deletionOtp}/`);
-          smsDispatched = true;
-        } catch (smsErr) {
-          console.error("[Account Deletion 2Factor Error]:", smsErr);
-        }
-      } else {
-        console.log(
-          `\n[SABQUICK ACCOUNT DELETION OTP] >>> Phone: +91 ${phone} | Code: ${deletionOtp} <<<\n`
-        );
-      }
+      // Dispatch via centralized SMS service (Renflair / Fast2SMS / 2Factor)
+      const smsResult = await sendOtpSms(phone, deletionOtp);
+      const smsDispatched = smsResult.success;
 
       return NextResponse.json({
         success: true,
