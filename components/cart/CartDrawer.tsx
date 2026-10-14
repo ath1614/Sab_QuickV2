@@ -40,6 +40,8 @@ import {
 } from "@/components/orders/OrderCelebrationModal";
 import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
 import { launchNativeCashfree } from "@/lib/upi";
+import { SavedAddressesModal } from "@/components/address/SavedAddressesModal";
+import { PaymentSelectionModal } from "@/components/cart/PaymentSelectionModal";
 import {
   ShoppingBag,
   Plus,
@@ -142,6 +144,9 @@ export function CartDrawer() {
     orderId: string;
     totalAmount: number;
   } | null>(null);
+
+  const [savedAddressesModalOpen, setSavedAddressesModalOpen] = React.useState<boolean>(false);
+  const [paymentSelectionModalOpen, setPaymentSelectionModalOpen] = React.useState<boolean>(false);
 
   const [isNativeApp, setIsNativeApp] = React.useState<boolean>(false);
 
@@ -338,8 +343,8 @@ export function CartDrawer() {
     }
   };
 
-  // Handle Checkout / Place Order
-  const handlePlaceOrder = async () => {
+  // Handle Checkout / Open Dedicated Blinkit/Zepto Payment Selection
+  const handlePlaceOrder = () => {
     setOrderError(null);
 
     // 1. Session check
@@ -356,11 +361,25 @@ export function CartDrawer() {
 
     // 3. Address check
     if (!activeAddress || !activeAddress.id) {
-      setLocationPickerOpen(true);
+      setSavedAddressesModalOpen(true);
+      return;
+    }
+
+    // 4. Open Dedicated Payment Selection Screen (Blinkit / Zepto Parity)
+    setPaymentSelectionModalOpen(true);
+  };
+
+  const executePlaceOrder = async (
+    targetPaymentMethod: "CASHFREE" | "ONLINE_UPI" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY",
+    extra?: { upiId?: string; upiApp?: string }
+  ) => {
+    if (!activeAddress || !activeAddress.id) {
+      setSavedAddressesModalOpen(true);
       return;
     }
 
     setIsPlacingOrder(true);
+    setOrderError(null);
 
     // Compute total savings for celebration pop-up (rounded to eliminate floating point decimals)
     const rawMrpSavings = items.reduce(
@@ -381,7 +400,7 @@ export function CartDrawer() {
           quantity: item.quantity,
         })),
         tipAmount,
-        paymentMethod,
+        paymentMethod: targetPaymentMethod,
         couponCode: appliedCoupon?.code,
       };
 
@@ -399,11 +418,12 @@ export function CartDrawer() {
         } else {
           setOrderError(data.error || "Failed to place order.");
         }
+        setIsPlacingOrder(false);
         return;
       }
 
-      // 1. Direct Native UPI Flow (Google Pay, PhonePe, Paytm intent & dynamic QR - Blinkit/Zepto parity)
-      if (paymentMethod === "ONLINE_UPI") {
+      // 1. Direct Native UPI Flow (Google Pay, PhonePe, Paytm intent & dynamic QR)
+      if (targetPaymentMethod === "ONLINE_UPI") {
         setIsPlacingOrder(false);
         closeCart();
         setUpiModalData({
@@ -416,8 +436,7 @@ export function CartDrawer() {
       }
 
       // 2. Online Payment via Cashfree (Unified for Native App & Web Browser)
-      if (paymentMethod === "CASHFREE") {
-        // Helper to cancel unconfirmed pending order and restore stock immediately
+      if (targetPaymentMethod === "CASHFREE") {
         const cancelUnconfirmedOrder = async (orderId: string, reason: string) => {
           try {
             await fetch("/api/orders/cancel", {
@@ -443,8 +462,7 @@ export function CartDrawer() {
           return;
         }
 
-        // Branch 1: If running inside Capacitor Native Mobile App (Android/iOS)
-        // Use Cashfree's Official Native SDK (CFUPIIntentCheckoutPayment / CFDropCheckoutPayment)
+        // Branch 1: Native Mobile App via Capacitor
         if (Capacitor.isNativePlatform()) {
           setIsPlacingOrder(false);
           const nativeRes = await launchNativeCashfree({
@@ -485,7 +503,7 @@ export function CartDrawer() {
             }
           }
 
-          // Native payment cancelled or dropped
+          // Payment cancelled or dropped
           await cancelUnconfirmedOrder(data.orderId, nativeRes?.error || "Payment cancelled in UPI app");
           setPaymentFailureBanner({
             title: "Payment Not Completed • Order Not Placed",
@@ -495,10 +513,10 @@ export function CartDrawer() {
           return;
         }
 
-        // Branch 2: Web Browser (Desktop / Mobile Chrome / Safari)
+        // Branch 2: Web Browser
         const isScriptLoaded = await loadCashfreeSdk();
         if (!isScriptLoaded) {
-          setOrderError("Unable to load Cashfree payment gateway. Please try again or choose UPI on Delivery.");
+          setOrderError("Unable to load Cashfree payment gateway.");
           setIsPlacingOrder(false);
           return;
         }
@@ -524,10 +542,6 @@ export function CartDrawer() {
             /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
         if (isMobileDevice) {
-          // On Mobile: Use top-level redirection (_self) so Cashfree serves the full mobile checkout
-          // page where installed UPI apps (GPay, PhonePe, Paytm, BHIM) appear natively with ZERO QR codes!
-          // When an app is tapped, our native WebViewClient / WKNavigationDelegate intercepts the scheme
-          // and launches the app directly. On payment completion, Cashfree redirects to /pay/verify.
           setIsPlacingOrder(false);
           cashfreeInstance.checkout({
             paymentSessionId: cfData.paymentSessionId,
@@ -536,7 +550,7 @@ export function CartDrawer() {
           return;
         }
 
-        // On Desktop Web: Open Cashfree responsive modal so user can scan QR with mobile phone
+        // Desktop web modal
         cashfreeInstance
           .checkout({
             paymentSessionId: cfData.paymentSessionId,
@@ -544,13 +558,12 @@ export function CartDrawer() {
           })
           .then(async (result: any) => {
             if (result?.error) {
-              console.warn("[Payment modal closed/warning]:", result.error);
               setIsPlacingOrder(false);
               setIsCashfreeActive(false);
               await cancelUnconfirmedOrder(data.orderId, "Payment modal closed by user before completion");
               setPaymentFailureBanner({
                 title: "Payment Not Completed • Order Not Placed",
-                message: "The online payment popup was closed before completing the transaction. Your order was NOT placed, no money was charged, and your cart items remain preserved.",
+                message: "The online payment popup was closed before completing the transaction. Your items remain in your cart.",
                 orderNumber: data.orderNumber,
               });
               return;
@@ -588,7 +601,7 @@ export function CartDrawer() {
                 const errData = await verifyRes.json().catch(() => ({}));
                 setPaymentFailureBanner({
                   title: "Payment Unsuccessful • Order Not Placed",
-                  message: errData.error || "Payment could not be verified with your bank or UPI provider. Your order was NOT placed and no charge was made. Your items are still in your cart.",
+                  message: errData.error || "Payment could not be verified with your bank. Your items are still in your cart.",
                   orderNumber: data.orderNumber,
                 });
               }
@@ -598,7 +611,7 @@ export function CartDrawer() {
               await cancelUnconfirmedOrder(data.orderId, "Payment verification network error");
               setPaymentFailureBanner({
                 title: "Payment Unconfirmed • Order Not Placed",
-                message: "A network issue occurred while verifying payment. Your order was not confirmed. You can retry or switch to Cash/UPI on Delivery.",
+                message: "A network issue occurred while verifying payment.",
                 orderNumber: data.orderNumber,
               });
             }
@@ -610,7 +623,7 @@ export function CartDrawer() {
             await cancelUnconfirmedOrder(data.orderId, err.message || "Checkout exception");
             setPaymentFailureBanner({
               title: "Payment Issue • Order Not Placed",
-              message: err.message || "An issue occurred during checkout. Your order was not placed and your cart items are preserved.",
+              message: err.message || "An issue occurred during checkout.",
               orderNumber: data.orderNumber,
             });
           });
@@ -618,7 +631,7 @@ export function CartDrawer() {
         return;
       }
 
-      // Order placed for UPI_DOORSTEP or CASH_ON_DELIVERY
+      // 3. Order placed for UPI_DOORSTEP or CASH_ON_DELIVERY
       closeCart();
       setCelebrationOrder({
         orderNumber: data.orderNumber,
@@ -631,7 +644,7 @@ export function CartDrawer() {
           couponCode: appliedCoupon?.code,
           deliverySavings,
         },
-        paymentMethod,
+        paymentMethod: targetPaymentMethod,
       });
       setShowCelebration(true);
       clearCart();
@@ -1057,7 +1070,7 @@ export function CartDrawer() {
 
                 {/* 4. DELIVERY ADDRESS VERIFICATION PILL */}
                 <div
-                  onClick={() => setLocationPickerOpen(true)}
+                  onClick={() => setSavedAddressesModalOpen(true)}
                   className="bg-white rounded-2xl p-3 border border-border-subtle shadow-2xs flex items-center justify-between gap-3 cursor-pointer hover:border-slate-300 transition-colors group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -1615,6 +1628,31 @@ export function CartDrawer() {
           setLocationPickerOpen(false);
         }}
         currentAddress={activeAddress}
+      />
+
+      {/* Saved Addresses Modal (Blinkit / Zepto style multi-address manager) */}
+      <SavedAddressesModal
+        open={savedAddressesModalOpen}
+        onOpenChange={setSavedAddressesModalOpen}
+        activeAddress={activeAddress}
+        onSelectAddress={(addr) => setActiveAddress(addr)}
+        onAddNewAddress={() => setLocationPickerOpen(true)}
+      />
+
+      {/* Dedicated Blinkit / Zepto Payment Selection Modal */}
+      <PaymentSelectionModal
+        open={paymentSelectionModalOpen}
+        onOpenChange={setPaymentSelectionModalOpen}
+        totalAmount={totals.grandTotal}
+        activeAddressSummary={
+          activeAddress
+            ? `${activeAddress.flatBuilding}, ${activeAddress.streetArea}`
+            : undefined
+        }
+        onSelectPayment={(method, extra) => {
+          executePlaceOrder(method, extra);
+        }}
+        isProcessing={isPlacingOrder}
       />
 
       {/* Direct Native UPI Payment Modal (Google Pay, PhonePe, Paytm & Dynamic QR) */}

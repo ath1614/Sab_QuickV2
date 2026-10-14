@@ -6,6 +6,7 @@ import { STORE_CONFIG } from "@/lib/geo";
 import { Locate, Navigation, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createHubPin, createCustomerPin } from "@/components/brand/MapPins";
+import { Capacitor } from "@capacitor/core";
 
 interface LeafletMapProps {
   latitude: number;
@@ -120,17 +121,27 @@ export default function LeafletMap({
     customerMarkerRef.current.setIcon(createCustomerPin(isServiceable));
   }, [latitude, longitude, isServiceable]);
 
-  // GPS Locate Me Handler
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
-
+  // GPS Locate Me Handler (Capacitor Native Geolocation + Web Fallback)
+  const handleLocateMe = async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: userLat, longitude: userLng } = pos.coords;
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { Geolocation } = await import("@capacitor/geolocation");
+        const perm = await Geolocation.checkPermissions();
+        if (perm.location !== "granted") {
+          const req = await Geolocation.requestPermissions();
+          if (req.location !== "granted") {
+            alert("Location permission is required to detect your location.");
+            setIsLocating(false);
+            return;
+          }
+        }
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 10000,
+        });
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
         if (mapInstanceRef.current && customerMarkerRef.current) {
           mapInstanceRef.current.flyTo([userLat, userLng], 16, {
             duration: 1.2,
@@ -139,21 +150,44 @@ export default function LeafletMap({
           onPositionChange(userLat, userLng);
         }
         setIsLocating(false);
-      },
-      (err) => {
-        console.warn("Geolocation permission error or unavailable:", err.message);
-        // Default to configured store hub location
-        const fallbackLat = parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "28.6139");
-        const fallbackLng = parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "77.2090");
-        if (mapInstanceRef.current && customerMarkerRef.current) {
-          mapInstanceRef.current.flyTo([fallbackLat, fallbackLng], 15);
-          customerMarkerRef.current.setLatLng([fallbackLat, fallbackLng]);
-          onPositionChange(fallbackLat, fallbackLng);
-        }
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
         setIsLocating(false);
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude: userLat, longitude: userLng } = pos.coords;
+          if (mapInstanceRef.current && customerMarkerRef.current) {
+            mapInstanceRef.current.flyTo([userLat, userLng], 16, {
+              duration: 1.2,
+            });
+            customerMarkerRef.current.setLatLng([userLat, userLng]);
+            onPositionChange(userLat, userLng);
+          }
+          setIsLocating(false);
+        },
+        (err) => {
+          console.warn("Geolocation permission error or unavailable:", err.message);
+          const fallbackLat = parseFloat(process.env.NEXT_PUBLIC_STORE_LAT || "23.1188");
+          const fallbackLng = parseFloat(process.env.NEXT_PUBLIC_STORE_LNG || "83.1996");
+          if (mapInstanceRef.current && customerMarkerRef.current) {
+            mapInstanceRef.current.flyTo([fallbackLat, fallbackLng], 15);
+            customerMarkerRef.current.setLatLng([fallbackLat, fallbackLng]);
+            onPositionChange(fallbackLat, fallbackLng);
+          }
+          setIsLocating(false);
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    } catch (e: any) {
+      console.warn("Locate Me error:", e);
+      setIsLocating(false);
+    }
   };
 
   return (
