@@ -113,7 +113,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((resData) => {
-          if (resData && (resData.orderStatus === "PAID" || resData.paymentStatus === "SUCCESS")) {
+          if (resData && (resData.success || resData.orderStatus === "PAID" || resData.paymentStatus === "SUCCESS")) {
             setOrder((prev) => ({
               ...prev,
               paymentStatus: "PAID",

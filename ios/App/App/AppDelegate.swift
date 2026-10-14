@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Intercept native UPI schemes from web checkout (Cashfree / direct UPI intent)
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("capacitorDecidePolicyForNavigationAction"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let navigationAction = notification.object as? WKNavigationAction,
+               let url = navigationAction.request.url,
+               let scheme = url.scheme?.lowercased() {
+                if ["upi", "phonepe", "tez", "paytmmp", "bhim", "credpay", "whatsapp"].contains(scheme) {
+                    if UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                    }
+                }
+            }
+        }
         return true
     }
 

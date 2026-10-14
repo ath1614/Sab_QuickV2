@@ -33,6 +33,7 @@ import {
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { loadCashfreeSdk, setupCashfreeModalAdjuster } from "@/lib/cashfree";
+import { Capacitor } from "@capacitor/core";
 import {
   OrderCelebrationModal,
   OrderCelebrationData,
@@ -462,7 +463,26 @@ export function CartDrawer() {
           }
         };
 
-        // Open Cashfree responsive modal directly on page (works on desktop and mobile web)
+        const isMobileDevice =
+          typeof window !== "undefined" &&
+          (window.innerWidth < 768 ||
+            Capacitor.isNativePlatform() ||
+            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+
+        if (isMobileDevice) {
+          // On Mobile: Use top-level redirection (_self) so Cashfree serves the full mobile checkout
+          // page where installed UPI apps (GPay, PhonePe, Paytm, BHIM) appear natively with ZERO QR codes!
+          // When an app is tapped, our native WebViewClient / WKNavigationDelegate intercepts the scheme
+          // and launches the app directly. On payment completion, Cashfree redirects to /pay/verify.
+          setIsPlacingOrder(false);
+          cashfreeInstance.checkout({
+            paymentSessionId: cfData.paymentSessionId,
+            redirectTarget: "_self",
+          });
+          return;
+        }
+
+        // On Desktop Web: Open Cashfree responsive modal so user can scan QR with mobile phone
         cashfreeInstance
           .checkout({
             paymentSessionId: cfData.paymentSessionId,

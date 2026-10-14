@@ -340,22 +340,25 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Dispatch Firebase Push Notification to Store Staff & Customer
-    try {
-      const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
-      sendNewOrderStaffAlert({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        totalAmount: order.totalAmount,
-        itemCount: order.items.length,
-      }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+    // ONLY for orders that are already CONFIRMED (e.g. COD / UPI on delivery).
+    // For CASHFREE / online prepaid payments, order status is PENDING and alerts MUST wait
+    // until payment is verified by the bank/gateway to prevent premature or false-alarm alerts.
+    if (order.status === "CONFIRMED") {
+      try {
+        const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
+        sendNewOrderStaffAlert({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          itemCount: order.items.length,
+        }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
 
-      if (order.status === "CONFIRMED") {
         sendOrderStatusPushNotification(order.id, order.status).catch((e) =>
           console.warn("[FCM Customer Order Push Warning]:", e)
         );
+      } catch (pushErr) {
+        console.warn("[Push Notification Import Warning]:", pushErr);
       }
-    } catch (pushErr) {
-      console.warn("[Push Notification Import Warning]:", pushErr);
     }
 
     return NextResponse.json(

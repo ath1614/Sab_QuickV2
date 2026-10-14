@@ -1,6 +1,8 @@
 package com.sabquick.app;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -8,8 +10,13 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
+import com.getcapacitor.JSArray;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -18,11 +25,56 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 
+import java.util.List;
+
 public class MainActivity extends BridgeActivity {
   private static final String TAG = "SabQuick";
 
   @CapacitorPlugin(name = "NativeUpi")
   public static class NativeUpiPlugin extends Plugin {
+
+    private boolean launchIntentInternal(String uriString, String packageName) {
+      if (uriString == null || uriString.isEmpty()) return false;
+      try {
+        Intent intent;
+        if (uriString.startsWith("intent://")) {
+          intent = Intent.parseUri(uriString, Intent.URI_INTENT_SCHEME);
+        } else {
+          intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString));
+        }
+
+        if (packageName != null && !packageName.isEmpty()) {
+          intent.setPackage(packageName);
+        }
+
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PackageManager pm = getContext().getPackageManager();
+        if (intent.resolveActivity(pm) != null) {
+          getContext().startActivity(intent);
+          return true;
+        }
+
+        // Try browser fallback if intent includes one
+        if (uriString.startsWith("intent://")) {
+          String fallbackUrl = intent.getStringExtra("browser_fallback_url");
+          if (fallbackUrl != null && !fallbackUrl.isEmpty() && getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().post(() -> getBridge().getWebView().loadUrl(fallbackUrl));
+            return true;
+          }
+        }
+
+        // Generic system chooser fallback
+        Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString.startsWith("intent://") ? "upi://pay" : uriString));
+        Intent chooser = Intent.createChooser(fallback, "Pay with UPI");
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(chooser);
+        return true;
+      } catch (Exception e) {
+        Log.e(TAG, "Could not launch UPI intent: " + e.getMessage(), e);
+        return false;
+      }
+    }
+
     @PluginMethod
     public void launchUpi(PluginCall call) {
       String uriString = call.getString("uri");
@@ -33,29 +85,57 @@ public class MainActivity extends BridgeActivity {
         return;
       }
 
-      try {
-        Uri uri = Uri.parse(uriString);
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-
-        if (packageName != null && !packageName.isEmpty()) {
-          intent.setPackage(packageName);
-        }
-
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        getActivity().startActivity(intent);
+      boolean launched = launchIntentInternal(uriString, packageName);
+      if (launched) {
         call.resolve();
-      } catch (Exception e) {
-        // Fallback: If targeted package (e.g. PhonePe or GPay) fails or isn't installed, open system chooser
-        try {
-          Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString));
-          Intent chooser = Intent.createChooser(fallback, "Pay with UPI");
-          chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          getActivity().startActivity(chooser);
-          call.resolve();
-        } catch (Exception ex) {
-          call.reject("Could not launch UPI app: " + ex.getMessage());
-        }
+      } else {
+        call.reject("Could not launch UPI payment app");
       }
+    }
+
+    @PluginMethod
+    public void getAvailableUpiApps(PluginCall call) {
+      try {
+        Uri uri = Uri.parse("upi://pay");
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        PackageManager pm = getContext().getPackageManager();
+        List<ResolveInfo> activities = pm.queryIntentActivities(intent, 0);
+
+        JSArray apps = new JSArray();
+        for (ResolveInfo info : activities) {
+          JSObject app = new JSObject();
+          app.put("packageName", info.activityInfo.packageName);
+          app.put("name", info.loadLabel(pm).toString());
+          apps.put(app);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("apps", apps);
+        ret.put("count", activities.size());
+        call.resolve(ret);
+      } catch (Exception e) {
+        call.reject("Could not query installed UPI apps: " + e.getMessage());
+      }
+    }
+
+    @Override
+    public Boolean shouldOverrideLoad(Uri url) {
+      if (url == null) return null;
+      String urlStr = url.toString();
+      if (urlStr.startsWith("upi://") ||
+          urlStr.startsWith("intent://") ||
+          urlStr.startsWith("phonepe://") ||
+          urlStr.startsWith("tez://") ||
+          urlStr.startsWith("gpay://") ||
+          urlStr.startsWith("paytmmp://") ||
+          urlStr.startsWith("bhim://") ||
+          urlStr.startsWith("credpay://") ||
+          urlStr.startsWith("mobikwik://")) {
+        Log.i(TAG, "Intercepted native UPI scheme via shouldOverrideLoad: " + urlStr);
+        launchIntentInternal(urlStr, null);
+        return Boolean.TRUE; // Consumes event to prevent WebView ERR_UNKNOWN_URL_SCHEME
+      }
+      return null;
     }
   }
 
@@ -100,6 +180,48 @@ public class MainActivity extends BridgeActivity {
 
     registerPlugin(NativeUpiPlugin.class);
     super.onCreate(savedInstanceState);
+
+    // 3. Fail-safe WebViewClient interceptor for any embedded frame or redirect
+    try {
+      if (getBridge() != null && getBridge().getWebView() != null) {
+        WebView webView = getBridge().getWebView();
+        webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+          @Override
+          public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            if (request != null && request.getUrl() != null) {
+              String urlStr = request.getUrl().toString();
+              if (urlStr.startsWith("upi://") ||
+                  urlStr.startsWith("intent://") ||
+                  urlStr.startsWith("phonepe://") ||
+                  urlStr.startsWith("tez://") ||
+                  urlStr.startsWith("gpay://") ||
+                  urlStr.startsWith("paytmmp://") ||
+                  urlStr.startsWith("bhim://") ||
+                  urlStr.startsWith("credpay://") ||
+                  urlStr.startsWith("mobikwik://")) {
+                try {
+                  Intent intent;
+                  if (urlStr.startsWith("intent://")) {
+                    intent = Intent.parseUri(urlStr, Intent.URI_INTENT_SCHEME);
+                  } else {
+                    intent = new Intent(Intent.ACTION_VIEW, request.getUrl());
+                  }
+                  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  view.getContext().startActivity(intent);
+                  return true;
+                } catch (Exception ex) {
+                  Log.e(TAG, "WebViewClient UPI intercept failed: " + ex.getMessage());
+                  return true;
+                }
+              }
+            }
+            return super.shouldOverrideUrlLoading(view, request);
+          }
+        });
+      }
+    } catch (Throwable t) {
+      Log.w(TAG, "Could not attach custom BridgeWebViewClient: " + t.getMessage());
+    }
 
     // Brand-themed status and navigation bars with high-contrast, crystal-clear white icons.
     // Prevents white-on-white invisible battery percentage, charging amount, and clock.

@@ -13,6 +13,13 @@ const config: CapacitorConfig = {
     url: "https://srv1985371.hstgr.cloud",
     cleartext: false,
     androidScheme: "https",
+    allowNavigation: [
+      "srv1985371.hstgr.cloud",
+      "*.cashfree.com",
+      "api.cashfree.com",
+      "payments.cashfree.com",
+      "sandbox.cashfree.com"
+    ],
   },
   android: {
     allowMixedContent: true,

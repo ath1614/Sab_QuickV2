@@ -88,6 +88,8 @@
 		<string>tez</string>
 		<string>paytmmp</string>
 		<string>bhim</string>
+		<string>credpay</string>
+		<string>whatsapp</string>
 	</array>
 </dict>
 </plist>

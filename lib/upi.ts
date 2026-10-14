@@ -1,10 +1,28 @@
 import { registerPlugin, Capacitor } from "@capacitor/core";
 
+export interface InstalledUpiApp {
+  packageName: string;
+  name: string;
+}
+
 export interface NativeUpiPlugin {
   launchUpi(options: { uri: string; packageName?: string }): Promise<void>;
+  getAvailableUpiApps?(): Promise<{ apps: InstalledUpiApp[]; count: number }>;
 }
 
 export const NativeUpi = registerPlugin<NativeUpiPlugin>("NativeUpi");
+
+export async function getInstalledUpiApps(): Promise<InstalledUpiApp[]> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await NativeUpi.getAvailableUpiApps?.();
+      return res?.apps || [];
+    } catch (e) {
+      console.warn("Could not query installed UPI apps:", e);
+    }
+  }
+  return [];
+}
 
 export interface UpiAppConfig {
   id: string;

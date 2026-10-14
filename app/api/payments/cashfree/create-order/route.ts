@@ -64,9 +64,8 @@ export async function POST(req: NextRequest) {
       process.env.NEXTAUTH_URL ||
       "https://srv1985371.hstgr.cloud";
 
-    const returnUrl = origin.startsWith("http")
-      ? `${origin}/orders/${order.orderNumber}`
-      : `https://${origin}/orders/${order.orderNumber}`;
+    const baseOrigin = origin.startsWith("http") ? origin : `https://${origin}`;
+    const returnUrl = `${baseOrigin}/pay/verify?order_id=${order.orderNumber}`;
 
     const cashfreeRes = await createCashfreeOrder({
       orderId: order.orderNumber,
@@ -93,6 +92,7 @@ export async function POST(req: NextRequest) {
       cfOrderId: cashfreeRes.cfOrderId,
       mode: cashfreeRes.mode,
       isMock: cashfreeRes.isMock,
+      returnUrl,
     });
   } catch (error: any) {
     console.error("[POST /api/payments/cashfree/create-order error]:", error);
