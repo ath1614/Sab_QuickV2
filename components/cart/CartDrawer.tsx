@@ -39,6 +39,7 @@ import {
   OrderCelebrationData,
 } from "@/components/orders/OrderCelebrationModal";
 import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
+import { launchNativeCashfree } from "@/lib/upi";
 import {
   ShoppingBag,
   Plus,
@@ -414,14 +415,20 @@ export function CartDrawer() {
         return;
       }
 
-      // 2. Online Payment via Cashfree (Unified for Web Browser & Desktop Cards/NetBanking)
+      // 2. Online Payment via Cashfree (Unified for Native App & Web Browser)
       if (paymentMethod === "CASHFREE") {
-        const isScriptLoaded = await loadCashfreeSdk();
-        if (!isScriptLoaded) {
-          setOrderError("Unable to load Cashfree payment gateway. Please try again or choose UPI on Delivery.");
-          setIsPlacingOrder(false);
-          return;
-        }
+        // Helper to cancel unconfirmed pending order and restore stock immediately
+        const cancelUnconfirmedOrder = async (orderId: string, reason: string) => {
+          try {
+            await fetch("/api/orders/cancel", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId, reason }),
+            });
+          } catch (cErr) {
+            console.warn("Could not cancel unconfirmed order:", cErr);
+          }
+        };
 
         const cfRes = await fetch("/api/payments/cashfree/create-order", {
           method: "POST",
@@ -432,6 +439,66 @@ export function CartDrawer() {
         const cfData = await cfRes.json();
         if (!cfRes.ok) {
           setOrderError(cfData.error || "Failed to initiate online payment.");
+          setIsPlacingOrder(false);
+          return;
+        }
+
+        // Branch 1: If running inside Capacitor Native Mobile App (Android/iOS)
+        // Use Cashfree's Official Native SDK (CFUPIIntentCheckoutPayment / CFDropCheckoutPayment)
+        if (Capacitor.isNativePlatform()) {
+          setIsPlacingOrder(false);
+          const nativeRes = await launchNativeCashfree({
+            paymentSessionId: cfData.paymentSessionId,
+            orderId: data.orderNumber || data.orderId,
+            environment: cfData.mode === "sandbox" ? "SANDBOX" : "PRODUCTION",
+          });
+
+          if (nativeRes?.status === "SUCCESS") {
+            try {
+              const verifyRes = await fetch("/api/payments/cashfree/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: data.orderId }),
+              });
+
+              if (verifyRes.ok) {
+                closeCart();
+                clearCart();
+                setCelebrationOrder({
+                  orderNumber: data.orderNumber,
+                  totalAmount: data.totalAmount,
+                  deliveryOtp: data.deliveryOtp,
+                  totalSavings,
+                  savingsBreakdown: {
+                    mrpSavings,
+                    couponSavings,
+                    couponCode: appliedCoupon?.code,
+                    deliverySavings,
+                  },
+                  paymentMethod: "CASHFREE",
+                });
+                setShowCelebration(true);
+                return;
+              }
+            } catch (vErr) {
+              console.error("Verification error:", vErr);
+            }
+          }
+
+          // Native payment cancelled or dropped
+          await cancelUnconfirmedOrder(data.orderId, nativeRes?.error || "Payment cancelled in UPI app");
+          setPaymentFailureBanner({
+            title: "Payment Not Completed • Order Not Placed",
+            message: nativeRes?.error || "The UPI payment was cancelled. Your items are still preserved in your cart.",
+            orderNumber: data.orderNumber,
+          });
+          return;
+        }
+
+        // Branch 2: Web Browser (Desktop / Mobile Chrome / Safari)
+        const isScriptLoaded = await loadCashfreeSdk();
+        if (!isScriptLoaded) {
+          setOrderError("Unable to load Cashfree payment gateway. Please try again or choose UPI on Delivery.");
           setIsPlacingOrder(false);
           return;
         }
@@ -449,19 +516,6 @@ export function CartDrawer() {
         const cashfreeInstance = new Cashfree({
           mode: cfData.mode || "production",
         });
-
-        // Helper to cancel unconfirmed pending order and restore stock immediately
-        const cancelUnconfirmedOrder = async (orderId: string, reason: string) => {
-          try {
-            await fetch("/api/orders/cancel", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderId, reason }),
-            });
-          } catch (cErr) {
-            console.warn("Could not cancel unconfirmed order:", cErr);
-          }
-        };
 
         const isMobileDevice =
           typeof window !== "undefined" &&

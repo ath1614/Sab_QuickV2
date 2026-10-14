@@ -5,12 +5,48 @@ export interface InstalledUpiApp {
   name: string;
 }
 
+export interface CashfreeNativeOptions {
+  paymentSessionId: string;
+  orderId: string;
+  environment?: "PRODUCTION" | "SANDBOX";
+}
+
+export interface CashfreeNativeResult {
+  status: "SUCCESS" | "FAILED";
+  orderId: string;
+  error?: string;
+}
+
 export interface NativeUpiPlugin {
   launchUpi(options: { uri: string; packageName?: string }): Promise<void>;
+  launchCashfreeNativeUpi?(options: CashfreeNativeOptions): Promise<CashfreeNativeResult>;
+  launchCashfreeNativeDrop?(options: CashfreeNativeOptions): Promise<CashfreeNativeResult>;
   getAvailableUpiApps?(): Promise<{ apps: InstalledUpiApp[]; count: number }>;
 }
 
 export const NativeUpi = registerPlugin<NativeUpiPlugin>("NativeUpi");
+
+export async function launchNativeCashfree(
+  options: CashfreeNativeOptions
+): Promise<CashfreeNativeResult | null> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (NativeUpi.launchCashfreeNativeUpi) {
+        return await NativeUpi.launchCashfreeNativeUpi(options);
+      }
+    } catch (e: any) {
+      console.warn("Native Cashfree UPI error, trying Drop checkout:", e);
+      try {
+        if (NativeUpi.launchCashfreeNativeDrop) {
+          return await NativeUpi.launchCashfreeNativeDrop(options);
+        }
+      } catch (dropErr: any) {
+        return { status: "FAILED", orderId: options.orderId, error: dropErr?.message || "Payment launch failed" };
+      }
+    }
+  }
+  return null;
+}
 
 export async function getInstalledUpiApps(): Promise<InstalledUpiApp[]> {
   if (Capacitor.isNativePlatform()) {

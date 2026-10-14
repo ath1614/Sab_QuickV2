@@ -25,6 +25,13 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 
+import com.cashfree.pg.api.CFPaymentGatewayService;
+import com.cashfree.pg.core.api.CFSession;
+import com.cashfree.pg.core.api.callback.CFCheckoutResponseCallback;
+import com.cashfree.pg.core.api.exception.CFException;
+import com.cashfree.pg.core.api.utils.CFErrorResponse;
+import com.cashfree.pg.ui.api.upi.intent.CFUPIIntentCheckoutPayment;
+
 import java.util.List;
 
 public class MainActivity extends BridgeActivity {
@@ -32,6 +39,130 @@ public class MainActivity extends BridgeActivity {
 
   @CapacitorPlugin(name = "NativeUpi")
   public static class NativeUpiPlugin extends Plugin {
+
+    @PluginMethod
+    public void launchCashfreeNativeUpi(PluginCall call) {
+      String paymentSessionId = call.getString("paymentSessionId");
+      String orderId = call.getString("orderId");
+      String envStr = call.getString("environment", "PRODUCTION");
+
+      if (paymentSessionId == null || paymentSessionId.isEmpty()) {
+        call.reject("paymentSessionId cannot be empty");
+        return;
+      }
+
+      getActivity().runOnUiThread(() -> {
+        try {
+          CFSession.Environment environment = "SANDBOX".equalsIgnoreCase(envStr)
+              ? CFSession.Environment.SANDBOX
+              : CFSession.Environment.PRODUCTION;
+
+          CFSession cfSession = new CFSession.CFSessionBuilder()
+              .setEnvironment(environment)
+              .setPaymentSessionID(paymentSessionId)
+              .setOrderId(orderId != null ? orderId : "")
+              .build();
+
+          CFUPIIntentCheckoutPayment cfupiIntent = new CFUPIIntentCheckoutPayment.CFUPIIntentPaymentBuilder()
+              .setSession(cfSession)
+              .build();
+
+          CFPaymentGatewayService.getInstance().setCheckoutCallback(new CFCheckoutResponseCallback() {
+            @Override
+            public void onPaymentVerify(String orderID) {
+              Log.i(TAG, "Cashfree Native UPI onPaymentVerify: " + orderID);
+              JSObject ret = new JSObject();
+              ret.put("status", "SUCCESS");
+              ret.put("orderId", orderID);
+              call.resolve(ret);
+            }
+
+            @Override
+            public void onPaymentFailure(CFErrorResponse cfErrorResponse, String orderID) {
+              String errMsg = (cfErrorResponse != null && cfErrorResponse.getMessage() != null)
+                  ? cfErrorResponse.getMessage()
+                  : "Payment cancelled or failed in UPI app";
+              Log.w(TAG, "Cashfree Native UPI onPaymentFailure: " + errMsg);
+              JSObject ret = new JSObject();
+              ret.put("status", "FAILED");
+              ret.put("orderId", orderID);
+              ret.put("error", errMsg);
+              call.resolve(ret);
+            }
+          });
+
+          CFPaymentGatewayService.getInstance().doPayment(getActivity(), cfupiIntent);
+        } catch (CFException e) {
+          Log.e(TAG, "Cashfree Native UPI CFException: " + e.getMessage(), e);
+          call.reject("Cashfree Native Error: " + e.getMessage());
+        } catch (Exception e) {
+          Log.e(TAG, "Unexpected error launching Cashfree: " + e.getMessage(), e);
+          call.reject(e.getMessage());
+        }
+      });
+    }
+
+    @PluginMethod
+    public void launchCashfreeNativeDrop(PluginCall call) {
+      String paymentSessionId = call.getString("paymentSessionId");
+      String orderId = call.getString("orderId");
+      String envStr = call.getString("environment", "PRODUCTION");
+
+      if (paymentSessionId == null || paymentSessionId.isEmpty()) {
+        call.reject("paymentSessionId cannot be empty");
+        return;
+      }
+
+      getActivity().runOnUiThread(() -> {
+        try {
+          CFSession.Environment environment = "SANDBOX".equalsIgnoreCase(envStr)
+              ? CFSession.Environment.SANDBOX
+              : CFSession.Environment.PRODUCTION;
+
+          CFSession cfSession = new CFSession.CFSessionBuilder()
+              .setEnvironment(environment)
+              .setPaymentSessionID(paymentSessionId)
+              .setOrderId(orderId != null ? orderId : "")
+              .build();
+
+          com.cashfree.pg.ui.api.CFDropCheckoutPayment dropPayment = new com.cashfree.pg.ui.api.CFDropCheckoutPayment.CFDropCheckoutPaymentBuilder()
+              .setSession(cfSession)
+              .build();
+
+          CFPaymentGatewayService.getInstance().setCheckoutCallback(new CFCheckoutResponseCallback() {
+            @Override
+            public void onPaymentVerify(String orderID) {
+              Log.i(TAG, "Cashfree Native Drop onPaymentVerify: " + orderID);
+              JSObject ret = new JSObject();
+              ret.put("status", "SUCCESS");
+              ret.put("orderId", orderID);
+              call.resolve(ret);
+            }
+
+            @Override
+            public void onPaymentFailure(CFErrorResponse cfErrorResponse, String orderID) {
+              String errMsg = (cfErrorResponse != null && cfErrorResponse.getMessage() != null)
+                  ? cfErrorResponse.getMessage()
+                  : "Payment cancelled or failed";
+              Log.w(TAG, "Cashfree Native Drop onPaymentFailure: " + errMsg);
+              JSObject ret = new JSObject();
+              ret.put("status", "FAILED");
+              ret.put("orderId", orderID);
+              ret.put("error", errMsg);
+              call.resolve(ret);
+            }
+          });
+
+          CFPaymentGatewayService.getInstance().doPayment(getActivity(), dropPayment);
+        } catch (CFException e) {
+          Log.e(TAG, "Cashfree Native Drop CFException: " + e.getMessage(), e);
+          call.reject("Cashfree Native Error: " + e.getMessage());
+        } catch (Exception e) {
+          Log.e(TAG, "Unexpected error launching Cashfree Drop: " + e.getMessage(), e);
+          call.reject(e.getMessage());
+        }
+      });
+    }
 
     private boolean launchIntentInternal(String uriString, String packageName) {
       if (uriString == null || uriString.isEmpty()) return false;
