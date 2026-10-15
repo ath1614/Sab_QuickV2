@@ -38,7 +38,11 @@ import {
   verifyCashfreePaymentOnServer,
 } from "@/lib/cashfree";
 import { Capacitor } from "@capacitor/core";
-import { launchNativeCashfreeUpiIntent, getUpiAppPackage } from "@/lib/upi";
+import {
+  launchNativeCashfreeUpiIntent,
+  getUpiAppPackage,
+  isCashfreeSdkPolicyBlock,
+} from "@/lib/upi";
 import {
   OrderCelebrationModal,
   OrderCelebrationData,
@@ -523,14 +527,20 @@ export function CartDrawer() {
            * hosted Cashfree page with the same order:
            *
            *  - UNAVAILABLE: the installed APK predates this native method.
-           *  - installer_package_not_approved: Cashfree Integrity blocks its
-           *    native SDK when the APK was not installed from a regulated store
-           *    (sideloaded builds). That is a Cashfree policy block, not a
-           *    customer mistake, so the hosted page is the usable path.
+           *  - a Cashfree policy block: Cashfree refuses its own native SDK when
+           *    the APK was not installed from a regulated store, which is every
+           *    customer who installs our APK directly. That is Cashfree's
+           *    policy, not a customer mistake, so the hosted page is the usable
+           *    path.
+           *
+           * Never compare against one literal code here. Cashfree reports this
+           * refusal as installer_package_not_approved in some SDK versions and
+           * android_package_not_approved in the CFUPI Intent flow we ship
+           * (confirmed on-device). A miss cancels a real order and returns the
+           * customer to the payment-method step with the latch never set, so
+           * the same doomed attempt repeats on every retry.
            */
-          const sdkBlockedByCashfree =
-            nativeResult.code === "installer_package_not_approved" ||
-            nativeResult.code === "feature_not_enabled";
+          const sdkBlockedByCashfree = isCashfreeSdkPolicyBlock(nativeResult);
 
           if (sdkBlockedByCashfree) {
             // Cashfree will keep rejecting this installation until the app is

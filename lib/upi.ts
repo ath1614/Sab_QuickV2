@@ -15,7 +15,7 @@ export interface CashfreeNativeResult {
   status: "SUCCESS" | "FAILED";
   orderId: string;
   error?: string;
-  /** Cashfree error code, e.g. installer_package_not_approved. */
+  /** Cashfree error code, e.g. android_package_not_approved on a sideloaded build. */
   code?: string;
   /** True when the requested UPI app was missing and Cashfree's app list was shown instead. */
   fallback?: boolean;
@@ -33,7 +33,7 @@ export interface NativeUpiLaunchResult {
   status: "SUCCESS" | "FAILED" | "UNAVAILABLE";
   orderId?: string;
   error?: string;
-  /** Cashfree error code, e.g. installer_package_not_approved. */
+  /** Cashfree error code, e.g. android_package_not_approved on a sideloaded build. */
   code?: string;
   /** True when the requested UPI app was missing and Cashfree's app list was shown instead. */
   fallback?: boolean;
@@ -69,6 +69,36 @@ export const UPI_APP_PACKAGES: Record<string, string> = {
 export function getUpiAppPackage(appId?: string): string | undefined {
   if (!appId) return undefined;
   return UPI_APP_PACKAGES[appId.trim().toLowerCase()];
+}
+
+/**
+ * True when Cashfree refused its own native SDK for this installation, rather
+ * than the customer's payment failing.
+ *
+ * Cashfree reports this refusal under more than one code. Integrity's
+ * install-source check says `installer_package_not_approved`, while the CFUPI
+ * Intent flow we ship answered `android_package_not_approved` for a sideloaded
+ * APK on a Galaxy S24 (Android 17). Comparing against a single literal string
+ * misses the other spelling - and a miss cancels a real order and drops the
+ * customer back on the payment-method step instead of using the hosted page.
+ */
+export function isCashfreeSdkPolicyBlock(result: {
+  code?: string;
+  error?: string;
+}): boolean {
+  const code = String(result?.code || "").toLowerCase();
+  if (
+    code.includes("package_not_approved") || // installer_ / android_
+    code.includes("app_not_approved") ||
+    code.includes("not_enabled") ||
+    code.includes("not_whitelisted")
+  ) {
+    return true;
+  }
+
+  // If Cashfree renames the code again, its wording for this refusal is still
+  // distinctive: "com.sabquick.app is not enabled or approved."
+  return /is not enabled or approved/i.test(String(result?.error || ""));
 }
 
 export const NativeUpi = registerPlugin<NativeUpiPlugin>("NativeUpi");
