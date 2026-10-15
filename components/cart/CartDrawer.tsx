@@ -49,7 +49,6 @@ import {
 } from "@/components/orders/OrderCelebrationModal";
 import { UpiPaymentModal } from "@/components/cart/UpiPaymentModal";
 import { SavedAddressesModal } from "@/components/address/SavedAddressesModal";
-import { PaymentSelectionModal } from "@/components/cart/PaymentSelectionModal";
 import {
   ShoppingBag,
   Plus,
@@ -154,7 +153,6 @@ export function CartDrawer() {
   } | null>(null);
 
   const [savedAddressesModalOpen, setSavedAddressesModalOpen] = React.useState<boolean>(false);
-  const [paymentSelectionModalOpen, setPaymentSelectionModalOpen] = React.useState<boolean>(false);
 
   const [isNativeApp, setIsNativeApp] = React.useState<boolean>(false);
 
@@ -177,12 +175,13 @@ export function CartDrawer() {
         (window as any).Capacitor?.isNative
       );
 
-    // Ensure legacy payment methods resolve to CASHFREE (which handles all UPI apps & Cards with real bank verification)
+    // Ensure legacy payment methods resolve cleanly
     if (
       (paymentMethod as any) === "RAZORPAY" ||
-      (paymentMethod as any) === "ONLINE_PREPAID"
+      (paymentMethod as any) === "ONLINE_PREPAID" ||
+      (paymentMethod as any) === "ONLINE_UPI"
     ) {
-      setPaymentMethod("CASHFREE");
+      setPaymentMethod(null);
     }
   }, [paymentMethod, setPaymentMethod]);
 
@@ -373,8 +372,18 @@ export function CartDrawer() {
       return;
     }
 
-    // 4. Open Dedicated Payment Selection Screen (Blinkit / Zepto Parity)
-    setPaymentSelectionModalOpen(true);
+    // 4. Payment method check
+    if (!paymentMethod) {
+      setOrderError("Please select a payment method to proceed.");
+      const el = document.getElementById("cart-payment-methods");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
+    // 5. Directly execute order placement
+    executePlaceOrder(paymentMethod);
   };
 
   const executePlaceOrder = async (
@@ -1546,15 +1555,32 @@ export function CartDrawer() {
                 </div>
 
                 {/* 8. PAYMENT METHOD SELECTOR */}
-                <div className="bg-white rounded-2xl p-3.5 border border-border-subtle shadow-2xs space-y-2.5">
-                  <h4 className="font-bold text-surface-dark text-xs">
-                    Select Payment Method
-                  </h4>
+                <div
+                  id="cart-payment-methods"
+                  className={`bg-white rounded-2xl p-3.5 border transition-all ${
+                    !paymentMethod && orderError
+                      ? "border-amber-400 ring-2 ring-amber-300/40 shadow-xs"
+                      : "border-border-subtle shadow-2xs"
+                  } space-y-2.5`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-surface-dark text-xs">
+                      Select Payment Method
+                    </h4>
+                    {!paymentMethod && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        Required
+                      </span>
+                    )}
+                  </div>
 
                   <div className="space-y-2">
                     {/* Option 1: Online Payment via UPI & Cards (Cashfree Verified Gateway) */}
                     <div
-                      onClick={() => setPaymentMethod("CASHFREE")}
+                      onClick={() => {
+                        setPaymentMethod("CASHFREE");
+                        if (orderError) setOrderError(null);
+                      }}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         paymentMethod === "CASHFREE"
                           ? "border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/20"
@@ -1566,7 +1592,10 @@ export function CartDrawer() {
                           type="radio"
                           name="paymentMethod"
                           checked={paymentMethod === "CASHFREE"}
-                          onChange={() => setPaymentMethod("CASHFREE")}
+                          onChange={() => {
+                            setPaymentMethod("CASHFREE");
+                            if (orderError) setOrderError(null);
+                          }}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
                         <div>
@@ -1588,7 +1617,10 @@ export function CartDrawer() {
 
                     {/* Option 2: UPI at Doorstep */}
                     <div
-                      onClick={() => setPaymentMethod("UPI_DOORSTEP")}
+                      onClick={() => {
+                        setPaymentMethod("UPI_DOORSTEP");
+                        if (orderError) setOrderError(null);
+                      }}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         paymentMethod === "UPI_DOORSTEP"
                           ? "border-primary bg-primary/5 shadow-2xs"
@@ -1600,7 +1632,10 @@ export function CartDrawer() {
                           type="radio"
                           name="paymentMethod"
                           checked={paymentMethod === "UPI_DOORSTEP"}
-                          onChange={() => setPaymentMethod("UPI_DOORSTEP")}
+                          onChange={() => {
+                            setPaymentMethod("UPI_DOORSTEP");
+                            if (orderError) setOrderError(null);
+                          }}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
                         <div>
@@ -1617,7 +1652,10 @@ export function CartDrawer() {
 
                     {/* Option 3: Cash on Delivery */}
                     <div
-                      onClick={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                      onClick={() => {
+                        setPaymentMethod("CASH_ON_DELIVERY");
+                        if (orderError) setOrderError(null);
+                      }}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         paymentMethod === "CASH_ON_DELIVERY"
                           ? "border-primary bg-primary/5 shadow-2xs"
@@ -1629,7 +1667,10 @@ export function CartDrawer() {
                           type="radio"
                           name="paymentMethod"
                           checked={paymentMethod === "CASH_ON_DELIVERY"}
-                          onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                          onChange={() => {
+                            setPaymentMethod("CASH_ON_DELIVERY");
+                            if (orderError) setOrderError(null);
+                          }}
                           className="accent-primary w-4 h-4 cursor-pointer"
                         />
                         <div>
@@ -1679,6 +1720,8 @@ export function CartDrawer() {
                   <span className="truncate">
                     {isPlacingOrder
                       ? "Placing Order..."
+                      : !paymentMethod
+                      ? "Select Payment Method"
                       : paymentMethod === "CASHFREE" || paymentMethod === "ONLINE_UPI"
                       ? "Pay via UPI / Cards"
                       : paymentMethod === "UPI_DOORSTEP"
@@ -1743,22 +1786,6 @@ export function CartDrawer() {
         activeAddress={activeAddress}
         onSelectAddress={(addr) => setActiveAddress(addr)}
         onAddNewAddress={() => setLocationPickerOpen(true)}
-      />
-
-      {/* Dedicated Blinkit / Zepto Payment Selection Modal */}
-      <PaymentSelectionModal
-        open={paymentSelectionModalOpen}
-        onOpenChange={setPaymentSelectionModalOpen}
-        totalAmount={totals.grandTotal}
-        activeAddressSummary={
-          activeAddress
-            ? `${activeAddress.flatBuilding}, ${activeAddress.streetArea}`
-            : undefined
-        }
-        onSelectPayment={(method, extra) => {
-          executePlaceOrder(method, extra);
-        }}
-        isProcessing={isPlacingOrder}
       />
 
       {/* Direct Native UPI Payment Modal (Google Pay, PhonePe, Paytm & Dynamic QR) */}

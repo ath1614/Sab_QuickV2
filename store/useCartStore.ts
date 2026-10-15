@@ -7,7 +7,7 @@ export interface CartItem {
   quantity: number;
 }
 
-export type PaymentMethodType = "ONLINE_UPI" | "CASHFREE" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY";
+export type PaymentMethodType = "CASHFREE" | "UPI_DOORSTEP" | "CASH_ON_DELIVERY" | "ONLINE_UPI" | null;
 export type PaymentMethod = PaymentMethodType;
 
 export const FREE_DELIVERY_THRESHOLD = 199;
@@ -144,14 +144,7 @@ export const useCartStore = create<CartStoreState>()(
     (set, get) => ({
       items: [],
       tipAmount: 0,
-      paymentMethod:
-        typeof window !== "undefined" &&
-        Boolean(
-          (window as any).Capacitor?.isNativePlatform?.() ||
-          (window as any).Capacitor?.isNative
-        )
-          ? "ONLINE_UPI"
-          : "CASHFREE",
+      paymentMethod: null,
       appliedCoupon: null,
       isOpen: false,
       isPillMinimized: false,
@@ -343,35 +336,21 @@ export const useCartStore = create<CartStoreState>()(
             (window as any).Capacitor?.isNative
           );
         if (
-          version < 4 ||
+          version < 5 ||
           (state.paymentMethod as any) === "RAZORPAY" ||
           (state.paymentMethod as any) === "ONLINE_PREPAID" ||
-          !state.paymentMethod
+          (state.paymentMethod as any) === "ONLINE_UPI"
         ) {
-          state.paymentMethod = isNative ? "ONLINE_UPI" : "CASHFREE";
+          state.paymentMethod = null;
         }
         return state;
       },
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          const isNative =
-            typeof window !== "undefined" &&
-            Boolean(
-              (window as any).Capacitor?.isNativePlatform?.() ||
-              (window as any).Capacitor?.isNative
-            );
-
-          if (isNative && state.paymentMethod === "CASHFREE") {
-            state.paymentMethod = "ONLINE_UPI";
-            setTimeout(() => {
-              useCartStore.setState({ paymentMethod: "ONLINE_UPI" });
-            }, 0);
-          } else if (!isNative && state.paymentMethod === "ONLINE_UPI") {
-            state.paymentMethod = "CASHFREE";
-            setTimeout(() => {
-              useCartStore.setState({ paymentMethod: "CASHFREE" });
-            }, 0);
-          }
+        if (state && (state.paymentMethod as any) === "ONLINE_UPI") {
+          state.paymentMethod = null;
+          setTimeout(() => {
+            useCartStore.setState({ paymentMethod: null });
+          }, 0);
         }
       },
     }
