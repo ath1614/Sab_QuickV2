@@ -176,11 +176,11 @@ export function Navbar({
           <div className="flex sm:hidden items-center justify-between gap-2 h-14 pt-1">
             {/* Left: Brand Logo + Superfast 10 Mins Pill + Address Selector */}
             <div className="flex items-center gap-2 min-w-0">
-              <Link href="/" className="shrink-0 py-0.5" title="SabQuick Home">
+              <Link href="/" className="shrink-0 py-0.5" title="SABQuick Home">
                 <img
                   src="/brand/navbar-logo.png"
-                  alt="SabQuick"
-                  className="h-8 max-w-[135px] w-auto object-contain shrink-0"
+                  alt="SABQuick"
+                  className="h-9 max-w-[120px] w-auto object-contain shrink-0 drop-shadow-xs"
                 />
               </Link>
 
@@ -295,11 +295,11 @@ export function Navbar({
           <div className="hidden sm:flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-4 w-full">
             {/* Logo & Interactive Geofence Address Trigger */}
             <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
-              <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SabQuick Home">
+              <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SABQuick Home">
                 <img
                   src="/brand/navbar-logo.png"
-                  alt="SabQuick"
-                  className="h-9 sm:h-11 max-w-[150px] sm:max-w-none w-auto object-contain shrink-0"
+                  alt="SABQuick"
+                  className="h-10 sm:h-12 max-w-[140px] sm:max-w-none w-auto object-contain shrink-0 drop-shadow-xs"
                 />
               </Link>
 
