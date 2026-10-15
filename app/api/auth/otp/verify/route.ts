@@ -14,7 +14,7 @@ const verifyOtpSchema = z.object({
   otp: z
     .string()
     .trim()
-    .regex(/^\d{4}$/, "OTP must be exactly 4 digits"),
+    .regex(/^\d{4,6}$/, "Code must be 4 to 6 digits"),
   name: z.string().trim().optional(),
 });
 
@@ -31,11 +31,16 @@ export async function POST(req: NextRequest) {
     }
 
     const { phone, otp, name } = parseResult.data;
-    const demoReviewPhone = process.env.DEMO_REVIEW_PHONE || "9999999999";
-    const demoReviewOtp = process.env.DEMO_REVIEW_OTP || "1234";
-    const isDemoReviewer = phone === demoReviewPhone && otp === demoReviewOtp;
+    const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
+    const reviewerPasscode = process.env.REVIEWER_PASSCODE?.trim() || "742918";
+    const isReviewer = phone === reviewerPhone && otp === reviewerPasscode;
 
-    if (!isDemoReviewer) {
+    // Backward compatibility for legacy demo test
+    const legacyDemoPhone = process.env.DEMO_REVIEW_PHONE || "9999999999";
+    const legacyDemoOtp = process.env.DEMO_REVIEW_OTP || "1234";
+    const isLegacyDemo = phone === legacyDemoPhone && otp === legacyDemoOtp;
+
+    if (!isReviewer && !isLegacyDemo) {
       const otpKey = `otp:phone:${phone}`;
       const storedOtp = await redis.get(otpKey);
 

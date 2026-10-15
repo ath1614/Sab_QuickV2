@@ -26,53 +26,28 @@ export async function POST(req: NextRequest) {
 
     const { phone } = parseResult.data;
 
-    // 1. Check if phone belongs to Owner or internal Staff
+    // 1. Google Play Reviewer Account, Owner, and Internal Staff check
+    const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
     const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
     const existingUser = await prisma.user.findUnique({
       where: { phone },
       select: { id: true, name: true, role: true, email: true },
     });
 
+    const isReviewer = phone === reviewerPhone;
     const isOwner = phone === ownerPhone || existingUser?.role === "OWNER";
     const isStaff = Boolean(existingUser && existingUser.role !== "CUSTOMER");
 
-    // A. Store Owner authentication via Passcode (Zero SMS consumed)
-    if (isOwner) {
-      return NextResponse.json({
-        success: true,
-        requirePin: true,
-        isOwner: true,
-        role: "OWNER",
-        pinLength: 6,
-        message: "Store Owner detected. Enter your 6-digit Owner Passcode.",
-      });
-    }
-
-    // B. Internal Staff authentication via Staff PIN (Zero SMS consumed)
-    if (isStaff && existingUser) {
-      return NextResponse.json({
-        success: true,
-        requirePin: true,
-        isStaff: true,
-        role: existingUser.role,
-        pinLength: 4,
-        message: `Staff account [${existingUser.role}] detected. Enter your 4-digit Staff PIN.`,
-      });
-    }
-
-    // C. App Store & Google Play Reviewer Demo Account Bypass
-    const demoReviewPhone = process.env.DEMO_REVIEW_PHONE || "9999999999";
-    if (phone === demoReviewPhone) {
-      const demoOtp = process.env.DEMO_REVIEW_OTP || "1234";
-      await redis.set(`otp:phone:${phone}`, demoOtp, "EX", 86400);
+    // Zero-SMS Authentication for Reviewer, Store Owner, and Internal Staff.
+    // Return identical response to prevent account enumeration / role leakage.
+    if (isReviewer || isOwner || isStaff) {
       return NextResponse.json({
         success: true,
         useFirebase: false,
-        message: "App Reviewer account detected. Please enter your 4-digit review passcode.",
-        expiresIn: 86400,
-        cooldown: 0,
+        message: "Verification code sent to your mobile phone",
+        expiresIn: 300,
+        cooldown: 60,
         isNewUser: false,
-        freeOtp: process.env.NODE_ENV === "production" ? undefined : demoOtp,
       });
     }
 

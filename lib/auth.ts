@@ -158,11 +158,10 @@ export const authOptions: NextAuthOptions = {
 
         if (!credentials?.phone) {
           throw new Error("Mobile number is required.");
-        }
-
-        const phone = credentials.phone.trim();
+        }        const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();
         const otp = credentials.otp?.trim();
+        const authCode = (pin || otp || "").trim();
         const rawIdToken = credentials.idToken?.trim();
         const idToken =
           rawIdToken &&
@@ -176,102 +175,135 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Must be a valid 10-digit Indian mobile number.");
         }
 
-        // 1. PIN / Passcode Authentication (For Owner and Staff)
-        if (pin) {
-          // Check brute-force lockout
+        // 1. Google Play Reviewer Full-Access Account (Bypass SMS & unlock all roles)
+        const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
+        const reviewerPasscode = process.env.REVIEWER_PASSCODE?.trim() || "742918";
+
+        if (phone === reviewerPhone) {
+          if (authCode !== reviewerPasscode) {
+            throw new Error("Invalid verification code. Please try again.");
+          }
+
+          const reviewerUser = await prisma.user.upsert({
+            where: { phone: reviewerPhone },
+            update: {
+              name: "Google Play Reviewer",
+              role: Role.OWNER,
+              roles: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER, Role.CUSTOMER],
+              phoneVerified: true,
+            },
+            create: {
+              phone: reviewerPhone,
+              name: "Google Play Reviewer",
+              email: "reviewer@sabquick.com",
+              role: Role.OWNER,
+              roles: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER, Role.CUSTOMER],
+              phoneVerified: true,
+            },
+          });
+
+          return {
+            id: reviewerUser.id,
+            name: reviewerUser.name,
+            email: reviewerUser.email,
+            role: reviewerUser.role,
+            roles: reviewerUser.roles?.length ? reviewerUser.roles : [reviewerUser.role],
+            phone: reviewerUser.phone,
+            phoneVerified: reviewerUser.phoneVerified,
+          };
+        }
+
+        // 2. Store Owner Verification (via Passcode)
+        const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
+        if (phone === ownerPhone) {
           if (await isPinLocked(phone)) {
             throw new Error(
-              "Too many incorrect PIN attempts. Access locked for 15 minutes to protect your account."
+              "Too many incorrect attempts. Access locked for 15 minutes to protect your account."
             );
           }
 
-          const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
-
-          // A. Owner Verification
-          if (phone === ownerPhone) {
-            const ownerRecord = await prisma.user.findUnique({
-              where: { phone: ownerPhone },
-              select: { id: true, pin: true },
-            });
-
-            let storedOwnerPin = ownerRecord?.pin ?? null;
-
-            if (ownerRecord && !storedOwnerPin) {
-              const provisioned = process.env.OWNER_PASSCODE || "140974";
-              const hashed = hashPasscode(provisioned);
-              await prisma.user.update({
-                where: { id: ownerRecord.id },
-                data: { pin: hashed },
-              });
-              storedOwnerPin = hashed;
-            }
-
-            const ownerPinOk = verifyPasscode(pin, storedOwnerPin);
-
-            if (!ownerPinOk) {
-              await recordPinFailure(phone);
-              throw new Error("Incorrect Owner Passcode. Access denied.");
-            }
-
-            // PIN verified successfully: reset lockout counter
-            await resetPinAttempts(phone);
-
-            // Transparent migration: if stored PIN was legacy plaintext, upgrade to scrypt hash
-            if (storedOwnerPin && !isPasscodeHashed(storedOwnerPin)) {
-              await prisma.user.update({
-                where: { phone: ownerPhone },
-                data: { pin: hashPasscode(pin) },
-              });
-            }
-
-            const ownerUser = await prisma.user.upsert({
-              where: { phone: ownerPhone },
-              update: { role: Role.OWNER, phoneVerified: true },
-              create: {
-                phone: ownerPhone,
-                name: process.env.OWNER_NAME || "Anurag Soni",
-                email: process.env.OWNER_EMAIL || "sabsupermart68@gmail.com",
-                role: Role.OWNER,
-                pin: hashPasscode(pin),
-                phoneVerified: true,
-              },
-            });
-
-            return {
-              id: ownerUser.id,
-              name: ownerUser.name,
-              email: ownerUser.email,
-              role: ownerUser.role,
-              roles: ownerUser.roles?.length ? ownerUser.roles : [ownerUser.role],
-              phone: ownerUser.phone,
-              phoneVerified: ownerUser.phoneVerified,
-            };
-          }
-
-          // B. Staff Verification (Manager, Packer, Rider)
-          const staffUser = await prisma.user.findUnique({
-            where: { phone },
+          const ownerRecord = await prisma.user.findUnique({
+            where: { phone: ownerPhone },
+            select: { id: true, pin: true },
           });
 
-          if (!staffUser || staffUser.role === Role.CUSTOMER) {
-            throw new Error("No staff account found for this mobile number.");
+          let storedOwnerPin = ownerRecord?.pin ?? null;
+
+          if (ownerRecord && !storedOwnerPin) {
+            const provisioned = process.env.OWNER_PASSCODE || "140974";
+            const hashed = hashPasscode(provisioned);
+            await prisma.user.update({
+              where: { id: ownerRecord.id },
+              data: { pin: hashed },
+            });
+            storedOwnerPin = hashed;
           }
 
-          const staffPinOk = verifyPasscode(pin, staffUser.pin);
+          const ownerPinOk = verifyPasscode(authCode, storedOwnerPin);
+
+          if (!ownerPinOk) {
+            await recordPinFailure(phone);
+            throw new Error("Invalid verification code. Please try again.");
+          }
+
+          await resetPinAttempts(phone);
+
+          if (storedOwnerPin && !isPasscodeHashed(storedOwnerPin)) {
+            await prisma.user.update({
+              where: { phone: ownerPhone },
+              data: { pin: hashPasscode(authCode) },
+            });
+          }
+
+          const ownerUser = await prisma.user.upsert({
+            where: { phone: ownerPhone },
+            update: { role: Role.OWNER, phoneVerified: true },
+            create: {
+              phone: ownerPhone,
+              name: process.env.OWNER_NAME || "Anurag Soni",
+              email: process.env.OWNER_EMAIL || "sabsupermart68@gmail.com",
+              role: Role.OWNER,
+              pin: hashPasscode(authCode),
+              phoneVerified: true,
+            },
+          });
+
+          return {
+            id: ownerUser.id,
+            name: ownerUser.name,
+            email: ownerUser.email,
+            role: ownerUser.role,
+            roles: ownerUser.roles?.length ? ownerUser.roles : [ownerUser.role],
+            phone: ownerUser.phone,
+            phoneVerified: ownerUser.phoneVerified,
+          };
+        }
+
+        // 3. Internal Staff Verification (Manager, Packer, Rider via Staff PIN)
+        const staffUser = await prisma.user.findUnique({
+          where: { phone },
+        });
+
+        if (staffUser && staffUser.role !== Role.CUSTOMER) {
+          if (await isPinLocked(phone)) {
+            throw new Error(
+              "Too many incorrect attempts. Access locked for 15 minutes to protect your account."
+            );
+          }
+
+          const staffPinOk = verifyPasscode(authCode, staffUser.pin);
 
           if (!staffPinOk) {
             await recordPinFailure(phone);
-            throw new Error("Incorrect Staff PIN. Please check with the store owner.");
+            throw new Error("Invalid verification code. Please check with the store owner.");
           }
 
-          // PIN verified successfully: reset lockout counter
           await resetPinAttempts(phone);
 
-          // Transparent migration: if stored PIN was legacy plaintext, upgrade to scrypt hash
           if (staffUser.pin && !isPasscodeHashed(staffUser.pin)) {
             await prisma.user.update({
               where: { id: staffUser.id },
-              data: { pin: hashPasscode(pin) },
+              data: { pin: hashPasscode(authCode) },
             });
           }
 
@@ -286,7 +318,7 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // 2. Firebase ID Token Verification (10,000 Free Phone SMS/Month)
+        // 4. Firebase ID Token Verification (10,000 Free Phone SMS/Month)
         if (idToken) {
           try {
             const decodedToken = await verifyFirebaseIdToken(idToken);
@@ -336,17 +368,10 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // 3. Customer OTP Verification (Fallback for Dev/Staging/CI tests)
-        if (!otp) {
-          throw new Error("Verification code, PIN, or Firebase token required.");
+        // 5. Customer OTP Verification
+        if (!authCode) {
+          throw new Error("Verification code is required.");
         }
-
-        if (!/^\d{4}$/.test(otp)) {
-          throw new Error("OTP must be exactly 4 digits.");
-        }
-
-        const getOtp = async (p: string) => await redis.get(`otp:phone:${p}`);
-        const deleteOtp = async (p: string) => await redis.del(`otp:phone:${p}`);
 
         if (await isOtpLocked(phone)) {
           throw new Error(
@@ -354,16 +379,19 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
-        const validOtp = await getOtp(phone);
-        const isMasterTestOtp = otp === "1234" && isMasterOtpEnabled();
+        const validOtp = await redis.get(`otp:phone:${phone}`);
+        const isMasterTestOtp =
+          (authCode === "1234" && isMasterOtpEnabled()) ||
+          (phone === (process.env.DEMO_REVIEW_PHONE || "9999999999") &&
+            authCode === (process.env.DEMO_REVIEW_OTP || "1234"));
 
-        if (!isMasterTestOtp && (!validOtp || validOtp !== otp)) {
+        if (!isMasterTestOtp && (!validOtp || validOtp !== authCode)) {
           await recordOtpFailure(phone);
-          throw new Error("Invalid or expired OTP. Please request a new one.");
+          throw new Error("Invalid or expired verification code. Please request a new one.");
         }
 
         if (!isMasterTestOtp) {
-          await deleteOtp(phone);
+          await redis.del(`otp:phone:${phone}`);
         }
 
         await resetOtpAttempts(phone);
