@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.sabquick.app",
-  appName: "SabQuick",
+  appName: "SABQuick",
   webDir: "public",
   server: {
     /**

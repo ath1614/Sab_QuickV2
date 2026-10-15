@@ -1,7 +1,7 @@
 {
   "id": "sabquick-pwa",
-  "name": "SabQuick - Superfast Grocery Delivery",
-  "short_name": "SabQuick",
+  "name": "SABQuick - Superfast Grocery Delivery",
+  "short_name": "SABQuick",
   "description": "Hyper-local grocery delivery right to your door superfast.",
   "start_url": "/?source=pwa",
   "scope": "/",
