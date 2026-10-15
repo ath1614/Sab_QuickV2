@@ -35,6 +35,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [fullName, setFullName] = React.useState<string>("");
   const [isNewUser, setIsNewUser] = React.useState<boolean>(false);
   const [verifyCode, setVerifyCode] = React.useState<string>("");
+  const [otpDigits, setOtpDigits] = React.useState<string[]>(["", "", "", ""]);
   const [showCode, setShowCode] = React.useState<boolean>(true);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
