@@ -86,10 +86,19 @@
 		<string>upi</string>
 		<string>phonepe</string>
 		<string>tez</string>
+		<string>gpay</string>
 		<string>paytmmp</string>
+		<string>paytm</string>
 		<string>bhim</string>
 		<string>credpay</string>
+		<string>amazonpay</string>
+		<string>navipay</string>
+		<string>mobikwik</string>
+		<string>myairtel</string>
 		<string>whatsapp</string>
+		<string>whatsapp-consumer</string>
+		<string>tnupi</string>
+		<string>postpe</string>
 	</array>
 </dict>
 </plist>

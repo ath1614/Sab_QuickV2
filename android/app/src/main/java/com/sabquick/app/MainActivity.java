@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 
@@ -40,8 +41,13 @@ import com.cashfree.pg.core.api.utils.CFUPIApp;
 import com.cashfree.pg.core.api.utils.CFUPIUtil;
 import com.cashfree.pg.ui.api.upi.intent.CFUPIIntentCheckoutPayment;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Capacitor shell for SabQuick.
@@ -63,6 +69,9 @@ import java.util.List;
  */
 public class MainActivity extends BridgeActivity implements CFCheckoutResponseCallback {
   private static final String TAG = "SabQuick";
+
+  /** Request code used when we hand off to a UPI app, so we can tell the checkout page we are back. */
+  private static final int UPI_LAUNCH_REQUEST = 10007;
 
   @CapacitorPlugin(name = "NativeUpi")
   public static class NativeUpiPlugin extends Plugin {
@@ -460,12 +469,168 @@ public class MainActivity extends BridgeActivity implements CFCheckoutResponseCa
     }
   }
 
+  /**
+   * Cashfree's checkout detects an Android WebView by looking for window.Android exposing both
+   * getAppList() and openApp(). Registering this interface makes the hosted checkout render the
+   * customer's installed UPI apps and hand the picked one back to us to launch natively.
+   *
+   * This is Cashfree's documented "code based solution", and it is the path that works for the APKs
+   * we ship directly: it needs no support ticket, no feature flag, and - unlike the native Cashfree
+   * SDK - no Play Store install (that SDK refuses sideloaded APKs in production with
+   * installer_package_not_approved, which is why the native flow above can fail).
+   */
+  public static class CashfreeUpiBridge {
+    private final MainActivity activity;
+
+    CashfreeUpiBridge(MainActivity activity) {
+      this.activity = activity;
+    }
+
+    /**
+     * Called synchronously by the checkout page. Must return a JSON string of
+     * [{ "appName": ..., "appPackage": ... }] - an empty array means "no UPI apps found", which
+     * makes the page fall back to its own UPI list.
+     */
+    @JavascriptInterface
+    public String getAppList(String uriString) {
+      JSONArray apps = new JSONArray();
+      try {
+        PackageManager pm = activity.getPackageManager();
+        String target = (uriString == null || uriString.trim().isEmpty()) ? "upi://pay" : uriString.trim();
+
+        Intent probe;
+        if (target.toLowerCase().startsWith("intent://")) {
+          probe = Intent.parseUri(target, Intent.URI_INTENT_SCHEME);
+        } else {
+          probe = new Intent(Intent.ACTION_VIEW, Uri.parse(target));
+        }
+
+        // Flag 0 rather than MATCH_DEFAULT_ONLY: some UPI apps do not declare CATEGORY_DEFAULT, and
+        // an app missing from this list never shows up as a payment option.
+        List<ResolveInfo> handlers = pm.queryIntentActivities(probe, 0);
+
+        // One row per app, even when an app registers several UPI activities.
+        Map<String, String> appsByPackage = new LinkedHashMap<>();
+        for (ResolveInfo info : handlers) {
+          if (info == null || info.activityInfo == null) continue;
+          String packageName = info.activityInfo.packageName;
+          if (packageName == null || packageName.isEmpty()) continue;
+          if (packageName.equals(activity.getPackageName())) continue;
+          if (appsByPackage.containsKey(packageName)) continue;
+          appsByPackage.put(packageName, info.loadLabel(pm).toString());
+        }
+
+        for (Map.Entry<String, String> entry : appsByPackage.entrySet()) {
+          JSONObject app = new JSONObject();
+          app.put("appName", entry.getValue());
+          app.put("appPackage", entry.getKey());
+          apps.put(app);
+        }
+
+        Log.i(TAG, "Cashfree getAppList(" + target + ") -> " + apps.length() + " apps");
+      } catch (Throwable t) {
+        Log.w(TAG, "Cashfree getAppList failed: " + t.getMessage());
+      }
+      return apps.toString();
+    }
+
+    /** Launches the UPI app the customer tapped, pinned to that exact package. */
+    @JavascriptInterface
+    public boolean openApp(String packageName, String upiUrl) {
+      Log.i(TAG, "Cashfree openApp(pkg=" + packageName + ")");
+      return activity.launchUpiForResult(upiUrl, packageName);
+    }
+
+    @JavascriptInterface
+    public void enableCancelButton() {
+      // There is no native loader chrome to update.
+    }
+
+    @JavascriptInterface
+    public void disableCancelButton() {
+      // There is no native loader chrome to update.
+    }
+  }
+
+  /**
+   * Launches a UPI deep link and remembers the result, so onActivityResult can tell Cashfree's
+   * checkout page the customer is back and it should verify the payment.
+   */
+  private boolean launchUpiForResult(final String uriString, final String packageName) {
+    if (!isAllowedBridgeUrl(uriString)) {
+      Log.w(TAG, "Refusing non-UPI link handed over by the checkout page");
+      return false;
+    }
+
+    runOnUiThread(() -> {
+      try {
+        Intent intent;
+        if (uriString.toLowerCase().startsWith("intent://")) {
+          intent = Intent.parseUri(uriString, Intent.URI_INTENT_SCHEME);
+        } else {
+          intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString));
+        }
+
+        if (packageName != null && !packageName.trim().isEmpty()) {
+          intent.setPackage(packageName.trim());
+        }
+
+        // No FLAG_ACTIVITY_NEW_TASK: we are an Activity and want the result routed back to us.
+        startActivityForResult(intent, UPI_LAUNCH_REQUEST);
+      } catch (Throwable t) {
+        Log.e(TAG, "Could not launch chosen UPI app: " + t.getMessage(), t);
+      }
+    });
+
+    return true;
+  }
+
+  /**
+   * A page loaded in the WebView must not be able to use this bridge to launch arbitrary apps or
+   * intents, so only UPI deep links are accepted - directly, or inside an intent:// link.
+   */
+  private static boolean isAllowedBridgeUrl(String uriString) {
+    if (uriString == null || uriString.trim().isEmpty()) return false;
+    try {
+      if (uriString.toLowerCase().startsWith("intent://")) {
+        Intent parsed = Intent.parseUri(uriString, Intent.URI_INTENT_SCHEME);
+        Uri data = parsed.getData();
+        return data != null && isUpiScheme(data.toString());
+      }
+      return isUpiScheme(uriString);
+    } catch (Throwable t) {
+      Log.w(TAG, "Rejected unparseable payment link: " + t.getMessage());
+      return false;
+    }
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+
+    if (requestCode != UPI_LAUNCH_REQUEST) return;
+
+    try {
+      WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+      if (webView == null) return;
+
+      // Cashfree's checkout assigns window.showVerifyUI right after openApp(); calling it makes the
+      // page confirm the payment and carry on, instead of hanging on "waiting for payment status".
+      webView.post(() -> webView.evaluateJavascript(
+          "(function(){try{if(typeof window.showVerifyUI==='function'){window.showVerifyUI();return 'verified';}"
+              + "return 'showVerifyUI-missing';}catch(e){return 'error:'+e.message;}})()",
+          value -> Log.i(TAG, "Returned from UPI app, checkout notified: " + value)));
+    } catch (Throwable t) {
+      Log.w(TAG, "Could not notify checkout page about UPI return: " + t.getMessage());
+    }
+  }
+
   /** Single source of truth for the UPI app schemes Cashfree documents. */
   private static boolean isUpiScheme(String urlStr) {
     if (urlStr == null) return false;
     String lower = urlStr.toLowerCase();
     String[] schemes = {
-        "upi://", "intent://", "tez://", "gpay://", "phonepe://", "paytmmp://",
+        "upi://", "intent://", "tez://", "gpay://", "phonepe://", "paytmmp://", "paytm://",
         "bhim://", "credpay://", "amazonpay://", "navipay://", "mobikwik://",
         "myairtel://", "popclubapp://", "super://", "kiwi://", "simplypayupi://",
         "whatsapp-consumer://", "tnupi://", "postpe://", "imobile://", "payzapp://",
@@ -554,6 +719,12 @@ public class MainActivity extends BridgeActivity implements CFCheckoutResponseCa
     try {
       if (getBridge() != null && getBridge().getWebView() != null) {
         WebView webView = getBridge().getWebView();
+
+        // Expose the UPI bridge Cashfree's checkout looks for. "Android" is free to use here:
+        // Capacitor registers its own interfaces as androidBridge / CapacitorHttpAndroidInterface.
+        webView.addJavascriptInterface(new CashfreeUpiBridge(this), "Android");
+        Log.i(TAG, "Registered Cashfree UPI bridge as window.Android");
+
         webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
           private boolean handlePaymentScheme(WebView view, Uri uri, String urlStr) {
             if (!isUpiScheme(urlStr)) return false;
