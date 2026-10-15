@@ -216,4 +216,8 @@ jobs:
             docker exec sabquick-caddy-prod caddy reload --config /etc/caddy/Caddyfile
             # Best-effort removal of quarantined leftovers, never fails the deploy
             docker ps -a --format '{{.ID}}|{{.Names}}' | awk -F'|' '$2 ~ /^stale-app-/ {print $1}' | xargs -r docker rm -f || true
+            # Automatically reclaim Docker build cache and dangling layers to protect VPS disk space
+            docker builder prune -f --keep-storage 2GB || true
+            docker image prune -f || true
             docker ps
+
