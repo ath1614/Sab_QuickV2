@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useCartStore, formatCurrency } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
+import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
@@ -26,6 +27,7 @@ function MobileBottomNavInner() {
   const { items, openCart, getItemTotal } = useCartStore();
   const { openAuthModal } = useAuthModalStore();
   const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
+  const [phoneDrawerOpen, setPhoneDrawerOpen] = React.useState(false);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
@@ -188,6 +190,13 @@ function MobileBottomNavInner() {
       <MobileOperationsSheet
         isOpen={operationsSheetOpen}
         onOpenChange={setOperationsSheetOpen}
+        onOpenPhoneVerification={() => setPhoneDrawerOpen(true)}
+      />
+
+      <PhoneVerificationDrawer
+        open={phoneDrawerOpen}
+        onOpenChange={setPhoneDrawerOpen}
+        initialPhone={user?.phone}
       />
     </nav>
   );

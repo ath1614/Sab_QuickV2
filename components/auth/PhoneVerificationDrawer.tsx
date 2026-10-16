@@ -173,17 +173,20 @@ export function PhoneVerificationDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-md w-full max-w-full flex flex-col justify-between overflow-x-hidden box-border">
-        <SheetHeader>
+      <SheetContent
+        side="right"
+        className="sm:max-w-md w-full max-w-full flex flex-col justify-between overflow-x-hidden box-border pt-[max(1.75rem,calc(env(safe-area-inset-top,0px)+1.25rem))] pb-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))] px-5 sm:px-6"
+      >
+        <SheetHeader className="pr-8 text-left">
           <div className="flex items-center gap-2.5">
             <img
               src={BRAND_ASSETS.appIcon}
               alt="SabQuick"
               className="h-9 w-9 rounded-xl object-contain shadow-xs shrink-0"
             />
-            <div>
-              <SheetTitle className="text-lg">Mobile Number Verification</SheetTitle>
-              <Badge variant="accent" className="text-[10px] mt-0.5">
+            <div className="min-w-0">
+              <SheetTitle className="text-base sm:text-lg font-bold truncate">Mobile Number Verification</SheetTitle>
+              <Badge variant="accent" className="text-[10px] mt-0.5 whitespace-nowrap">
                 Required for Superfast Delivery
               </Badge>
             </div>
@@ -194,7 +197,7 @@ export function PhoneVerificationDrawer({
         </SheetHeader>
 
         {/* Content Body */}
-        <div className="flex-1 py-6 space-y-6">
+        <div className="flex-1 py-4 sm:py-6 space-y-6 overflow-y-auto">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />

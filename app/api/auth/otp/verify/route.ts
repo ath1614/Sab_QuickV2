@@ -57,9 +57,8 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-
-      // Single-use security: purge OTP from Redis immediately
-      await redis.del(otpKey);
+      // Note: We defer redis.del(otpKey) until after the DB transaction succeeds,
+      // so if any DB constraint/issue occurs, the OTP is not prematurely destroyed.
     }
 
     // Optional active session check
@@ -67,23 +66,97 @@ export async function POST(req: NextRequest) {
 
     let dbUser;
     if (session?.user?.id) {
-      // User is already authenticated and verifying phone on their account
-      dbUser = await prisma.user.update({
-        where: { id: session.user.id },
-        data: {
-          phone,
-          phoneVerified: true,
-          ...(name && !session.user.name ? { name: name.trim() } : {}),
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          phoneVerified: true,
-          role: true,
-        },
+      // User is already authenticated (e.g. via Google OAuth) and verifying phone on their account
+      const existingPhoneUser = await prisma.user.findUnique({
+        where: { phone },
       });
+
+      if (existingPhoneUser && existingPhoneUser.id !== session.user.id) {
+        // Prevent hijacking staff or partner accounts (OWNER, MANAGER, RIDER)
+        if (existingPhoneUser.role !== Role.CUSTOMER) {
+          return NextResponse.json(
+            {
+              error:
+                "This phone number is assigned to a staff/partner account. Please log in directly using your phone number.",
+            },
+            { status: 403 }
+          );
+        }
+
+        // Clean customer merge: atomically transfer orders, addresses, and device tokens to the authenticated session
+        dbUser = await prisma.$transaction(async (tx) => {
+          // 1. Migrate customer orders
+          await tx.order.updateMany({
+            where: { customerId: existingPhoneUser.id },
+            data: { customerId: session.user.id },
+          });
+
+          // 2. Migrate saved customer addresses
+          await tx.address.updateMany({
+            where: { userId: existingPhoneUser.id },
+            data: { userId: session.user.id },
+          });
+
+          // 3. Migrate device tokens
+          await tx.deviceToken.updateMany({
+            where: { userId: existingPhoneUser.id },
+            data: { userId: session.user.id },
+          });
+
+          // 4. Release unique phone constraint from previous record
+          if (!existingPhoneUser.email) {
+            // Previous phone-only OTP guest/customer placeholder — safely purge
+            await tx.user.delete({
+              where: { id: existingPhoneUser.id },
+            });
+          } else {
+            // Account has its own email — detach the phone number
+            await tx.user.update({
+              where: { id: existingPhoneUser.id },
+              data: {
+                phone: null,
+                phoneVerified: false,
+              },
+            });
+          }
+
+          // 5. Assign and verify phone on current session user
+          return await tx.user.update({
+            where: { id: session.user.id },
+            data: {
+              phone,
+              phoneVerified: true,
+              ...(name && !session.user.name ? { name: name.trim() } : {}),
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              phoneVerified: true,
+              role: true,
+            },
+          });
+        });
+      } else {
+        // Phone number is either unassigned or already belongs to this user
+        dbUser = await prisma.user.update({
+          where: { id: session.user.id },
+          data: {
+            phone,
+            phoneVerified: true,
+            ...(name && !session.user.name ? { name: name.trim() } : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            phoneVerified: true,
+            role: true,
+          },
+        });
+      }
     } else {
       // Direct customer login or registration via phone OTP
       const existingUser = await prisma.user.findUnique({
@@ -125,6 +198,11 @@ export async function POST(req: NextRequest) {
           },
         });
       }
+    }
+
+    // Single-use security: purge OTP from Redis now that database operations succeeded
+    if (!isReviewer && !isLegacyDemo) {
+      await redis.del(`otp:phone:${phone}`);
     }
 
     return NextResponse.json({

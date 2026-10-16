@@ -379,17 +379,31 @@ export function Navbar({
               {status === "loading" ? (
                 <div className="h-8 w-16 sm:h-9 sm:w-24 bg-slate-100 rounded-lg animate-pulse" />
               ) : user ? (
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Dedicated, unclipped Verify Phone Number button when phone is not verified */}
+                  {!isPhoneVerified && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setPhoneDrawerOpen(true)}
+                      className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 sm:h-9 px-2 sm:px-3 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer animate-pulse"
+                      title="Verify Phone Number"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span className="whitespace-nowrap font-bold text-[11px] sm:text-xs">Verify Phone Number</span>
+                    </Button>
+                  )}
+
                   {/* Desktop User Info & Role Badge - Clickable to open Account & Policies Sheet */}
                   <button
                     type="button"
                     onClick={() => setOperationsSheetOpen(true)}
-                    className="flex items-center gap-2 p-1 pl-2.5 rounded-xl hover:bg-slate-100 border border-transparent hover:border-border-subtle transition-all text-right group cursor-pointer"
+                    className="flex items-center gap-1.5 sm:gap-2 p-1 pl-2 sm:pl-2.5 rounded-xl hover:bg-slate-100 border border-transparent hover:border-border-subtle transition-all text-right group cursor-pointer shrink-0"
                     title="View Account Profile, Orders & Legal Policies"
                   >
-                    <div className="flex flex-col items-end">
+                    <div className="hidden sm:flex flex-col items-end">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-surface-dark truncate max-w-[120px] group-hover:text-primary transition-colors">
+                        <span className="text-xs font-bold text-surface-dark truncate max-w-[100px] lg:max-w-[120px] group-hover:text-primary transition-colors">
                           {user.name || user.email?.split("@")[0]}
                         </span>
                         {user.role && user.role !== "CUSTOMER" && (
@@ -400,19 +414,14 @@ export function Navbar({
                       </div>
 
                       {/* Phone verification indicator */}
-                      {isPhoneVerified ? (
+                      {isPhoneVerified && (
                         <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                           +91 {user.phone}
                         </span>
-                      ) : (
-                        <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5 animate-pulse">
-                          <AlertTriangle className="w-3 h-3 text-amber-600" />
-                          Verify Phone
-                        </span>
                       )}
                     </div>
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
                       {user.role === "OWNER" ? <Crown className="w-3.5 h-3.5 text-amber-500" /> : (user.name?.[0] || "U").toUpperCase()}
                     </div>
                   </button>
