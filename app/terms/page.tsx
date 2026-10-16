@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { FileText, ArrowLeft, CheckCircle2, ShieldCheck, AlertCircle, Clock, MapPin } from "lucide-react";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 export const metadata = {
   title: "Terms of Service | SabQuick Provision Store",
@@ -22,7 +23,7 @@ export default function TermsOfServicePage() {
             <span>Back to Store</span>
           </Link>
           <div className="flex items-center gap-2">
-            <img src="/brand/navbar-logo.png" alt="SabQuick" className="h-7 w-auto object-contain" />
+            <img src={BRAND_ASSETS.navbarLogo} alt="SabQuick" className="h-7 w-auto object-contain" />
           </div>
         </div>
       </header>

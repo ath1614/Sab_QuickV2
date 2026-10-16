@@ -1,4 +1,5 @@
 import * as React from "react";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 export type LogoVariant = "full" | "compact" | "icon" | "thermal";
 export type LogoTheme = "light" | "dark";
@@ -38,7 +39,7 @@ export function Logo({
     const dimension = size || 40;
     return (
       <img
-        src="/brand/app-icon.png"
+        src={BRAND_ASSETS.appIcon}
         alt="SabQuick"
         width={typeof dimension === "number" ? dimension : undefined}
         height={typeof dimension === "number" ? dimension : undefined}
@@ -155,7 +156,7 @@ export function Logo({
     const height = size || 38;
     return (
       <img
-        src="/brand/navbar-logo.png"
+        src={BRAND_ASSETS.navbarLogo}
         alt="SabQuick"
         className={`object-contain shrink-0 ${className}`}
         style={{
@@ -172,7 +173,7 @@ export function Logo({
   const height = size || 48;
   return (
     <img
-      src="/brand/sabquick-official-logo.png"
+      src={BRAND_ASSETS.officialLogo}
       alt="SabQuick"
       className={`object-contain shrink-0 ${className}`}
       style={{

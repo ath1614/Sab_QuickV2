@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 export default function DeleteAccountPage() {
   const { data: session } = useSession();
@@ -114,7 +115,7 @@ export default function DeleteAccountPage() {
             <span>Back to Store</span>
           </Link>
           <div className="flex items-center gap-2">
-            <img src="/brand/navbar-logo.png" alt="SabQuick" className="h-7 w-auto object-contain" />
+            <img src={BRAND_ASSETS.navbarLogo} alt="SabQuick" className="h-7 w-auto object-contain" />
           </div>
         </div>
       </header>

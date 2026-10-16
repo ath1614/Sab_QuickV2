@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, Home, ShoppingBag, Search, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 export const metadata = {
   title: "404 - Page Not Found | SabQuick Ambikapur",
@@ -20,7 +21,7 @@ export default function NotFound() {
         <div className="flex justify-center">
           <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
             <img
-              src="/brand/navbar-logo.png"
+              src={BRAND_ASSETS.navbarLogo}
               alt="SabQuick"
               className="h-10 sm:h-12 w-auto object-contain mx-auto"
             />

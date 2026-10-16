@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { BRAND_ASSETS } from "@/lib/assets";
 import { Zap } from "lucide-react";
 
 interface SplashScreenProps {
@@ -75,7 +76,7 @@ export function SplashScreen({
         {/* Animated Brand Logo Container */}
         <div className="relative flex items-center justify-center transition-transform duration-700 ease-out transform">
           <img
-            src="/brand/splash-logo.png"
+            src={BRAND_ASSETS.splashLogo}
             alt="SABQuick"
             className="w-full max-w-[270px] sm:max-w-[320px] h-auto object-contain select-none drop-shadow-sm transition-all duration-600 animate-in fade-in zoom-in-90"
           />

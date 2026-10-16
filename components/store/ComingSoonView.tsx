@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, AlertCircle, Loader2, Sparkles, Bell } from "lucide-react";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 interface ComingSoonViewProps {
   launchDate?: string | null;
@@ -53,7 +54,7 @@ export function ComingSoonView({ launchDate, onEnterPreview }: ComingSoonViewPro
         {/* Large Prominent SabQuick Official Brand Logo */}
         <div className="w-full max-w-[280px] sm:max-w-[340px] mb-8 transition-transform hover:scale-102">
           <Image
-            src="/brand/sabquick-official-logo.png"
+            src={BRAND_ASSETS.officialLogo}
             alt="SabQuick - A Complete Provision Store | Right to Your Door"
             width={340}
             height={160}

@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Shield, ArrowLeft, Lock, Eye, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 export const metadata = {
   title: "Privacy Policy | SabQuick Provision Store",
@@ -23,7 +24,7 @@ export default function PrivacyPolicyPage() {
             <span>Back to Store</span>
           </Link>
           <div className="flex items-center gap-2">
-            <img src="/brand/navbar-logo.png" alt="SabQuick" className="h-7 w-auto object-contain" />
+            <img src={BRAND_ASSETS.navbarLogo} alt="SabQuick" className="h-7 w-auto object-contain" />
           </div>
         </div>
       </header>

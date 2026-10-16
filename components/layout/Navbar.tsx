@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
+import { BRAND_ASSETS } from "@/lib/assets";
 import {
   LocationPickerModal,
   SavedAddressData,
@@ -178,7 +179,7 @@ export function Navbar({
             <div className="flex items-center gap-2 min-w-0">
               <Link href="/" className="shrink-0 py-0.5" title="SABQuick Home">
                 <img
-                  src="/brand/navbar-logo.png"
+                  src={BRAND_ASSETS.navbarLogo}
                   alt="SABQuick"
                   className="h-9 max-w-[120px] w-auto object-contain shrink-0 drop-shadow-xs"
                 />
@@ -297,7 +298,7 @@ export function Navbar({
             <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
               <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SABQuick Home">
                 <img
-                  src="/brand/navbar-logo.png"
+                  src={BRAND_ASSETS.navbarLogo}
                   alt="SABQuick"
                   className="h-10 sm:h-12 max-w-[140px] sm:max-w-none w-auto object-contain shrink-0 drop-shadow-xs"
                 />

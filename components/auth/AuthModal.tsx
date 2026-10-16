@@ -23,6 +23,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 interface AuthModalProps {
   open: boolean;
@@ -194,7 +195,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         <DialogHeader>
           <div className="flex items-center gap-2.5 mb-1 min-w-0">
             <img
-              src="/brand/app-icon.png"
+              src={BRAND_ASSETS.appIcon}
               alt="SABQuick"
               className="h-8 w-8 rounded-xl object-contain shadow-xs shrink-0"
             />

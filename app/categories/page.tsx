@@ -397,7 +397,7 @@ function CategoriesContent() {
         {/* Main Docked Split-Screen: Left Rail (Subcategories) + Right Panel (Products) */}
         <div className="flex-1 min-h-0 flex overflow-hidden max-w-7xl w-full mx-auto">
           {/* LEFT RAIL: Subcategories with circular icon on top and text below */}
-          <aside className="w-[78px] sm:w-[86px] md:w-28 lg:w-32 shrink-0 bg-slate-50 border-r border-slate-200/90 h-full overflow-y-auto no-scrollbar select-none py-1">
+          <aside className="w-[78px] sm:w-[86px] md:w-28 lg:w-32 shrink-0 bg-slate-50 border-r border-slate-200/90 h-full overflow-y-auto no-scrollbar select-none py-1 pb-32 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-6">
             <div className="flex flex-col space-y-0.5">
               {/* "All" Subcategory Pill */}
               <button
@@ -491,7 +491,7 @@ function CategoriesContent() {
           </aside>
 
           {/* RIGHT PANEL: Subcategory Name Header + Shifted Search Bar + Products Grid */}
-          <main className="flex-1 min-h-0 h-full overflow-y-auto bg-slate-50/60 p-2 sm:p-4 pb-28 md:pb-12">
+          <main className="flex-1 min-h-0 h-full overflow-y-auto bg-slate-50/60 p-2 sm:p-4 pb-32 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-12">
             {/* 1. Subcategory Name Header (Clean, No Item Count) */}
             <div className="pb-1 px-0.5">
               <h2 className="text-sm sm:text-base font-black text-slate-900 font-display">

@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
+import { BRAND_ASSETS } from "@/lib/assets";
 
 interface PhoneVerificationDrawerProps {
   open: boolean;
@@ -176,7 +177,7 @@ export function PhoneVerificationDrawer({
         <SheetHeader>
           <div className="flex items-center gap-2.5">
             <img
-              src="/brand/app-icon.png"
+              src={BRAND_ASSETS.appIcon}
               alt="SabQuick"
               className="h-9 w-9 rounded-xl object-contain shadow-xs shrink-0"
             />
