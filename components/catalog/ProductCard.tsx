@@ -211,7 +211,6 @@ export function ProductCard({
       : 0;
 
   const isOutOfStock = !product.isAvailable || product.stockCount <= 0;
-  const isLowStock = !isOutOfStock && product.stockCount <= 5;
   const setWarningToast = useCartStore((s) => s.setWarningToast);
   const maxLimit = Math.min(
     typeof product.stockCount === "number" ? Math.max(0, product.stockCount) : 999,
@@ -292,16 +291,11 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Unit Quantity Pill (+ low-stock urgency hint) — WCAG AA: #57534E on #F5F5F4 = 6.9:1 */}
+        {/* Unit Quantity Pill */}
         <div className="mt-2.5 flex items-center gap-1.5">
           <span className="inline-block text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md font-mono">
             {product.unitQuantity}
           </span>
-          {isLowStock && (
-            <span className="text-[10px] font-black text-rose-700 uppercase tracking-wide">
-              Only {product.stockCount} left
-            </span>
-          )}
         </div>
 
         {/* Product Title */}
