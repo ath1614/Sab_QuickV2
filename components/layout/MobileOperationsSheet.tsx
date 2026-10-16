@@ -33,6 +33,7 @@ import {
   RotateCcw,
   UserX,
   Download,
+  Smartphone,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -125,20 +126,33 @@ export function MobileOperationsSheet({
                   </span>
                 )}
               </div>
+            </div>
 
-              {!isPhoneVerified && onOpenPhoneVerification && (
-                <button
-                  type="button"
+            {/* Separate prominent "Verify Phone Number" button when unverified */}
+            {!isPhoneVerified && onOpenPhoneVerification && (
+              <div className="mt-2.5 p-3 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4 text-amber-700" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-amber-950 truncate">Verify Mobile Number</p>
+                    <p className="text-[10px] text-amber-800/80 leading-tight">Verify via OTP for delivery PIN &amp; orders</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="default"
                   onClick={() => {
                     onOpenChange(false);
                     onOpenPhoneVerification();
                   }}
-                  className="text-xs font-black text-amber-700 hover:text-amber-800 underline underline-offset-2"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-8 px-3 rounded-xl shadow-xs shrink-0 cursor-pointer"
                 >
-                  Verify Now
-                </button>
-              )}
-            </div>
+                  Verify Phone Number
+                </Button>
+              </div>
+            )}
           </SheetHeader>
         </div>
 
@@ -323,7 +337,7 @@ export function MobileOperationsSheet({
                       SabQuick Storefront
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Browse groceries, fresh dairy, snacks &amp; 10-min delivery
+                      Browse groceries, fresh dairy, snacks &amp; superfast delivery
                     </p>
                   </div>
                 </div>

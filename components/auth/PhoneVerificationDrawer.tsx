@@ -63,44 +63,6 @@ export function PhoneVerificationDrawer({
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const handleSavePhoneDirect = async () => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
-    const cleanPhone = phone.trim();
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setErrorMsg("Please enter a valid 10-digit Indian mobile number starting with 6-9.");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/auth/phone/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save contact number.");
-      }
-
-      setSuccessMsg("Delivery contact number verified & linked successfully!");
-      await updateSession();
-
-      setTimeout(() => {
-        onOpenChange(false);
-        window.location.reload();
-      }, 800);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to save contact number.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSendOtp = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -270,41 +232,22 @@ export function PhoneVerificationDrawer({
                 </p>
               </div>
 
-              {/* Primary Direct Save (Recommended: 100% Free & Instant for Google/Customer accounts) */}
+              {/* Primary Action: Send OTP Verification Code */}
               <Button
                 variant="default"
                 className="w-full h-11 rounded-xl gap-2 font-bold shadow-sm"
                 disabled={phone.trim().length !== 10 || isLoading}
-                onClick={handleSavePhoneDirect}
+                onClick={handleSendOtp}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Saving Contact...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Sending Code...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" /> Save Contact Number
+                    <ArrowRight className="w-4 h-4" /> Send Verification Code
                   </>
                 )}
-              </Button>
-
-              {/* Secondary Option: Verify via OTP code */}
-              <div className="relative flex items-center justify-center py-1">
-                <div className="border-t border-border-subtle w-full" />
-                <span className="bg-background px-3 text-[10px] uppercase text-muted-foreground font-semibold tracking-wider whitespace-nowrap">
-                  or verify via code
-                </span>
-                <div className="border-t border-border-subtle w-full" />
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-9 rounded-xl text-xs font-medium border-border-subtle hover:bg-slate-50"
-                disabled={phone.trim().length !== 10 || isLoading}
-                onClick={handleSendOtp}
-              >
-                Send 4-Digit Verification Code
               </Button>
             </div>
           ) : (
@@ -326,7 +269,7 @@ export function PhoneVerificationDrawer({
                 </Button>
               </div>
 
-              {/* Free Quick-Code Banner */}
+              {/* Free Quick-Code Banner (Only in non-prod / dev) */}
               {autoOtp && (
                 <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2 animate-in fade-in">
                   <span className="flex items-center gap-1.5 font-medium min-w-0 truncate">
@@ -404,7 +347,7 @@ export function PhoneVerificationDrawer({
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="w-4 h-4" /> Verify & Activate Account
+                    <ShieldCheck className="w-4 h-4" /> Save &amp; Verify Phone Number
                   </>
                 )}
               </Button>
