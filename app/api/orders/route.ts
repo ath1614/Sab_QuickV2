@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { checkDeliveryServiceability } from "@/lib/geo";
+import { OrderStatus, PaymentStatus, PaymentMethod } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,11 @@ const createOrderSchema = z.object({
       return val;
     }),
   couponCode: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
+  let checkoutLockKey: string | null = null;
   try {
     // 1. Enforce active NextAuth session
     const session = await getServerSession(authOptions);
@@ -82,9 +85,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 4. Concurrency Mutex Lock & Idempotency Check
+    const rawIdempotencyKey =
+      req.headers.get("x-idempotency-key") ||
+      (body && typeof body === "object" ? body.idempotencyKey : undefined);
+    const idempotencyKey =
+      typeof rawIdempotencyKey === "string" && rawIdempotencyKey.trim().length > 0
+        ? rawIdempotencyKey.trim()
+        : null;
+
+    checkoutLockKey = `checkout:lock:${user.id}`;
+    const acquired = await redis.set(checkoutLockKey, "1", "EX", 8, "NX");
+    if (!acquired) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "An order submission is already in progress. Please wait a moment.",
+          code: "CONCURRENT_CHECKOUT",
+        },
+        { status: 429 }
+      );
+    }
+
+    // Check if an order was already successfully created for this exact idempotency key
+    if (idempotencyKey) {
+      try {
+        const cachedResponse = await redis.get(`idempotency:order:${user.id}:${idempotencyKey}`);
+        if (cachedResponse) {
+          if (checkoutLockKey) {
+            await redis.del(checkoutLockKey).catch(() => {});
+            checkoutLockKey = null;
+          }
+          return NextResponse.json(JSON.parse(cachedResponse), { status: 200 });
+        }
+      } catch (cacheErr) {
+        console.warn("[Idempotency Read Warning]:", cacheErr);
+      }
+    }
+
     const { addressId, items, tipAmount, paymentMethod, couponCode } = parseResult.data;
 
-    // 4. Verify delivery address and 3.5 km Geofence
+    // 5. Verify delivery address and 3.5 km Geofence
     const address = await prisma.address.findUnique({
       where: { id: addressId },
     });
@@ -112,9 +153,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Execute Atomic Database Transaction with Prisma
+    // 6. Execute Atomic Database Transaction with Prisma
     const order = await prisma.$transaction(async (tx) => {
-      // 5a. Fetch and lock products for stock verification
+      // 6a. Fetch and lock products for stock verification
       const productIds = items.map((i) => i.productId);
       const dbProducts = await tx.product.findMany({
         where: { id: { in: productIds } },
@@ -138,7 +179,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 5b. Decrement stock ATOMICALLY: the conditional update re-checks the
+      // 6b. Decrement stock ATOMICALLY: the conditional update re-checks the
       // stock level at write time, so two concurrent orders can never oversell
       // the same unit (fixes the check-then-decrement race).
       for (const item of items) {
@@ -168,9 +209,7 @@ export async function POST(req: NextRequest) {
         data: { isAvailable: false },
       });
 
-      // 5c. Generate a collision-checked unique Order Number (e.g. SQ-108233).
-      // A 6-digit pool with uniqueness verification removes the old 4-digit
-      // collision risk.
+      // 6c. Generate a collision-checked unique Order Number (e.g. SQ-108233).
       let orderNumber = "";
       for (let attempt = 0; attempt < 5; attempt++) {
         const candidate = `SQ-${crypto.randomInt(100000, 1000000)}`;
@@ -187,11 +226,10 @@ export async function POST(req: NextRequest) {
         throw new Error("Could not allocate a unique order number. Please retry.");
       }
 
-      // 5d. Generate a cryptographically random 4-digit Delivery OTP
-      // (1000-9999 — no leading-zero ambiguity, no predictability)
+      // 6d. Generate a cryptographically random 4-digit Delivery OTP
       const deliveryOtp = crypto.randomInt(1000, 10000).toString();
 
-      // 5e. Financial calculations & Coupon validation
+      // 6e. Financial calculations & Coupon validation
       const rawSubtotal = items.reduce((sum, item) => {
         const product = productMap.get(item.productId)!;
         return sum + product.salePrice * item.quantity;
@@ -251,8 +289,7 @@ export async function POST(req: NextRequest) {
         discountAmount = Math.round(discountAmount * 100) / 100;
         couponId = coupon.id;
 
-        // Atomically increment Coupon.usedCount with a conditional claim so
-        // concurrent checkouts cannot exceed the usage limit (race fixed).
+        // Atomically increment Coupon.usedCount with a conditional claim
         const couponClaim = await tx.coupon.updateMany({
           where: {
             id: coupon.id,
@@ -273,13 +310,12 @@ export async function POST(req: NextRequest) {
       }
 
       const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-      // Deduct discountAmount before computing delivery fee and grand total
       const deliveryFee = discountedSubtotal >= 199 ? 0 : 25;
       const handlingFee = 2;
       const totalAmount =
         Math.round((discountedSubtotal + deliveryFee + handlingFee + tipAmount) * 100) / 100;
 
-      // 5f. Create Order and OrderItem records
+      // 6f. Create Order and OrderItem records
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -317,9 +353,7 @@ export async function POST(req: NextRequest) {
       return newOrder;
     });
 
-    // 6. Redis Event Notification to channel orders:dispatch
-    // For Doorstep UPI and Cash on Delivery, order is confirmed immediately.
-    // For online prepaid (ONLINE_PREPAID / CASHFREE), dispatch is published after payment confirmation.
+    // 7. Redis Event Notification to channel orders:dispatch
     if (order.paymentMethod !== "CASHFREE" && (order.paymentMethod as string) !== "ONLINE_PREPAID") {
       try {
         await redis.publish(
@@ -339,10 +373,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. Dispatch Firebase Push Notification to Store Staff & Customer
-    // ONLY for orders that are already CONFIRMED (e.g. COD / UPI on delivery).
-    // For CASHFREE / online prepaid payments, order status is PENDING and alerts MUST wait
-    // until payment is verified by the bank/gateway to prevent premature or false-alarm alerts.
+    // 8. Dispatch Firebase Push Notification to Store Staff & Customer
     if (order.status === "CONFIRMED") {
       try {
         const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
@@ -361,17 +392,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        orderNumber: order.orderNumber,
-        orderId: order.id,
-        deliveryOtp: order.deliveryOtp,
-        totalAmount: order.totalAmount,
-        status: order.status,
-      },
-      { status: 201 }
-    );
+    const responsePayload = {
+      success: true,
+      orderNumber: order.orderNumber,
+      orderId: order.id,
+      deliveryOtp: order.deliveryOtp,
+      totalAmount: order.totalAmount,
+      status: order.status,
+    };
+
+    // Cache idempotent response for 5 minutes
+    if (idempotencyKey) {
+      await redis.set(
+        `idempotency:order:${user.id}:${idempotencyKey}`,
+        JSON.stringify(responsePayload),
+        "EX",
+        300
+      ).catch(() => {});
+    }
+
+    // Invalidate catalog storefront cache so real-time stock reflects
+    await redis.del("cache:products:home:v1").catch(() => {});
+
+    return NextResponse.json(responsePayload, { status: 201 });
   } catch (error: any) {
     console.error("[POST /api/orders error]:", error);
 
@@ -393,6 +436,10 @@ export async function POST(req: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    if (checkoutLockKey) {
+      await redis.del(checkoutLockKey).catch(() => {});
+    }
   }
 }
 
@@ -403,8 +450,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, orders: [] }, { status: 200 });
     }
 
+    const cutoffTime = new Date(Date.now() - 15 * 60 * 1000);
+
     const orders = await prisma.order.findMany({
-      where: { customerId: session.user.id },
+      where: {
+        customerId: session.user.id,
+        // Exclude abandoned unpaid online orders older than 15 minutes
+        NOT: {
+          status: OrderStatus.PENDING,
+          paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
+          paymentMethod: {
+            in: [
+              PaymentMethod.ONLINE_PREPAID,
+              PaymentMethod.CASHFREE,
+              PaymentMethod.RAZORPAY,
+            ],
+          },
+          createdAt: { lt: cutoffTime },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 25,
       include: {

@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus, PaymentMethod } from "@prisma/client";
+
+import { cleanupAbandonedOrders } from "@/lib/orderHygiene";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    // Opportunistically run 60-second throttled hygiene sweep in the background
+    cleanupAbandonedOrders().catch(() => {});
+
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
@@ -26,11 +31,37 @@ export async function GET(req: NextRequest) {
             OrderStatus.OUT_FOR_DELIVERY,
           ],
         },
-        // Exclude online orders where payment has not been completed / paid
-        NOT: {
-          paymentMethod: "CASHFREE",
-          paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
-        },
+        // Active orders must be either:
+        // 1. Online prepaid orders with verified PAID status
+        // 2. Doorstep / COD orders in confirmed/packing/out-for-delivery fulfillment
+        OR: [
+          {
+            paymentMethod: {
+              in: [
+                PaymentMethod.ONLINE_PREPAID,
+                PaymentMethod.CASHFREE,
+                PaymentMethod.RAZORPAY,
+              ],
+            },
+            paymentStatus: PaymentStatus.PAID,
+          },
+          {
+            paymentMethod: {
+              in: [
+                PaymentMethod.CASH_ON_DELIVERY,
+                PaymentMethod.UPI_DOORSTEP,
+              ],
+            },
+            status: {
+              in: [
+                OrderStatus.CONFIRMED,
+                OrderStatus.PACKING,
+                OrderStatus.READY_FOR_PICKUP,
+                OrderStatus.OUT_FOR_DELIVERY,
+              ],
+            },
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
       include: {

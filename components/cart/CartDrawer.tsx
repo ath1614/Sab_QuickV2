@@ -131,6 +131,11 @@ export function CartDrawer() {
 
   // Order Placement & Celebration State
   const [isPlacingOrder, setIsPlacingOrder] = React.useState<boolean>(false);
+  const isSubmittingRef = React.useRef<boolean>(false);
+  const setPlacingOrderState = React.useCallback((val: boolean) => {
+    isSubmittingRef.current = val;
+    setIsPlacingOrder(val);
+  }, []);
   const [isCashfreeActive, setIsCashfreeActive] = React.useState<boolean>(false);
   const [orderError, setOrderError] = React.useState<string | null>(null);
   const [paymentFailureBanner, setPaymentFailureBanner] = React.useState<{
@@ -352,6 +357,9 @@ export function CartDrawer() {
 
   // Handle Checkout / Open Dedicated Blinkit/Zepto Payment Selection
   const handlePlaceOrder = () => {
+    if (isSubmittingRef.current || isPlacingOrder) {
+      return;
+    }
     setOrderError(null);
 
     // 1. Session check
@@ -395,12 +403,16 @@ export function CartDrawer() {
       flow?: "UPI_INTENT" | "UPI_CHOOSER" | "CARDS";
     }
   ) => {
+    if (isSubmittingRef.current || isPlacingOrder) {
+      return;
+    }
+
     if (!activeAddress || !activeAddress.id) {
       setSavedAddressesModalOpen(true);
       return;
     }
 
-    setIsPlacingOrder(true);
+    setPlacingOrderState(true);
     setOrderError(null);
 
     // Compute total savings for celebration pop-up (rounded to eliminate floating point decimals)
@@ -415,6 +427,11 @@ export function CartDrawer() {
     const totalSavings = Math.round((mrpSavings + couponSavings + deliverySavings + Number.EPSILON) * 100) / 100;
 
     try {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `sq-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
       const payload = {
         addressId: activeAddress.id,
         items: items.map((item) => ({
@@ -424,11 +441,15 @@ export function CartDrawer() {
         tipAmount,
         paymentMethod: targetPaymentMethod,
         couponCode: appliedCoupon?.code,
+        idempotencyKey,
       };
 
       const res = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -440,13 +461,13 @@ export function CartDrawer() {
         } else {
           setOrderError(data.error || "Failed to place order.");
         }
-        setIsPlacingOrder(false);
+        setPlacingOrderState(false);
         return;
       }
 
       // 1. Direct Native UPI Flow (Google Pay, PhonePe, Paytm intent & dynamic QR)
       if (targetPaymentMethod === "ONLINE_UPI") {
-        setIsPlacingOrder(false);
+        setPlacingOrderState(false);
         closeCart();
         setUpiModalData({
           isOpen: true,
@@ -766,7 +787,7 @@ export function CartDrawer() {
     } catch (err: any) {
       setOrderError(err.message || "An unexpected error occurred.");
     } finally {
-      setIsPlacingOrder(false);
+      setPlacingOrderState(false);
     }
   };
 

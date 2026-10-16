@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+const HOME_CATALOG_KEY = "cache:products:home:v1";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,6 +13,27 @@ export async function GET(req: NextRequest) {
     const categoryIdOrSlug = searchParams.get("categoryId");
     const search = (searchParams.get("search") || searchParams.get("q"))?.trim();
     const inStockOnly = searchParams.get("inStockOnly") === "true";
+
+    const isDefaultCatalog =
+      (!categoryIdOrSlug || categoryIdOrSlug === "all") && !search && !inStockOnly;
+
+    // Fast-path: Return cached storefront catalog from Redis
+    if (isDefaultCatalog) {
+      try {
+        const cached = await redis.get(HOME_CATALOG_KEY);
+        if (cached) {
+          return new NextResponse(cached, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+            },
+          });
+        }
+      } catch (cacheErr) {
+        // Redis unavailable: fall back to PostgreSQL
+      }
+    }
 
     const where: Prisma.ProductWhereInput = {};
 
@@ -157,7 +181,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ products });
+    const payload = JSON.stringify({ products });
+
+    // Cache default catalog in Redis for 45 seconds
+    if (isDefaultCatalog) {
+      try {
+        await redis.set(HOME_CATALOG_KEY, payload, "EX", 45);
+      } catch {}
+    }
+
+    return new NextResponse(payload, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": isDefaultCatalog
+          ? "public, s-maxage=30, stale-while-revalidate=60"
+          : "no-store",
+      },
+    });
   } catch (error) {
     console.error("[GET /api/products error]:", error);
     return NextResponse.json(

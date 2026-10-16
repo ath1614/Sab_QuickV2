@@ -137,8 +137,24 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
-  const activeOrders = (orders || []).filter((o) => o && o.status && ACTIVE_STATUSES.includes(o.status));
-  const pastOrders = (orders || []).filter((o) => o && o.status && !ACTIVE_STATUSES.includes(o.status));
+  const isOnlinePayment = (method?: string) =>
+    method === "ONLINE_PREPAID" ||
+    method === "CASHFREE" ||
+    method === "ONLINE_UPI" ||
+    method === "RAZORPAY";
+
+  const activeOrders = (orders || []).filter((o) => {
+    if (!o || !o.status || !ACTIVE_STATUSES.includes(o.status)) return false;
+    if (isOnlinePayment(o.paymentMethod) && o.paymentStatus !== "PAID") return false;
+    return true;
+  });
+
+  const pastOrders = (orders || []).filter((o) => {
+    if (!o || !o.status) return false;
+    if (!ACTIVE_STATUSES.includes(o.status)) return true;
+    if (isOnlinePayment(o.paymentMethod) && o.paymentStatus !== "PAID") return true;
+    return false;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-32 sm:pb-36 md:pb-16">

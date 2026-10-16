@@ -258,52 +258,54 @@ export function UpiPaymentModal({
             </div>
           )}
 
-          {/* App Chooser Buttons */}
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-700 flex items-center justify-between">
-              <span>{isDesktop ? "Or open directly on mobile" : "Tap your preferred UPI app"}</span>
-              {hasLaunchedApp && (
-                <button
-                  type="button"
-                  onClick={() => setHasLaunchedApp(false)}
-                  className="text-[11px] text-emerald-600 font-bold hover:underline flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Choose another app</span>
-                </button>
-              )}
-            </p>
+          {/* Mobile-Only App Chooser Buttons */}
+          {!isDesktop && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Tap your preferred UPI app</span>
+                {hasLaunchedApp && (
+                  <button
+                    type="button"
+                    onClick={() => setHasLaunchedApp(false)}
+                    className="text-[11px] text-emerald-600 font-bold hover:underline flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Choose another app</span>
+                  </button>
+                )}
+              </p>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {POPULAR_UPI_APPS.map((app) => (
-                <button
-                  key={app.id}
-                  type="button"
-                  onClick={() => handleAppClick(app)}
-                  className={`p-3 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1.5 text-center relative hover:shadow-xs active:scale-98 ${
-                    selectedApp?.id === app.id
-                      ? "border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-500/20"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  {app.badge && (
-                    <span className="absolute -top-2 right-2 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">
-                      {app.badge}
+              <div className="grid grid-cols-2 gap-2.5">
+                {POPULAR_UPI_APPS.map((app) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => handleAppClick(app)}
+                    className={`p-3 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1.5 text-center relative hover:shadow-xs active:scale-98 ${
+                      selectedApp?.id === app.id
+                        ? "border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-500/20"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    {app.badge && (
+                      <span className="absolute -top-2 right-2 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">
+                        {app.badge}
+                      </span>
+                    )}
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-100 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                      {renderAppLogo(app.id)}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">
+                      {app.name}
                     </span>
-                  )}
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-100 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
-                    {renderAppLogo(app.id)}
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">
-                    {app.name}
-                  </span>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Post-Launch Confirmation Step */}
-          {hasLaunchedApp && (
+          {/* Payment Confirmation Step (Auto-shown on Desktop, or after App Click on Mobile) */}
+          {(hasLaunchedApp || isDesktop) && (
             <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div className="flex items-start gap-2.5">
                 <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -311,10 +313,14 @@ export function UpiPaymentModal({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-emerald-950">
-                    Payment in progress in {selectedApp?.name || "UPI app"}
+                    {isDesktop
+                      ? "Pay via UPI App on Your Phone"
+                      : `Payment in progress in ${selectedApp?.name || "UPI app"}`}
                   </h4>
                   <p className="text-[11px] text-emerald-700 leading-relaxed mt-0.5">
-                    Enter your UPI PIN in {selectedApp?.name || "your app"} to approve ₹{totalAmount.toFixed(2)}. Once done, tap below to confirm!
+                    {isDesktop
+                      ? `Scan the QR code above with Google Pay, PhonePe, Paytm, or BHIM to pay ₹${totalAmount.toFixed(2)}. Once approved, click below!`
+                      : `Enter your UPI PIN in ${selectedApp?.name || "your app"} to approve ₹${totalAmount.toFixed(2)}. Once done, tap below to confirm!`}
                   </p>
                 </div>
               </div>

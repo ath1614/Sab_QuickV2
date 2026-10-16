@@ -7,17 +7,24 @@ export async function GET() {
   try {
     const theme = await resolveActiveTheme();
 
-    return NextResponse.json({
-      themeName: theme.themeName,
-      primaryColor: theme.primaryColor,
-      accentColor: theme.accentColor,
-      saleTagText: theme.saleTagText,
-      bannerImageUrl: theme.bannerImageUrl,
-      isStoreLive: theme.isStoreLive ?? true,
-      launchDate: theme.launchDate ?? null,
-      source: theme.source,
-      campaignId: theme.campaignId ?? null,
-    });
+    return NextResponse.json(
+      {
+        themeName: theme.themeName,
+        primaryColor: theme.primaryColor,
+        accentColor: theme.accentColor,
+        saleTagText: theme.saleTagText,
+        bannerImageUrl: theme.bannerImageUrl,
+        isStoreLive: theme.isStoreLive ?? true,
+        launchDate: theme.launchDate ?? null,
+        source: theme.source,
+        campaignId: theme.campaignId ?? null,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("[GET /api/theme error]:", error);
     return NextResponse.json({
