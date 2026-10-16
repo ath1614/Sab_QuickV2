@@ -106,7 +106,80 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
 
   if (!response.ok) {
     const errorMsg = data.message || data.error || "Failed to create Cashfree order";
-    console.error("[Cashfree Create Order Error]:", data);
+    console.warn("[Cashfree Create Order Warning/Error]:", data);
+
+    // Auto-Recovery: If order already exists in Cashfree, fetch the active session
+    if (
+      typeof errorMsg === "string" &&
+      (errorMsg.toLowerCase().includes("order with same id") ||
+        errorMsg.toLowerCase().includes("order_already_exists") ||
+        data.code === "order_already_exists")
+    ) {
+      console.log(`[Cashfree Recovery] Order ${params.orderId} already registered. Retrieving active payment session...`);
+      try {
+        const existingOrderRes = await fetch(
+          `${CASHFREE_BASE_URL}/orders/${encodeURIComponent(params.orderId)}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-version": CASHFREE_API_VERSION,
+              "x-client-id": CASHFREE_APP_ID,
+              "x-client-secret": CASHFREE_SECRET_KEY,
+            },
+          }
+        );
+
+        if (existingOrderRes.ok) {
+          const existingData = await existingOrderRes.json();
+          if (existingData.payment_session_id && existingData.order_status === "ACTIVE") {
+            return {
+              success: true,
+              orderId: params.orderId,
+              cfOrderId: String(existingData.cf_order_id),
+              paymentSessionId: existingData.payment_session_id as string,
+              orderStatus: existingData.order_status as string,
+              mode: IS_SANDBOX ? "sandbox" : "production",
+              isMock: false,
+            };
+          }
+        }
+
+        // If the existing order was expired, create a fresh payment session with a unique retry suffix
+        const retrySuffix = `_R${Date.now().toString().slice(-4)}`;
+        const retryPayload = {
+          ...payload,
+          order_id: `${params.orderId}${retrySuffix}`.slice(0, 45),
+        };
+
+        const retryRes = await fetch(`${CASHFREE_BASE_URL}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-version": CASHFREE_API_VERSION,
+            "x-client-id": CASHFREE_APP_ID,
+            "x-client-secret": CASHFREE_SECRET_KEY,
+          },
+          body: JSON.stringify(retryPayload),
+        });
+
+        const retryData = await retryRes.json();
+        if (retryRes.ok && retryData.payment_session_id) {
+          return {
+            success: true,
+            orderId: params.orderId,
+            cfOrderId: String(retryData.cf_order_id),
+            paymentSessionId: retryData.payment_session_id as string,
+            orderStatus: retryData.order_status as string,
+            mode: IS_SANDBOX ? "sandbox" : "production",
+            isMock: false,
+          };
+        }
+      } catch (recoveryErr) {
+        console.error("[Cashfree Recovery Error]:", recoveryErr);
+      }
+    }
+
     throw new Error(errorMsg);
   }
 
