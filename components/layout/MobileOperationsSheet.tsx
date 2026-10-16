@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
   UserX,
   Download,
   Smartphone,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -80,6 +82,7 @@ export function MobileOperationsSheet({
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        showCloseButton={false}
         className="w-full max-h-[88dvh] sm:max-w-lg sm:mx-auto sm:rounded-3xl sm:mb-6 sm:border rounded-t-3xl p-0 flex flex-col bg-slate-50 border-t border-border-subtle shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,16px)]"
       >
         {/* Handle / Drag Pill */}
@@ -88,58 +91,68 @@ export function MobileOperationsSheet({
         {/* Header with User Info */}
         <div className="px-5 pb-4 border-b border-border-subtle bg-white shrink-0">
           <SheetHeader className="text-left space-y-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-base border border-primary/20 shrink-0">
                   {user?.name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                 </div>
                 <div className="min-w-0">
-                  <SheetTitle className="text-base font-black text-surface-dark truncate">
-                    {user?.name || "SabQuick User"}
-                  </SheetTitle>
+                  <div className="flex items-center gap-2">
+                    <SheetTitle className="text-base font-black text-surface-dark truncate">
+                      {user?.name || "SabQuick User"}
+                    </SheetTitle>
+                    <Badge
+                      variant={getRoleBadgeVariant(role)}
+                      className="text-[9px] uppercase font-black px-2 py-0.5 shrink-0"
+                    >
+                      {role}
+                    </Badge>
+                  </div>
                   <SheetDescription className="text-xs text-muted-foreground truncate">
                     {user?.email || "Signed In"}
                   </SheetDescription>
                 </div>
               </div>
 
-              <Badge
-                variant={getRoleBadgeVariant(role)}
-                className="text-[10px] uppercase font-black px-2.5 py-1 shrink-0"
-              >
-                {role}
-              </Badge>
+              {/* Dedicated Clean Close Button with ample touch target */}
+              <SheetClose className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors shrink-0 cursor-pointer">
+                <X className="w-4 h-4" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
             </div>
 
-            {/* Phone Verification Status */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                {isPhoneVerified ? (
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1 text-[11px]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    +91 {user?.phone} (Verified)
+            {/* Phone Verification Status / Action Card */}
+            {isPhoneVerified ? (
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="text-emerald-700 font-semibold text-xs">+91 {user?.phone}</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">
+                    Verified
                   </span>
-                ) : (
-                  <span className="text-amber-800 font-semibold flex items-center gap-1 text-[11px]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                    Phone not verified
-                  </span>
-                )}
+                </div>
               </div>
-            </div>
-
-            {/* Separate prominent "Verify Phone Number" button when unverified */}
-            {!isPhoneVerified && onOpenPhoneVerification && (
-              <div className="mt-2.5 p-3 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-center justify-between gap-2 shadow-2xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                    <Smartphone className="w-4 h-4 text-amber-700" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-amber-950 truncate">Verify Mobile Number</p>
-                    <p className="text-[10px] text-amber-800/80 leading-tight">Verify via OTP for delivery PIN &amp; orders</p>
+            ) : onOpenPhoneVerification ? (
+              <div className="mt-3 p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                      <Smartphone className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-amber-950 truncate">Mobile Verification</p>
+                        <span className="text-[9px] bg-amber-200/90 text-amber-900 font-bold px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                          Action Required
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-amber-800/80 leading-tight truncate">
+                        Required for delivery PIN &amp; live rider tracking
+                      </p>
+                    </div>
                   </div>
                 </div>
+
                 <Button
                   size="sm"
                   variant="default"
@@ -147,10 +160,18 @@ export function MobileOperationsSheet({
                     onOpenChange(false);
                     onOpenPhoneVerification();
                   }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-8 px-3 rounded-xl shadow-xs shrink-0 cursor-pointer"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs h-9 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] transition-transform"
                 >
+                  <Smartphone className="w-3.5 h-3.5" />
                   Verify Phone Number
                 </Button>
+              </div>
+            ) : (
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-amber-800 font-semibold flex items-center gap-1 text-[11px]">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  Phone not verified
+                </span>
               </div>
             )}
           </SheetHeader>
