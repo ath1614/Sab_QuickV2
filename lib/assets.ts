@@ -6,7 +6,7 @@
  * newest assets rather than serving stale disk cache.
  */
 
-export const ASSET_VERSION = "20261016-v2";
+export const ASSET_VERSION = "20261017-v3";
 
 export const BRAND_ASSETS = {
   // App & Launcher Icons

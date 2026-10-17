@@ -66,90 +66,110 @@ const MASKABLE_SVG = `
 `;
 
 // 3. OpenGraph Banner SVG (1200x630, 1.91:1 aspect ratio)
-const OG_IMAGE_SVG = `
+function buildOgImageSvg(logoB64: string): string {
+  return `
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="og-bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0B6E4F"/>
-      <stop offset="0.5" stop-color="#074834"/>
-      <stop offset="1" stop-color="#0B0F19"/>
+      <stop offset="0%" stop-color="#0B6E4F"/>
+      <stop offset="55%" stop-color="#074834"/>
+      <stop offset="100%" stop-color="#052E21"/>
     </linearGradient>
-    <linearGradient id="og-acc" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#00E676"/>
-      <stop offset="1" stop-color="#00C853"/>
-    </linearGradient>
+    <filter id="og-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
   </defs>
 
-  {/* Background */}
+  <!-- Background -->
   <rect width="1200" height="630" fill="url(#og-bg)"/>
-  
-  {/* Ambient speed glow circles */}
-  <circle cx="1050" cy="120" r="280" fill="#00E676" opacity="0.12"/>
-  <circle cx="150" cy="500" r="220" fill="#0B6E4F" opacity="0.35"/>
 
-  {/* Speed streaks background */}
-  <path d="M0 180 L350 180 L300 210 L0 210 Z" fill="rgba(255,255,255,0.06)"/>
-  <path d="M0 240 L500 240 L450 270 L0 270 Z" fill="rgba(0,230,118,0.12)"/>
-  <path d="M0 300 L380 300 L330 330 L0 330 Z" fill="rgba(255,255,255,0.05)"/>
+  <!-- Ambient Light Orbs -->
+  <circle cx="1060" cy="110" r="300" fill="#00E676" opacity="0.12"/>
+  <circle cx="1120" cy="320" r="220" fill="#00C853" opacity="0.10"/>
+  <circle cx="120" cy="540" r="240" fill="#0B6E4F" opacity="0.40"/>
 
-  {/* Top Badge: 10-15 Min Guarantee */}
-  <g transform="translate(100, 90)">
-    <rect width="320" height="46" rx="23" fill="#00E676" fill-opacity="0.2" stroke="#00E676" stroke-width="2"/>
-    <text x="160" y="29" fill="#00E676" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="18" letter-spacing="2" text-anchor="middle">
-      ⚡ 10-15 MINUTE DELIVERY
+  <!-- Speed Streaks -->
+  <polygon points="0,165 420,165 370,195 0,195" fill="white" opacity="0.05"/>
+  <polygon points="0,225 580,225 520,258 0,258" fill="#00E676" opacity="0.10"/>
+  <polygon points="0,285 450,285 400,315 0,315" fill="white" opacity="0.04"/>
+
+  <!-- Top Pill Badge: SUPERFAST DELIVERY -->
+  <g transform="translate(90, 65)">
+    <rect width="320" height="46" rx="23" fill="#00E676" fill-opacity="0.18" stroke="#00E676" stroke-width="2"/>
+    <path d="M26 23 L20 23 L23 15 L17 24 L22 24 L19 31 Z" fill="#00E676" transform="translate(6, 0) scale(1.1)"/>
+    <text x="175" y="29" fill="#00E676" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="18" letter-spacing="2" text-anchor="middle">
+      SUPERFAST DELIVERY
     </text>
   </g>
 
-  {/* Master Brand Header */}
-  <g transform="translate(100, 260)">
-    {/* Left Speed Wedge */}
-    <rect x="-10" y="-80" width="130" height="130" rx="32" fill="#111827" stroke="#334155" stroke-width="4"/>
-    <polygon points="10,-60 60,-60 50,-50 10,-50" fill="#00E676"/>
-    <polygon points="10,-35 80,-35 70,-25 10,-25" fill="#FFFFFF"/>
-    <polygon points="10,-10 50,-10 40,0 10,0" fill="#00E676"/>
-    <text x="55" y="15" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" letter-spacing="-1" text-anchor="middle">
-      SQ
-    </text>
+  <!-- Master Brand Lockup -->
+  <g transform="translate(90, 142)" filter="url(#og-shadow)">
+    <rect width="138" height="138" rx="34" fill="#FFFFFF" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+    <!-- Centered official SAB QUICK logo -->
+    <image href="data:image/png;base64,${logoB64}" x="12" y="32" width="114" height="74" preserveAspectRatio="xMidYMid meet"/>
+  </g>
 
-    <text x="150" y="-10" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="82" letter-spacing="-1">
+  <g transform="translate(256, 185)">
+    <text x="0" y="32" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="82" letter-spacing="-1">
       Sab<tspan fill="#00E676">Quick</tspan>
     </text>
-
-    <text x="155" y="45" fill="#E2E8F0" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="26" letter-spacing="3">
+    <text x="4" y="82" fill="#E2E8F0" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="24" letter-spacing="2.5">
       A COMPLETE PROVISION STORE • RIGHT TO YOUR DOOR
     </text>
   </g>
 
-  {/* Subtitle Description */}
-  <text x="100" y="420" fill="#CBD5E1" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="24">
-    Fresh dairy staples, farm produce, pantry essentials &amp; midnight munchies.
-  </text>
-  <text x="100" y="460" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="20">
-    Dispatched instantly within a strict 3.5 km dark store geofence.
-  </text>
-
-  {/* Bottom Feature Bar */}
-  <g transform="translate(100, 530)">
-    <rect width="1000" height="54" rx="16" fill="rgba(17, 24, 39, 0.7)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
-    <text x="40" y="34" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
-      📍 Central Delhi Dark Store Hub #01
+  <!-- Subtitle Value Proposition -->
+  <g transform="translate(90, 365)">
+    <text x="0" y="24" fill="#F8FAFC" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="25">
+      Fresh dairy staples, farm produce, pantry essentials &amp; midnight munchies.
     </text>
-    <text x="390" y="34" fill="#00E676" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
-      ⚡ 15-Min Live Real-Time Tracking
-    </text>
-    <text x="740" y="34" fill="#69F0AE" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
-      🔒 Secure 4-Digit Delivery OTP
+    <text x="0" y="66" fill="#94A3B8" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="21">
+      Dispatched superfast within a strict 3.5 km dark store geofence.
     </text>
   </g>
+
+  <!-- Bottom Feature Bar -->
+  <g transform="translate(90, 495)">
+    <rect width="1020" height="58" rx="18" fill="#0B141B" fill-opacity="0.85" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+    
+    <!-- Pin Icon + Dark Store Hub -->
+    <g transform="translate(35, 18)">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#EF4444" transform="scale(0.9)"/>
+      <text x="26" y="17" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
+        SabQuick Dark Store Hub #01
+      </text>
+    </g>
+
+    <!-- Lightning Icon + Real-Time Tracking -->
+    <g transform="translate(425, 18)">
+      <path d="M10 2L3 11h6l-1 7 8-9h-6l1-7z" fill="#00E676" transform="scale(0.95)"/>
+      <text x="22" y="17" fill="#00E676" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
+        Live Real-Time Order Tracking
+      </text>
+    </g>
+
+    <!-- Lock Icon + 4-Digit OTP -->
+    <g transform="translate(775, 18)">
+      <path d="M17 9v-2c0-2.76-2.24-5-5-5S7 4.24 7 7v2H6c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2h-1zm-6-2c0-1.66 1.34-3 3-3s3 1.34 3 3v2h-6V7zm7 13H6v-9h12v9zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z" fill="#69F0AE" transform="scale(0.95)"/>
+      <text x="26" y="17" fill="#69F0AE" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="17">
+        Secure 4-Digit Delivery OTP
+      </text>
+    </g>
+  </g>
 </svg>
-`;
+  `;
+}
 
 async function generateBrandAssets() {
   console.log("🎨 Starting SabQuick Brand Asset Generation...");
 
   const baseSvgBuffer = Buffer.from(MONOGRAM_SVG);
   const maskableSvgBuffer = Buffer.from(MASKABLE_SVG);
-  const ogSvgBuffer = Buffer.from(OG_IMAGE_SVG);
+  const navbarLogoPath = path.join(PUBLIC_DIR, "brand/navbar-logo.png");
+  const logoB64 = fs.existsSync(navbarLogoPath)
+    ? fs.readFileSync(navbarLogoPath).toString("base64")
+    : "";
+  const ogSvgBuffer = Buffer.from(buildOgImageSvg(logoB64));
 
   // 1. Apple Touch Icon (180x180)
   await sharp(baseSvgBuffer)

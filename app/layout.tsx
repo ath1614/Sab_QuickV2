@@ -78,17 +78,26 @@ export const metadata: Metadata = {
     description:
       "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep superfast within a 3.5 km geofence.",
     url: "https://srv1985371.hstgr.cloud",
-    siteName: "SabQuick",
+    siteName: "SabQuick - Superfast Provision Store",
     images: [
       {
         url: `/og-image.png?v=${ASSET_VERSION}`,
+        secureUrl: `https://srv1985371.hstgr.cloud/og-image.png?v=${ASSET_VERSION}`,
         width: 1200,
         height: 630,
-        alt: "SabQuick - A Complete Provision Store Right To Your Door",
+        type: "image/png",
+        alt: "SabQuick - Superfast Grocery Delivery | A Complete Provision Store Right To Your Door",
       },
     ],
     locale: "en_IN",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SabQuick | Superfast Grocery Delivery",
+    description:
+      "SabQuick delivers fresh groceries, daily essentials, and snacks to your doorstep superfast within a 3.5 km geofence.",
+    images: [`/og-image.png?v=${ASSET_VERSION}`],
   },
 };
 
