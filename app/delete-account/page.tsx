@@ -28,11 +28,76 @@ export default function DeleteAccountPage() {
   const [infoMsg, setInfoMsg] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
 
+  const [isExporting, setIsExporting] = React.useState(false);
+
   React.useEffect(() => {
     if (session?.user?.phone) {
       setPhone(session.user.phone);
     }
   }, [session?.user?.phone]);
+
+  // Data Portability Export Handler with Web Share API (Android/iOS) + Blob Download Fallback
+  const handleDownloadData = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsExporting(true);
+
+    try {
+      const res = await fetch("/api/user/export-data");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to download account records.");
+      }
+
+      const blob = await res.blob();
+      const fileName = `sabquick-data-export-${session?.user?.phone || "user"}.json`;
+
+      // 1. Native mobile Web Share API for Android Capacitor app & mobile browsers
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.canShare &&
+        navigator.share
+      ) {
+        try {
+          const file = new File([blob], fileName, { type: "application/json" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: "SabQuick Account Data Export",
+              text: "Exported personal account records and order history.",
+            });
+            setInfoMsg("Account data exported and shared successfully.");
+            return;
+          }
+        } catch (shareErr: any) {
+          if (shareErr.name === "AbortError") {
+            // User closed the share sheet
+            return;
+          }
+          console.warn("Share API fallback to blob download:", shareErr);
+        }
+      }
+
+      // 2. Standard browser Blob download fallback
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+
+      setInfoMsg("Account data downloaded successfully.");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to download account records. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // STEP 1: verify typed confirmation, then request the deletion OTP.
   const handleRequestOtp = async (e: React.FormEvent) => {
@@ -146,14 +211,24 @@ export default function DeleteAccountPage() {
                   Under DPDP Act portability, you can download your profile, saved addresses, and order history.
                 </p>
               </div>
-              <a
-                href="/api/user/export-data"
-                download
-                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-primary hover:border-primary font-bold text-xs transition-colors shadow-2xs"
+              <button
+                type="button"
+                onClick={handleDownloadData}
+                disabled={isExporting}
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-primary hover:border-primary font-bold text-xs transition-colors shadow-2xs active:scale-95 disabled:opacity-60 cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-primary" />
-                <span>Download My Data (JSON)</span>
-              </a>
+                {isExporting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                    <span>Preparing JSON...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-primary" />
+                    <span>Download My Data (JSON)</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
 
@@ -182,6 +257,12 @@ export default function DeleteAccountPage() {
                   <li>This action is <strong>irreversible</strong>.</li>
                 </ul>
               </div>
+
+              {infoMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                  {infoMsg}
+                </div>
+              )}
 
               {errorMsg && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">

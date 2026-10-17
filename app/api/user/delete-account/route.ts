@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { OrderStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
@@ -97,6 +98,23 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Safety: Prevent requesting deletion if an active delivery is in progress
+      const activeOrder = await prisma.order.findFirst({
+        where: {
+          customerId: targetUser.id,
+          status: { notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+        },
+      });
+
+      if (activeOrder) {
+        return NextResponse.json(
+          {
+            error: `Active order #${activeOrder.orderNumber} is currently in progress. Please wait for your delivery to complete before requesting account deletion.`,
+          },
+          { status: 400 }
+        );
+      }
+
       // Rate-limit OTP issuance (60s cooldown, shared with login OTP keying).
       const cooldownKey = `otp:cooldown:${phone}`;
       const inCooldown = await redis.get(cooldownKey);
@@ -186,22 +204,80 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // 1. Delete associated doorstep delivery addresses
-      await prisma.address.deleteMany({
-        where: { userId: targetUser.id },
+      // Check for in-progress deliveries
+      const activeOrder = await prisma.order.findFirst({
+        where: {
+          customerId: targetUser.id,
+          status: { notIn: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+        },
       });
 
-      // 2. Anonymize user record: purge name, phone, email, and pin
-      const anonymizedPhone = `deleted_${Date.now()}_${targetUser.id.slice(0, 6)}`;
-      await prisma.user.update({
-        where: { id: targetUser.id },
-        data: {
-          name: "Deleted Account",
-          email: null,
-          phone: anonymizedPhone,
-          phoneVerified: false,
-          pin: null,
-        },
+      if (activeOrder) {
+        return NextResponse.json(
+          {
+            error: `Active order #${activeOrder.orderNumber} is currently in progress. Please wait for your delivery to complete before deleting your account.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Execute account purge atomically
+      await prisma.$transaction(async (tx) => {
+        // 1. Delete registered push notification tokens
+        await tx.deviceToken.deleteMany({
+          where: { userId: targetUser.id },
+        });
+
+        // 2. Handle addresses safely to prevent Order_addressId_fkey violation
+        const userAddresses = await tx.address.findMany({
+          where: { userId: targetUser.id },
+          include: {
+            _count: {
+              select: { orders: true },
+            },
+          },
+        });
+
+        // Addresses with no order history can be deleted completely
+        const unlinkedAddressIds = userAddresses
+          .filter((a) => a._count.orders === 0)
+          .map((a) => a.id);
+
+        if (unlinkedAddressIds.length > 0) {
+          await tx.address.deleteMany({
+            where: { id: { in: unlinkedAddressIds } },
+          });
+        }
+
+        // Addresses referenced in past orders have PII redacted for compliance without breaking tax/audit records
+        const linkedAddressIds = userAddresses
+          .filter((a) => a._count.orders > 0)
+          .map((a) => a.id);
+
+        if (linkedAddressIds.length > 0) {
+          await tx.address.updateMany({
+            where: { id: { in: linkedAddressIds } },
+            data: {
+              label: "Archived Address",
+              flatBuilding: "Redacted (Account Deleted)",
+              streetArea: "Ambikapur",
+              landmark: null,
+            },
+          });
+        }
+
+        // 3. Anonymize user record: purge name, phone, email, and pin
+        const anonymizedPhone = `deleted_${Date.now()}_${targetUser.id.slice(0, 6)}`;
+        await tx.user.update({
+          where: { id: targetUser.id },
+          data: {
+            name: "Deleted Account",
+            email: null,
+            phone: anonymizedPhone,
+            phoneVerified: false,
+            pin: null,
+          },
+        });
       });
 
       return NextResponse.json({
