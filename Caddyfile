@@ -16,6 +16,12 @@
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 
+    # Block offensive automated vulnerability scanners before hitting Next.js
+    @malicious_scanners {
+        header_regexp User-Agent "(?i)(sqlmap|nikto|wpscan|masscan|zgrab|acunetix|dirbuster|gobuster|havij|nessus)"
+    }
+    respond @malicious_scanners "Access Denied" 403
+
     # Reverse proxy upstream to Next.js standalone container
     reverse_proxy app:3000 {
         header_up Host {host}

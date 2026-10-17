@@ -1,16 +1,60 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { getClientIp, checkRateLimit, isMaliciousScanner } from "@/lib/rateLimit";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // 1. Block known offensive vulnerability scanners and exploit bots
+  const userAgent = req.headers.get("user-agent");
+  if (isMaliciousScanner(userAgent)) {
+    return new NextResponse("Access Denied", { status: 403 });
+  }
+
+  // 2. Sliding-Window IP Rate Limiter & Flood Shield (protects against 10,000+ request bombardment)
+  const clientIp = getClientIp(req.headers);
+  const rateLimit = checkRateLimit(clientIp, pathname);
+
+  if (!rateLimit.success) {
+    const isApi = pathname.startsWith("/api/");
+    if (isApi) {
+      return NextResponse.json(
+        {
+          error: rateLimit.isBanned
+            ? "Your IP has been temporarily suspended due to excessive automated requests."
+            : "Too many requests. Please slow down and try again.",
+          retryAfter: rateLimit.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": rateLimit.retryAfterSeconds.toString(),
+            "X-RateLimit-Limit": rateLimit.limit.toString(),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+
+    return new NextResponse(
+      "<!DOCTYPE html><html><body style='font-family:-apple-system,sans-serif;text-align:center;padding:60px 20px;background:#f8fafc;color:#0f172a;'><div style='max-width:480px;margin:0 auto;background:#fff;padding:32px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.06);'><h2 style='color:#ef4444;margin-top:0;'>Too Many Requests</h2><p style='color:#475569;line-height:1.6;'>Our automated shield detected unusual request volume from your network. Please wait a few moments before trying again.</p></div></body></html>",
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "text/html",
+          "Retry-After": rateLimit.retryAfterSeconds.toString(),
+        },
+      }
+    );
+  }
 
   // Public rider onboarding portal is open to anyone wishing to join the delivery fleet
   if (pathname === "/rider/apply") {
     return NextResponse.next();
   }
 
-  // Role requirement definitions for internal staff portals and administrative endpoints
+  // 3. Role requirement definitions for internal staff portals and administrative endpoints
   const protectedRoutes = [
     { prefix: "/owner/catalog", allowedRoles: ["OWNER", "MANAGER"] },
     { prefix: "/owner/riders", allowedRoles: ["OWNER", "MANAGER"] },
@@ -67,15 +111,21 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("X-RateLimit-Limit", rateLimit.limit.toString());
+  response.headers.set("X-RateLimit-Remaining", rateLimit.remaining.toString());
+  return response;
 }
 
 export const config = {
   matcher: [
-    "/owner/:path*",
-    "/manager/:path*",
-    "/packer/:path*",
-    "/rider/:path*",
-    "/api/owner/:path*",
+    /*
+     * Match all request paths except for:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, favicon.svg, favicon.png
+     * - static brand assets & media (*.png, *.jpg, *.jpeg, *.gif, *.webp, *.svg, *.ico, *.webm)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|favicon.svg|favicon.png|brand/|uploads/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|webm)$).*)",
   ],
 };
