@@ -36,10 +36,53 @@ export async function POST(req: NextRequest) {
     }
 
     const { token, platform, deviceModel } = parseResult.data;
+    let effectiveToken = token;
+
+    // On iOS, if device registered with 64-char hex APNs token, exchange for FCM token
+    if (platform === "IOS" && /^[a-fA-F0-9]{64}$/.test(token)) {
+      try {
+        const { getFirebaseAdminApp } = await import("@/lib/firebase-admin");
+        const app = getFirebaseAdminApp();
+        const tokenObj = await (app.options.credential as any)?.getAccessToken?.();
+        if (tokenObj?.access_token) {
+          const exchangeApns = async (isSandbox: boolean) => {
+            const res = await fetch("https://iid.googleapis.com/iid/v1:batchImport", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${tokenObj.access_token}`,
+                access_token_auth: "true",
+              },
+              body: JSON.stringify({
+                application: "com.sabquick.app",
+                sandbox: isSandbox,
+                apns_tokens: [token],
+              }),
+            });
+            const data = await res.json().catch(() => null);
+            return data?.results?.[0]?.registration_token || null;
+          };
+
+          // Try production first (for TestFlight & App Store release builds), then sandbox (for Xcode debug builds)
+          let fcmToken = await exchangeApns(false);
+          if (!fcmToken) {
+            fcmToken = await exchangeApns(true);
+          }
+          if (fcmToken) {
+            console.log("[APNs-to-FCM exchange success]:", fcmToken.substring(0, 16) + "...");
+            effectiveToken = fcmToken;
+          } else {
+            console.warn("[APNs-to-FCM exchange warning]: Could not exchange APNs token with Google IID (both prod and sandbox returned null)");
+          }
+        }
+      } catch (apnsErr) {
+        console.warn("[APNs-to-FCM exchange notice]:", apnsErr);
+      }
+    }
 
     // Upsert token to user so switching accounts or updating token preserves clean records
     await prisma.deviceToken.upsert({
-      where: { token },
+      where: { token: effectiveToken },
       update: {
         userId: session.user.id,
         platform,
@@ -48,7 +91,7 @@ export async function POST(req: NextRequest) {
       },
       create: {
         userId: session.user.id,
-        token,
+        token: effectiveToken,
         platform,
         deviceModel: deviceModel || undefined,
       },

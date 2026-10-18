@@ -40,6 +40,7 @@ import {
 import { Capacitor } from "@capacitor/core";
 import {
   launchNativeCashfreeUpiIntent,
+  launchNativeCashfree,
   getUpiAppPackage,
   isCashfreeSdkPolicyBlock,
 } from "@/lib/upi";
@@ -669,12 +670,77 @@ export function CartDrawer() {
           mode: cfData.mode || "production",
         });
 
-        // On the phone this is the fallback for cards and for APKs that predate
-        // the native UPI intent method: Cashfree's hosted page in the same frame.
+        // On the phone inside native Capacitor container (iOS/Android), invoke the official Cashfree native SDK
+        if (Capacitor.isNativePlatform() && !nativeUpiBlocked) {
+          const cashfreeEnvironment =
+            String(
+              cfData.mode || process.env.NEXT_PUBLIC_CASHFREE_ENV || "production"
+            ).toUpperCase() === "SANDBOX"
+              ? ("SANDBOX" as const)
+              : ("PRODUCTION" as const);
+
+          try {
+            const nativeResult = await launchNativeCashfree({
+              paymentSessionId: cfData.paymentSessionId,
+              orderId: data.orderNumber,
+              environment: cashfreeEnvironment,
+            });
+
+            if (
+              nativeResult &&
+              !isCashfreeSdkPolicyBlock(nativeResult)
+            ) {
+              const verified = await verifyCashfreePaymentOnServer(
+                data.orderId,
+                nativeResult.status === "SUCCESS" ? 4 : 2,
+                1500
+              );
+
+              setIsCashfreeActive(false);
+              setIsPlacingOrder(false);
+
+              if (verified.ok) {
+                closeCart();
+                clearCart();
+                setCelebrationOrder({
+                  orderNumber: data.orderNumber,
+                  totalAmount: data.totalAmount,
+                  deliveryOtp: data.deliveryOtp,
+                  totalSavings,
+                  savingsBreakdown: {
+                    mrpSavings,
+                    couponSavings,
+                    couponCode: appliedCoupon?.code,
+                    deliverySavings,
+                  },
+                  paymentMethod: "CASHFREE",
+                });
+                setShowCelebration(true);
+                return;
+              }
+
+              await cancelUnconfirmedOrder(data.orderId, "Payment not completed");
+              setPaymentFailureBanner({
+                title: "Payment Unsuccessful • Order Not Placed",
+                message:
+                  nativeResult.status === "SUCCESS"
+                    ? verified.error ||
+                      "We could not confirm your payment with the bank yet. Your items are still in your cart."
+                    : nativeResult.error ||
+                      "The payment was not completed. Your items are still in your cart.",
+                orderNumber: data.orderNumber,
+              });
+              return;
+            }
+          } catch (nativeErr) {
+            console.warn("[Native Cashfree fallback notice]:", nativeErr);
+          }
+        }
+
+        // On mobile web browser outside Capacitor: Cashfree's hosted page in the same frame.
         const isMobileDevice =
           typeof window !== "undefined" &&
           (window.innerWidth < 768 ||
-            Capacitor.isNativePlatform() ||
             /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
 
         if (isMobileDevice) {

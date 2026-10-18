@@ -236,6 +236,81 @@ export async function getCashfreeOrderPayments(
   return Array.isArray(data) ? data : [];
 }
 
+export interface CreateRefundParams {
+  orderId: string;
+  refundAmount: number;
+  refundId?: string;
+  refundNote?: string;
+  refundSpeed?: "STANDARD" | "INSTANT";
+}
+
+export interface CashfreeRefundEntity {
+  cf_refund_id: string | number;
+  order_id: string;
+  refund_id: string;
+  refund_amount: number;
+  refund_currency: string;
+  refund_status: "SUCCESS" | "PENDING" | "CANCELLED" | "ONHOLD" | "FAILED";
+  refund_note?: string;
+  refund_arn?: string;
+  status_description?: string;
+}
+
+/**
+ * Server-side: Creates a refund for an order via Cashfree.
+ */
+export async function createCashfreeRefund(
+  params: CreateRefundParams
+): Promise<CashfreeRefundEntity> {
+  const refundId =
+    params.refundId ||
+    `ref_${params.orderId.replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}`.slice(0, 40);
+
+  if (!isCashfreeConfigured) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[Mock Refund] Initiated refund of ₹${params.refundAmount} for order ${params.orderId}`);
+      return {
+        cf_refund_id: `mock_ref_${Date.now()}`,
+        order_id: params.orderId,
+        refund_id: refundId,
+        refund_amount: params.refundAmount,
+        refund_currency: "INR",
+        refund_status: "SUCCESS",
+        refund_note: params.refundNote || "Order cancelled by store",
+        status_description: "Refund processed successfully (Mock)",
+      };
+    }
+  }
+
+  const payload = {
+    refund_amount: Number(params.refundAmount.toFixed(2)),
+    refund_id: refundId,
+    refund_note: params.refundNote || `Refund for order ${params.orderId}`,
+    refund_speed: params.refundSpeed || "STANDARD",
+  };
+
+  const response = await fetch(`${CASHFREE_BASE_URL}/orders/${params.orderId}/refunds`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-version": CASHFREE_API_VERSION,
+      "x-client-id": CASHFREE_APP_ID,
+      "x-client-secret": CASHFREE_SECRET_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const errorMsg = data.message || data.error || "Failed to initiate Cashfree refund";
+    console.error("[Cashfree Refund Error]:", data);
+    throw new Error(errorMsg);
+  }
+
+  return data;
+}
+
 /**
  * Server-side: Validates HMAC-SHA256 signature for incoming Cashfree Webhooks.
  */

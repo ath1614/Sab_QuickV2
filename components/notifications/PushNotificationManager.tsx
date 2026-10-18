@@ -76,7 +76,13 @@ export function PushNotificationManager() {
             "registration",
             async (token) => {
               if (!isMounted || !token?.value) return;
-              console.log("[PushNotifications] Device FCM token obtained:", token.value.substring(0, 16) + "...");
+              console.log("[PushNotifications] Device push token obtained:", token.value.substring(0, 16) + "...");
+
+              try {
+                localStorage.setItem("sabquick_device_token", token.value);
+              } catch (storageErr) {
+                console.warn("[PushNotifications] Could not save token to localStorage:", storageErr);
+              }
 
               // If session exists, persist token to database
               if (session?.user?.id) {
@@ -148,6 +154,29 @@ export function PushNotificationManager() {
       }
     };
   }, [session?.user?.id, router]);
+
+  // Sync cached token whenever user logs in or session refreshes
+  React.useEffect(() => {
+    if (!session?.user?.id || !Capacitor.isNativePlatform()) return;
+    try {
+      const cachedToken = localStorage.getItem("sabquick_device_token");
+      if (cachedToken) {
+        fetch("/api/notifications/register-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: cachedToken,
+            platform: Capacitor.getPlatform().toUpperCase(),
+            deviceModel: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+          }),
+        }).catch((err) => {
+          console.warn("[PushNotifications] Session login token sync notice:", err);
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [session?.user?.id]);
 
   return null;
 }

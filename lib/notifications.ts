@@ -35,11 +35,63 @@ export async function sendPushToUser(
     const app = getFirebaseAdminApp();
     const messaging = getMessaging(app);
 
-    const tokens = deviceTokens.map((d) => d.token);
+    // Resolve any raw 64-char hex APNs tokens to FCM registration tokens
+    const validTokens: string[] = [];
+    const validTokenRecords: Array<{ id: string; token: string }> = [];
+
+    for (const d of deviceTokens) {
+      if (d.platform === "IOS" && /^[a-fA-F0-9]{64}$/.test(d.token)) {
+        try {
+          const tokenObj = await (app.options.credential as any)?.getAccessToken?.();
+          if (tokenObj?.access_token) {
+            const exchangeApns = async (isSandbox: boolean) => {
+              const res = await fetch("https://iid.googleapis.com/iid/v1:batchImport", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${tokenObj.access_token}`,
+                  access_token_auth: "true",
+                },
+                body: JSON.stringify({
+                  application: "com.sabquick.app",
+                  sandbox: isSandbox,
+                  apns_tokens: [d.token],
+                }),
+              });
+              const data = await res.json().catch(() => null);
+              return data?.results?.[0]?.registration_token || null;
+            };
+
+            let fcmToken = await exchangeApns(false);
+            if (!fcmToken) fcmToken = await exchangeApns(true);
+
+            if (fcmToken) {
+              await prisma.deviceToken.update({
+                where: { id: d.id },
+                data: { token: fcmToken },
+              }).catch(() => null);
+              validTokens.push(fcmToken);
+              validTokenRecords.push({ id: d.id, token: fcmToken });
+              continue;
+            }
+          }
+        } catch (exErr) {
+          console.warn("[On-the-fly APNs exchange warning]:", exErr);
+        }
+      } else {
+        validTokens.push(d.token);
+        validTokenRecords.push({ id: d.id, token: d.token });
+      }
+    }
+
+    if (validTokens.length === 0) {
+      return { successCount: 0, failureCount: 0 };
+    }
+
     const channelId = payload.channelId || "sabquick_orders";
 
     const response = await messaging.sendEachForMulticast({
-      tokens,
+      tokens: validTokens,
       notification: {
         title: payload.title,
         body: payload.body,
@@ -74,12 +126,8 @@ export async function sendPushToUser(
     response.responses.forEach((res, idx) => {
       if (!res.success && res.error) {
         const code = res.error.code;
-        if (
-          code === "messaging/registration-token-not-registered" ||
-          code === "messaging/invalid-registration-token" ||
-          code === "messaging/invalid-argument"
-        ) {
-          staleTokenIds.push(deviceTokens[idx].id);
+        if (code === "messaging/registration-token-not-registered") {
+          staleTokenIds.push(validTokenRecords[idx].id);
         }
       }
     });
@@ -181,7 +229,10 @@ export async function sendOrderStatusPushNotification(
 
       case OrderStatus.CANCELLED:
         title = "Order Cancelled ⚠️";
-        body = `Order #${order.orderNumber} was cancelled. Any online payment has been refunded.`;
+        body =
+          order.paymentStatus === "REFUNDED" || order.paymentStatus === "PAID"
+            ? `Order #${order.orderNumber} was cancelled by store. Full refund of ₹${order.totalAmount.toFixed(2)} has been initiated to your original payment method.`
+            : `Order #${order.orderNumber} was cancelled.`;
         break;
 
       default:

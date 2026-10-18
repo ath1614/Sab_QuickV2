@@ -398,17 +398,21 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className="border-rose-400 text-rose-700 bg-rose-100 font-black text-xs">
-                    Order Not Placed • Cancelled
+                    {order.paymentStatus === "REFUNDED" ? "Cancelled • Refund Processed" : "Order Not Placed • Cancelled"}
                   </Badge>
                   <span className="text-xs text-muted-foreground font-mono">
                     #{order.orderNumber}
                   </span>
                 </div>
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                  Payment Unsuccessful • Order Not Placed
+                  {order.paymentStatus === "REFUNDED"
+                    ? "Order Cancelled • Refund Initiated"
+                    : "Payment Unsuccessful • Order Not Placed"}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
-                  The payment for this order was not completed or was cancelled. Your items have not been dispatched and no money was deducted.
+                  {order.paymentStatus === "REFUNDED"
+                    ? `This order was cancelled by the store. A full refund of ₹${order.totalAmount} has been initiated to your original payment method.`
+                    : "The payment for this order was not completed or was cancelled. Your items have not been dispatched and no money was deducted."}
                 </p>
               </div>
             </div>
@@ -428,7 +432,9 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
               Important Information:
             </p>
             <p>
-              • If money was temporarily debited by your bank or UPI app, it will be automatically refunded by your payment provider within 24–48 business hours.
+              {order.paymentStatus === "REFUNDED"
+                ? `• Full refund of ₹${order.totalAmount} has been sent to Cashfree / your bank. Depending on your bank, UPI refunds reflect instantly or within 24–48 hours.`
+                : "• If money was temporarily debited by your bank or UPI app, it will be automatically refunded by your payment provider within 24–48 business hours."}
             </p>
             <p>
               • All items from this cart have been restored to warehouse inventory. You can start a fresh order anytime.
@@ -490,7 +496,9 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
 
       {/* PENDING UPI / PREPAID PAYMENT ACTION BANNER */}
       {!isCancelled &&
+        !isDelivered &&
         order.paymentStatus !== "PAID" &&
+        order.paymentStatus !== "REFUNDED" &&
         (order.paymentMethod === "CASHFREE" ||
           (order.paymentMethod as string) === "RAZORPAY" ||
           order.paymentMethod === "ONLINE_PREPAID" ||

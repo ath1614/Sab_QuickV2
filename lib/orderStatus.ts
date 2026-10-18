@@ -1,11 +1,13 @@
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus, PaymentMethod } from "@prisma/client";
+import { createCashfreeRefund } from "@/lib/cashfree";
 
 export interface StatusUpdatePayload {
   orderId: string;
   orderNumber: string;
   status: OrderStatus;
+  paymentStatus?: PaymentStatus;
   packedAt: Date | null;
   deliveredAt: Date | null;
   rider: {
@@ -19,6 +21,7 @@ export interface StatusUpdatePayload {
 
 /**
  * Updates an order status in PostgreSQL via Prisma, applies timestamps,
+ * initiates automated refunds if cancelled after payment, restores inventory,
  * and publishes notifications to Redis pub/sub channels:
  * 1. orders:status:${orderId} (for live customer tracking SSE)
  * 2. orders:dispatch (for manager and rider real-time dashboards)
@@ -28,6 +31,16 @@ export async function updateOrderStatus(
   newStatus: OrderStatus,
   riderId?: string
 ) {
+  // Fetch existing order to check payment and stock details
+  const existingOrder = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  if (!existingOrder) {
+    throw new Error(`Order ${orderId} not found`);
+  }
+
   const updateData: any = {
     status: newStatus,
   };
@@ -44,6 +57,57 @@ export async function updateOrderStatus(
 
   if (newStatus === OrderStatus.DELIVERED) {
     updateData.deliveredAt = new Date();
+  }
+
+  // Handle Cancellation: Automatic Refund & Stock Restoration
+  if (newStatus === OrderStatus.CANCELLED) {
+    const isOnlinePrepaid =
+      existingOrder.paymentMethod === PaymentMethod.ONLINE_PREPAID ||
+      existingOrder.paymentMethod === PaymentMethod.CASHFREE ||
+      existingOrder.paymentMethod === (PaymentMethod as any).ONLINE_UPI ||
+      existingOrder.paymentMethod === PaymentMethod.RAZORPAY;
+
+    if (existingOrder.paymentStatus === PaymentStatus.PAID && isOnlinePrepaid) {
+      try {
+        console.log(
+          `[Auto-Refund] Processing Cashfree refund of ₹${existingOrder.totalAmount} for cancelled order ${existingOrder.orderNumber}`
+        );
+        await createCashfreeRefund({
+          orderId: existingOrder.orderNumber,
+          refundAmount: existingOrder.totalAmount,
+          refundNote: `Automated refund for cancelled order #${existingOrder.orderNumber}`,
+          refundSpeed: "STANDARD",
+        });
+        updateData.paymentStatus = PaymentStatus.REFUNDED;
+      } catch (refundErr) {
+        console.error(
+          `[Auto-Refund Error] Failed to process Cashfree refund for ${existingOrder.orderNumber}:`,
+          refundErr
+        );
+      }
+    }
+
+    // Atomically restore stock back to dark store catalog
+    try {
+      for (const item of existingOrder.items) {
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: {
+            stockCount: { increment: item.quantity },
+            isAvailable: true,
+          },
+        });
+      }
+      if (existingOrder.couponId) {
+        await prisma.coupon.update({
+          where: { id: existingOrder.couponId },
+          data: { usedCount: { decrement: 1 } },
+        });
+      }
+      await redis.del("cache:products:home:v1").catch(() => {});
+    } catch (stockErr) {
+      console.warn(`[Stock Restoration Error] Order ${existingOrder.orderNumber}:`, stockErr);
+    }
   }
 
   const updatedOrder = await prisma.order.update({
