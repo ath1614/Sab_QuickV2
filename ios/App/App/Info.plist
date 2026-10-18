@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>SabQuick</string>
+	<string>SABQuick</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -61,13 +61,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>SabQuick uses your camera to scan delivery QR codes and OTP receipts.</string>
+	<string>SABQuick uses your camera to scan delivery QR codes and OTP receipts.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>SabQuick uses your location to verify delivery within our superfast 3.5 km dark store geofence.</string>
+	<string>SABQuick uses your location to verify delivery within our superfast 3.5 km dark store geofence.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>SabQuick uses your location to show available groceries and deliver orders accurately to your doorstep.</string>
+	<string>SABQuick uses your location to show available groceries and deliver orders accurately to your doorstep.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>SabQuick uses your location to show available groceries and track live delivery to your doorstep.</string>
+	<string>SABQuick uses your location to show available groceries and track live delivery to your doorstep.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

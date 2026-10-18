@@ -67,7 +67,7 @@ export function PwaInstallPrompt() {
 
   return (
     <aside
-      aria-label="Install SabQuick Mobile App"
+      aria-label="Install SABQuick Mobile App"
       className="fixed bottom-24 md:bottom-6 left-4 right-4 max-w-md mx-auto z-40 animate-in slide-in-from-bottom-5 duration-300"
     >
       <div className="bg-surface-dark text-white border border-emerald-500/30 rounded-2xl p-3.5 sm:p-4 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
@@ -79,7 +79,7 @@ export function PwaInstallPrompt() {
             <Logo variant="icon" size={42} className="rounded-xl shrink-0 shadow-md" />
             <div>
               <div className="flex items-center gap-1.5">
-                <h4 className="text-xs sm:text-sm font-black text-white">Install SabQuick App</h4>
+                <h4 className="text-xs sm:text-sm font-black text-white">Install SABQuick App</h4>
                 <span className="text-[10px] bg-primary-accent text-surface-dark font-black px-1.5 py-0.2 rounded-sm uppercase">
                   Fast
                 </span>
