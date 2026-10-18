@@ -53,7 +53,11 @@ function VerifyContent() {
               particleCount: 90,
               spread: 70,
               origin: { y: 0.6 },
+              disableForReducedMotion: true,
             });
+            setTimeout(() => {
+              try { confetti.reset(); } catch {}
+            }, 3000);
           } catch {
             // ignore confetti error
           }

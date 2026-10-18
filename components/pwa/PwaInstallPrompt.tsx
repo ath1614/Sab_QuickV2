@@ -15,6 +15,12 @@ export function PwaInstallPrompt() {
   React.useEffect(() => {
     if (typeof window === "undefined" || isInstalled) return;
 
+    // Completely suppress install prompt inside native Capacitor applications
+    const isNative =
+      Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+      Boolean((window as any).Capacitor);
+    if (isNative) return;
+
     // Check if dismissed in the last 7 days
     const lastDismissed = localStorage.getItem("sabquick_pwa_dismissed");
     if (lastDismissed) {
@@ -61,7 +67,12 @@ export function PwaInstallPrompt() {
     }
   };
 
-  if (!isVisible || isInstalled) {
+  const isNative =
+    typeof window !== "undefined" &&
+    (Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+      Boolean((window as any).Capacitor));
+
+  if (isNative || !isVisible || isInstalled) {
     return null;
   }
 

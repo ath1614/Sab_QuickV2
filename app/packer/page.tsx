@@ -94,7 +94,8 @@ export default function PackerStationPage() {
   const [printModalOpen, setPrintModalOpen] = React.useState(false);
   const [unpickedConfirmModalOpen, setUnpickedConfirmModalOpen] = React.useState(false);
 
-  const prevPendingCountRef = React.useRef<number>(0);
+  const initialLoadDoneRef = React.useRef(false);
+  const knownOrderIdsRef = React.useRef<Set<string>>(new Set());
 
   // Synthesize Web Audio chime for incoming orders
   const playChime = React.useCallback(() => {
@@ -109,17 +110,22 @@ export default function PackerStationPage() {
       const gain = ctx.createGain();
 
       osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.14); // A5
+      // Crisp high double chime: C6 (1046.5 Hz) -> E6 (1318.5 Hz)
+      osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+      osc.frequency.setValueAtTime(1318.5, ctx.currentTime + 0.12);
 
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start();
-      osc.stop(ctx.currentTime + 0.46);
+      osc.stop(ctx.currentTime + 0.56);
+
+      if (navigator?.vibrate) {
+        navigator.vibrate([120, 60, 120]);
+      }
     } catch (e) {
       console.warn("Audio chime prevented by browser policy:", e);
     }
@@ -135,11 +141,16 @@ export default function PackerStationPage() {
       const orderList: OrderData[] = data.orders || [];
       setOrders(orderList);
 
-      const pendingOrders = orderList.filter((o) => o.status === "PENDING");
-      if (pendingOrders.length > prevPendingCountRef.current && prevPendingCountRef.current > 0) {
-        playChime();
+      const activeList = orderList.filter((o) => o.status === "PENDING" || o.status === "PACKING");
+      if (initialLoadDoneRef.current) {
+        const hasNewOrder = activeList.some((o) => !knownOrderIdsRef.current.has(o.id));
+        if (hasNewOrder) {
+          playChime();
+        }
+      } else {
+        initialLoadDoneRef.current = true;
       }
-      prevPendingCountRef.current = pendingOrders.length;
+      knownOrderIdsRef.current = new Set(orderList.map((o) => o.id));
 
       // Retain or select active order
       setSelectedOrderId((currentId) => {
@@ -756,7 +767,7 @@ export default function PackerStationPage() {
               </div>
 
               {/* Items Aisle Checklist (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 pb-28">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 pb-36 sm:pb-8">
                 {Object.entries(itemsByAisle).map(([aisleName, aisleItems]) => (
                   <section key={aisleName} className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 bg-white/80 py-1.5 px-3 rounded-xl border border-slate-200/80">
@@ -841,7 +852,7 @@ export default function PackerStationPage() {
               </div>
 
               {/* Sticky Safe-Area Station Action Footer */}
-              <div className="fixed sm:sticky bottom-0 left-0 right-0 p-3 sm:p-4 bg-white/95 backdrop-blur-md border-t border-border-subtle shadow-xl pb-[calc(env(safe-area-inset-bottom,0px)+12px)] shrink-0 z-20">
+              <div className="fixed sm:sticky bottom-0 left-0 right-0 p-3 sm:p-4 bg-white/95 backdrop-blur-md border-t border-border-subtle shadow-2xl pb-[calc(env(safe-area-inset-bottom,0px)+14px)] shrink-0 z-30">
                 <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="hidden sm:block text-xs text-slate-500 font-medium">
                     {selectedOrder.status === "PENDING" && (

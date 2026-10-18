@@ -1836,10 +1836,18 @@ export function CartDrawer() {
         isOpen={showCelebration}
         order={celebrationOrder}
         onClose={() => {
+          try {
+            const confettiMod = require("canvas-confetti");
+            confettiMod.default?.reset?.() || confettiMod?.reset?.();
+          } catch {}
           setShowCelebration(false);
           setCelebrationOrder(null);
         }}
         onTrackOrder={() => {
+          try {
+            const confettiMod = require("canvas-confetti");
+            confettiMod.default?.reset?.() || confettiMod?.reset?.();
+          } catch {}
           const num = celebrationOrder?.orderNumber;
           setShowCelebration(false);
           setCelebrationOrder(null);

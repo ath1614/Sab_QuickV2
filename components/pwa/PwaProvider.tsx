@@ -35,8 +35,12 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Check if already in standalone display mode (PWA installed)
+    // Check if running inside native Capacitor app or standalone display mode (PWA installed)
+    const isNative =
+      Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+      Boolean((window as any).Capacitor);
     const isStandalone =
+      isNative ||
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
     setIsInstalled(isStandalone);

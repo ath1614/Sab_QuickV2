@@ -54,7 +54,7 @@ export function OrderCelebrationModal({
 }: OrderCelebrationModalProps) {
   const [copiedOtp, setCopiedOtp] = React.useState(false);
 
-  // Trigger celebration confetti when modal pops open
+  // Trigger celebration confetti when modal pops open and clean up reliably
   React.useEffect(() => {
     if (isOpen && order) {
       // 1. Center energetic burst
@@ -64,10 +64,11 @@ export function OrderCelebrationModal({
         origin: { y: 0.55 },
         colors: ["#0B6E4F", "#00C853", "#F59E0B", "#10B981", "#3B82F6"],
         zIndex: 9999999,
+        disableForReducedMotion: true,
       });
 
       // 2. Left and Right cannon bursts
-      const timer = setTimeout(() => {
+      const burstTimer = setTimeout(() => {
         confetti({
           particleCount: 50,
           angle: 60,
@@ -75,6 +76,7 @@ export function OrderCelebrationModal({
           origin: { x: 0.1, y: 0.65 },
           colors: ["#0B6E4F", "#00C853", "#F59E0B"],
           zIndex: 9999999,
+          disableForReducedMotion: true,
         });
         confetti({
           particleCount: 50,
@@ -83,14 +85,52 @@ export function OrderCelebrationModal({
           origin: { x: 0.9, y: 0.65 },
           colors: ["#0B6E4F", "#00C853", "#F59E0B"],
           zIndex: 9999999,
+          disableForReducedMotion: true,
         });
       }, 280);
 
-      return () => clearTimeout(timer);
+      // 3. Guaranteed auto-cleanup timer so confetti particles never freeze/stick
+      const autoCleanTimer = setTimeout(() => {
+        try {
+          confetti.reset();
+        } catch {
+          // ignore
+        }
+      }, 3500);
+
+      return () => {
+        clearTimeout(burstTimer);
+        clearTimeout(autoCleanTimer);
+        try {
+          confetti.reset();
+        } catch {
+          // ignore
+        }
+      };
+    } else {
+      try {
+        confetti.reset();
+      } catch {
+        // ignore
+      }
     }
   }, [isOpen, order]);
 
   if (!order) return null;
+
+  const handleClose = () => {
+    try {
+      confetti.reset();
+    } catch {}
+    onClose();
+  };
+
+  const handleTrack = () => {
+    try {
+      confetti.reset();
+    } catch {}
+    onTrackOrder();
+  };
 
   const handleCopyOtp = () => {
     navigator.clipboard.writeText(order.deliveryOtp);
@@ -107,7 +147,7 @@ export function OrderCelebrationModal({
   const hasSavings = (order.totalSavings || 0) > 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md p-6 bg-white rounded-3xl border-2 border-primary/30 shadow-2xl overflow-hidden">
         {/* Ambient Top Glow */}
         <div className="absolute -top-16 -left-16 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -228,7 +268,7 @@ export function OrderCelebrationModal({
           {/* Action CTAs */}
           <div className="w-full space-y-2 pt-1">
             <Button
-              onClick={onTrackOrder}
+              onClick={handleTrack}
               className="w-full h-12 text-sm font-black rounded-xl shadow-lg bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
             >
               <Zap className="w-4 h-4 fill-white" />
@@ -238,7 +278,7 @@ export function OrderCelebrationModal({
 
             <Button
               variant="ghost"
-              onClick={onClose}
+              onClick={handleClose}
               className="w-full h-10 text-xs font-bold text-muted-foreground hover:text-surface-dark rounded-xl"
             >
               Continue Shopping

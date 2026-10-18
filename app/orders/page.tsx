@@ -242,9 +242,6 @@ export default function OrdersPage() {
                       Live Delivery in Progress
                     </h2>
                   </div>
-                  <Badge variant="accent" className="text-[10px] uppercase font-bold py-0.5 px-2">
-                    Superfast SLA
-                  </Badge>
                 </div>
 
                 {activeOrders.map((order) => (

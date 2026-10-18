@@ -32,9 +32,15 @@ function MobileBottomNavInner() {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
 
-  // Hide bottom nav on dedicated full-screen order tracking or scanner pages
-  const isOrderTrackingPage = pathname?.startsWith("/orders/") && pathname !== "/orders/active";
-  if (isOrderTrackingPage) {
+  // Hide bottom nav on dedicated full-screen order tracking, scanner pages, and staff operations dashboards
+  const isExcludedPage =
+    (pathname?.startsWith("/orders/") && pathname !== "/orders/active") ||
+    pathname?.startsWith("/packer") ||
+    pathname?.startsWith("/manager") ||
+    pathname?.startsWith("/rider") ||
+    pathname?.startsWith("/admin");
+
+  if (isExcludedPage) {
     return null;
   }
 

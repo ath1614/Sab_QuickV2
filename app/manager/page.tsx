@@ -31,6 +31,8 @@ import {
   Palette,
   Download,
   Loader2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -133,6 +135,49 @@ export default function ManagerDispatchPage() {
   const [activeKanbanStage, setActiveKanbanStage] = React.useState<"PENDING" | "PACKING" | "READY" | "OUT">("PENDING");
   const [isDownloadingBackup, setIsDownloadingBackup] = React.useState(false);
 
+  // Audio chime for new incoming orders
+  const [soundEnabled, setSoundEnabled] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem("sabquick_manager_sound");
+    return saved !== null ? saved === "true" : true;
+  });
+
+  const initialLoadDoneRef = React.useRef(false);
+  const knownOrderIdsRef = React.useRef<Set<string>>(new Set());
+
+  const playOrderChime = React.useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      // Uplifting double ping: C6 (1046.5 Hz) -> E6 (1318.5 Hz)
+      osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+      osc.frequency.setValueAtTime(1318.5, ctx.currentTime + 0.12);
+
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.56);
+
+      if (navigator?.vibrate) {
+        navigator.vibrate([120, 60, 120]);
+      }
+    } catch (e) {
+      console.warn("Manager audio chime prevented by browser policy:", e);
+    }
+  }, [soundEnabled]);
+
   // 1. Fetch live orders & riders
   const fetchOrdersAndRiders = React.useCallback(async (silent = false) => {
     if (!silent) setIsRefreshing(true);
@@ -140,15 +185,28 @@ export default function ManagerDispatchPage() {
       const res = await fetch("/api/ops/orders");
       if (!res.ok) throw new Error("Failed to fetch ops orders");
       const data = await res.json();
-      setOrders(data.orders || []);
+      const orderList: OrderData[] = data.orders || [];
+      setOrders(orderList);
       setRiders(data.riders || []);
+
+      // Check for newly arrived orders
+      const activeList = orderList.filter((o) => o.status === "PENDING" || o.status === "PACKING");
+      if (initialLoadDoneRef.current) {
+        const hasNewOrder = activeList.some((o) => !knownOrderIdsRef.current.has(o.id));
+        if (hasNewOrder) {
+          playOrderChime();
+        }
+      } else {
+        initialLoadDoneRef.current = true;
+      }
+      knownOrderIdsRef.current = new Set(orderList.map((o) => o.id));
     } catch (err) {
       console.error("Manager orders fetch error:", err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [playOrderChime]);
 
   // 2. Fetch analytics & products catalog
   const fetchAnalyticsAndCatalog = React.useCallback(async () => {
@@ -410,6 +468,31 @@ export default function ManagerDispatchPage() {
                 </Button>
               </Link>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                try {
+                  localStorage.setItem("sabquick_manager_sound", String(next));
+                } catch {}
+              }}
+              className={`h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 shrink-0 transition-all ${
+                soundEnabled
+                  ? "border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-100"
+              }`}
+              title={soundEnabled ? "Audio chime active for incoming orders" : "Audio muted"}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+              )}
+              <span>{soundEnabled ? "Audio ON" : "Muted"}</span>
+            </Button>
 
             <Button
               variant="outline"
