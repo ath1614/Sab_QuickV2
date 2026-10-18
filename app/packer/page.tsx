@@ -12,18 +12,16 @@ import {
   Volume2,
   VolumeX,
   Printer,
-  ChevronRight,
-  Sparkles,
-  ArrowRight,
   ShieldCheck,
   RefreshCw,
   ShoppingBag,
   Store,
   Layers,
   Check,
-  RotateCcw,
-  ExternalLink,
   ArrowLeft,
+  ListOrdered,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +33,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Logo } from "@/components/brand/Logo";
 
@@ -88,6 +85,7 @@ export default function PackerStationPage() {
   const { data: session, status: authStatus } = useSession();
   const [orders, setOrders] = React.useState<OrderData[]>([]);
   const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
+  const [mobileTab, setMobileTab] = React.useState<"queue" | "picking" | "ready">("queue");
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [soundEnabled, setSoundEnabled] = React.useState(true);
@@ -98,11 +96,13 @@ export default function PackerStationPage() {
 
   const prevPendingCountRef = React.useRef<number>(0);
 
-  // Synthesize Web Audio chime for new incoming orders
+  // Synthesize Web Audio chime for incoming orders
   const playChime = React.useCallback(() => {
     if (!soundEnabled) return;
     try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
@@ -141,21 +141,22 @@ export default function PackerStationPage() {
       }
       prevPendingCountRef.current = pendingOrders.length;
 
-      // Auto-select first active order if none is selected
+      // Retain or select active order
       setSelectedOrderId((currentId) => {
         const activeOrders = orderList.filter(
           (o) => o.status === "PENDING" || o.status === "PACKING"
         );
-        // If current selection is still an active order, retain it
         if (currentId && activeOrders.some((o) => o.id === currentId)) {
           return currentId;
         }
-        // If packer explicitly clicked a READY_FOR_PICKUP order to view/print slip, retain it
         if (currentId && orderList.some((o) => o.id === currentId && o.status === "READY_FOR_PICKUP")) {
           return currentId;
         }
-        // Otherwise, select the first ACTIVE order, or null if no active orders in queue!
-        return activeOrders.length > 0 ? activeOrders[0].id : null;
+        // On desktop, auto-select first order. On mobile, let user select from queue.
+        if (typeof window !== "undefined" && window.innerWidth >= 768) {
+          return activeOrders.length > 0 ? activeOrders[0].id : null;
+        }
+        return currentId;
       });
     } catch (err) {
       console.error("Ops orders fetch error:", err);
@@ -165,7 +166,7 @@ export default function PackerStationPage() {
     }
   }, [playChime]);
 
-  // Initial fetch and 4s polling
+  // Polling every 4 seconds
   React.useEffect(() => {
     if (authStatus === "authenticated") {
       fetchOrders();
@@ -176,7 +177,6 @@ export default function PackerStationPage() {
     }
   }, [authStatus, fetchOrders]);
 
-  // Filter queue orders (Packer cares primarily about PENDING and PACKING, with READY as recent archive)
   const queueOrders = orders.filter(
     (o) => o.status === "PENDING" || o.status === "PACKING"
   );
@@ -196,23 +196,42 @@ export default function PackerStationPage() {
     return map;
   }, [selectedOrder]);
 
-  // Toggle item picked checkbox
   const toggleItemPicked = (itemId: string) => {
+    if (navigator?.vibrate) {
+      try {
+        navigator.vibrate(30);
+      } catch {
+        // ignore
+      }
+    }
     setPickedItemIds((prev) => ({
       ...prev,
       [itemId]: !prev[itemId],
     }));
   };
 
-  // Status transitions via /api/ops/orders/status
+  const checkAllItems = (checked: boolean) => {
+    if (!selectedOrder) return;
+    const next: Record<string, boolean> = {};
+    selectedOrder.items.forEach((it) => {
+      next[it.id] = checked;
+    });
+    setPickedItemIds((prev) => ({ ...prev, ...next }));
+  };
+
+  const handleSelectOrderMobile = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setMobileTab("picking");
+  };
+
+  // Status transitions
   const handleTransitionStatus = async (newStatus: "PACKING" | "READY_FOR_PICKUP") => {
     if (!selectedOrder) return;
 
-    // If transitioning to READY_FOR_PICKUP, verify all items picked
     if (newStatus === "READY_FOR_PICKUP") {
       const totalItems = selectedOrder.items.length;
-      const pickedCount = selectedOrder.items.filter((item) => pickedItemIds[item.id]).length;
-      if (pickedCount < totalItems) {
+      const picked = selectedOrder.items.filter((item) => pickedItemIds[item.id]).length;
+      if (picked < totalItems) {
         setUnpickedConfirmModalOpen(true);
         return;
       }
@@ -241,6 +260,14 @@ export default function PackerStationPage() {
 
       await fetchOrders(true);
       setUnpickedConfirmModalOpen(false);
+
+      if (newStatus === "READY_FOR_PICKUP") {
+        setPrintModalOpen(true);
+        // Switch mobile tab back to queue after marking ready
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          setMobileTab("queue");
+        }
+      }
     } catch (err) {
       console.error("Failed to update status:", err);
       alert("Network error updating status.");
@@ -249,13 +276,13 @@ export default function PackerStationPage() {
     }
   };
 
-  // RBAC Authentication Guard
+  // Authentication Guard
   if (authStatus === "loading") {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
         <div className="flex flex-col items-center space-y-3">
           <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-sm font-semibold text-slate-600">Loading Floor Station...</p>
+          <p className="text-sm font-semibold text-slate-600">Loading SABQuick Floor Station...</p>
         </div>
       </div>
     );
@@ -274,96 +301,66 @@ export default function PackerStationPage() {
           </div>
           <h2 className="text-xl font-black text-surface-dark mb-2">Access Restricted</h2>
           <p className="text-sm text-slate-600 mb-6">
-            The Tablet Floor Packer Station requires <strong>PACKER</strong>, <strong>MANAGER</strong>, or <strong>OWNER</strong> authorization.
+            The SABQuick Floor Station requires <strong>PACKER</strong>, <strong>MANAGER</strong>, or <strong>OWNER</strong> authorization.
           </p>
-          <div className="space-y-2">
-            <Link href="/" className="w-full inline-block">
-              <Button variant="default" className="w-full">
-                Return to Store
-              </Button>
-            </Link>
-          </div>
+          <Link href="/" className="w-full inline-block">
+            <Button variant="default" className="w-full h-11 rounded-xl font-bold">
+              Return to Store
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  // Selected Order Progress
   const totalItemCount = selectedOrder?.items.length || 0;
   const pickedCount = selectedOrder?.items.filter((i) => pickedItemIds[i.id]).length || 0;
   const isFullyPicked = totalItemCount > 0 && pickedCount === totalItemCount;
   const pickProgressPercent = totalItemCount > 0 ? Math.round((pickedCount / totalItemCount) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased select-none">
-      {/* Top Station Header */}
-      <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center justify-between sm:justify-start space-x-3">
-            <div className="flex items-center space-x-2.5">
-              <Link
-                href="/"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 shadow-xs"
-                title="Back to Storefront"
-              >
-                <ArrowLeft className="w-4 h-4 text-primary" />
-                <span>Store</span>
-              </Link>
-              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-              <Link href="/" title="Back to Storefront">
-                <Logo variant="icon" size={36} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
-              </Link>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
-                    SabQuick <span className="text-primary">Floor Station</span>
-                  </h1>
-                  <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-slate-50 border-slate-300 font-bold px-1.5 py-0">
-                    PACKER
+    <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased">
+      {/* Top Header */}
+      <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-xs shrink-0 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+          {/* Brand & Station Info */}
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <Link
+              href="/"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0"
+              title="Store"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-primary" />
+              <span className="hidden xs:inline">Store</span>
+            </Link>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Logo variant="icon" size={28} className="rounded-lg shadow-xs shrink-0" />
+              <div className="min-w-0 truncate">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-black text-surface-dark truncate">
+                    SABQuick <span className="text-primary font-bold">Packer</span>
+                  </span>
+                  <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-emerald-300 font-bold px-1 py-0 shrink-0">
+                    HUB #01
                   </Badge>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                  Aisle picking &amp; Dark-store fulfillment
-                </p>
               </div>
-            </div>
-
-            {/* Mobile Sound & Sync */}
-            <div className="flex items-center gap-1.5 sm:hidden">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSoundEnabled((v) => !v)}
-                className={`h-8 w-8 p-0 rounded-xl ${soundEnabled ? "border-emerald-300 text-emerald-700 bg-emerald-50/50" : "text-slate-400"}`}
-                title="Audio chime"
-              >
-                {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchOrders()}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0 rounded-xl"
-                title="Sync"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
-              </Button>
             </div>
           </div>
 
-          {/* Action Controls */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Quick Actions (Audio Chime, Sync, Links) */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSoundEnabled((v) => !v)}
-              className={`hidden sm:inline-flex h-9 px-3 rounded-xl text-xs gap-1.5 font-bold ${
-                soundEnabled ? "border-emerald-300 text-emerald-700 bg-emerald-50/50" : "text-slate-500"
+              className={`h-8 px-2 rounded-xl text-xs font-bold gap-1 border-slate-200 ${
+                soundEnabled ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "text-slate-400"
               }`}
+              title={soundEnabled ? "Audio chime active" : "Audio muted"}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-              <span>{soundEnabled ? "Audio ON" : "Muted"}</span>
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+              <span className="hidden sm:inline">{soundEnabled ? "Audio ON" : "Muted"}</span>
             </Button>
 
             <Button
@@ -371,74 +368,163 @@ export default function PackerStationPage() {
               size="sm"
               onClick={() => fetchOrders()}
               disabled={isRefreshing}
-              className="hidden sm:inline-flex h-9 px-3 rounded-xl text-xs font-semibold gap-1.5"
+              className="h-8 w-8 p-0 rounded-xl border-slate-200"
+              title="Refresh Queue"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
-              <span>Sync</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-700 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
             </Button>
 
             {role === "MANAGER" || role === "OWNER" ? (
-              <Link href="/manager" className="shrink-0">
-                <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold px-2.5 sm:px-3 text-slate-700">
+              <Link href="/manager" className="hidden sm:inline-block">
+                <Button variant="outline" size="sm" className="h-8 px-2.5 rounded-xl text-xs font-bold text-slate-700">
                   <span>Manager</span>
                   <ExternalLink className="w-3 h-3 ml-1" />
                 </Button>
               </Link>
             ) : null}
+          </div>
+        </div>
 
-            {role === "OWNER" ? (
-              <Link href="/owner" className="shrink-0">
-                <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold px-2.5 sm:px-3 text-slate-700">
-                  <span>Owner</span>
-                </Button>
-              </Link>
-            ) : null}
+        {/* Mobile Segmented Navigation Tabs (< md) */}
+        <div className="md:hidden px-3 pb-2 pt-1 border-t border-slate-100 bg-white">
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setMobileTab("queue")}
+              className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
+                mobileTab === "queue"
+                  ? "bg-white text-surface-dark shadow-xs font-black"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <ListOrdered className="w-3.5 h-3.5" />
+              <span>Queue</span>
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary text-white font-black">
+                {queueOrders.length}
+              </span>
+            </button>
 
-            <Link href="/" className="shrink-0">
-              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold px-2.5 sm:px-3 text-slate-700">
-                <Store className="w-3.5 h-3.5 text-slate-600" />
-                <span>Store</span>
-              </Button>
-            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedOrder) setMobileTab("picking");
+              }}
+              disabled={!selectedOrder}
+              className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
+                mobileTab === "picking"
+                  ? "bg-white text-surface-dark shadow-xs font-black text-primary"
+                  : selectedOrder
+                  ? "text-slate-700 hover:text-slate-900"
+                  : "text-slate-400 opacity-60 cursor-not-allowed"
+              }`}
+            >
+              <PackageCheck className="w-3.5 h-3.5" />
+              <span>{selectedOrder ? `#${selectedOrder.orderNumber}` : "Picking"}</span>
+              {selectedOrder && (
+                <span className="ml-0.5 text-[10px] text-emerald-700 font-bold">
+                  {pickedCount}/{totalItemCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileTab("ready")}
+              className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
+                mobileTab === "ready"
+                  ? "bg-white text-surface-dark shadow-xs font-black"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Ready</span>
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700 font-bold">
+                {readyOrders.length}
+              </span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Split-Screen Workspace (Master-Detail on Mobile) */}
+      {/* Main Responsive Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Column: Orders Queue */}
+        {/* Left Column: Orders Queue (Desktop Always / Mobile in 'queue' or 'ready' tab) */}
         <aside
           className={cn(
             "bg-white border-r border-border-subtle flex flex-col overflow-hidden",
-            selectedOrder
-              ? "hidden md:flex md:w-[35%] min-w-[320px] max-w-[420px]"
-              : "w-full md:w-[35%] min-w-[320px] max-w-[420px]"
+            // Mobile: only show if tab is 'queue' or 'ready'
+            mobileTab === "picking" ? "hidden md:flex" : "flex",
+            "w-full md:w-[360px] lg:w-[400px] shrink-0"
           )}
         >
           {/* Queue Tab Header */}
           <div className="p-3 bg-slate-50 border-b border-border-subtle flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Packing Queue
+                {mobileTab === "ready" ? "Dispatched / Ready" : "Packing Queue"}
               </span>
-              <Badge variant="default" className="text-xs px-2 py-0 bg-primary font-bold">
-                {queueOrders.length}
+              <Badge
+                variant="default"
+                className={`text-xs px-2 py-0 font-bold ${
+                  mobileTab === "ready" ? "bg-slate-700" : "bg-primary"
+                }`}
+              >
+                {mobileTab === "ready" ? readyOrders.length : queueOrders.length}
               </Badge>
             </div>
             <span className="text-[11px] text-slate-500 font-medium">
-              {readyOrders.length} Ready for dispatch
+              {mobileTab === "ready"
+                ? `${queueOrders.length} pending pack`
+                : `${readyOrders.length} ready for dispatch`}
             </span>
           </div>
 
-          {/* Orders List Scroll Area */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border-subtle p-2 space-y-2">
+          {/* Orders List */}
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
             {isLoading ? (
               <div className="p-8 text-center space-y-3">
                 <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto" />
                 <p className="text-xs font-medium text-slate-500">Scanning order queue...</p>
               </div>
+            ) : mobileTab === "ready" ? (
+              readyOrders.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 mt-4">
+                  <CheckCircle2 className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <h4 className="text-sm font-bold text-slate-800">No Orders in Ready Bay</h4>
+                  <p className="text-xs text-slate-500 mt-1">Packed orders awaiting rider pickup appear here.</p>
+                </div>
+              ) : (
+                readyOrders.map((ro) => (
+                  <button
+                    key={ro.id}
+                    onClick={() => handleSelectOrderMobile(ro.id)}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex flex-col gap-2 relative ${
+                      ro.id === selectedOrderId
+                        ? "bg-emerald-50 border-emerald-400 shadow-sm ring-2 ring-emerald-200"
+                        : "bg-white border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span className="text-sm font-black text-slate-900">{ro.orderNumber}</span>
+                      </div>
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                        READY
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-slate-600 truncate">
+                      {ro.customer.name || "Customer"} • {ro.items.length} items • ₹{ro.totalAmount}
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span>{ro.rider ? `Rider: ${ro.rider.name}` : "Awaiting rider"}</span>
+                      <span className="text-primary font-bold">View Slip →</span>
+                    </div>
+                  </button>
+                ))
+              )
             ) : queueOrders.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-4">
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 mt-4">
                 <PackageCheck className="w-10 h-10 text-emerald-500 mx-auto mb-2 opacity-80" />
                 <h4 className="text-sm font-bold text-slate-800">Queue is Clear!</h4>
                 <p className="text-xs text-slate-500 mt-1">All incoming orders have been packed.</p>
@@ -448,22 +534,21 @@ export default function PackerStationPage() {
                 const isSelected = order.id === selectedOrderId;
                 const totalUnits = order.items.reduce((acc, it) => acc + it.quantity, 0);
 
-                // Urgency styles
                 let urgencyBadge = (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                     <Clock className="w-3 h-3 mr-1" /> {order.elapsedMinutes}m
                   </span>
                 );
 
                 if (order.urgency === "WARNING") {
                   urgencyBadge = (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
                       <Clock className="w-3 h-3 mr-1" /> {order.elapsedMinutes}m SLA
                     </span>
                   );
                 } else if (order.urgency === "CRITICAL") {
                   urgencyBadge = (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-600 text-white shadow-sm animate-pulse">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white shadow-xs animate-pulse">
                       <AlertCircle className="w-3 h-3 mr-1" /> {order.elapsedMinutes}m URGENT
                     </span>
                   );
@@ -472,8 +557,8 @@ export default function PackerStationPage() {
                 return (
                   <button
                     key={order.id}
-                    onClick={() => setSelectedOrderId(order.id)}
-                    className={`w-full text-left p-3.5 rounded-xl transition-all flex flex-col gap-2 relative border ${
+                    onClick={() => handleSelectOrderMobile(order.id)}
+                    className={`w-full text-left p-3.5 rounded-2xl transition-all flex flex-col gap-2 relative border ${
                       isSelected
                         ? "bg-emerald-50/70 border-primary shadow-md ring-2 ring-primary/20"
                         : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
@@ -487,7 +572,7 @@ export default function PackerStationPage() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-slate-600">
-                      <div className="font-semibold text-slate-800 truncate max-w-[140px]">
+                      <div className="font-semibold text-slate-800 truncate max-w-[150px]">
                         {order.customer.name || "App Customer"}
                       </div>
                       <Badge
@@ -500,20 +585,30 @@ export default function PackerStationPage() {
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
                       <span>
-                        {order.items.length} SKUs ({totalUnits} pcs)
+                        {order.items.length} SKUs ({totalUnits} units)
                       </span>
                       <span className="font-bold text-slate-700">₹{order.totalAmount}</span>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-xs">
+                      <span className="text-primary font-bold inline-flex items-center gap-1">
+                        {order.status === "PACKING" ? "Continue Packing" : "Start Picking"}
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {order.address?.streetArea || "Hub delivery"}
+                      </span>
                     </div>
                   </button>
                 );
               })
             )}
 
-            {/* Ready for Pickup Accordion Preview */}
+            {/* Desktop Ready for Pickup Summary */}
             {readyOrders.length > 0 && (
-              <div className="pt-4 mt-4 border-t border-slate-200">
+              <div className="hidden md:block pt-3 mt-3 border-t border-slate-200">
                 <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <span>Packed & Ready</span>
+                  <span>Packed &amp; Ready</span>
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                     {readyOrders.length}
                   </Badge>
@@ -523,7 +618,7 @@ export default function PackerStationPage() {
                     <button
                       key={ro.id}
                       onClick={() => setSelectedOrderId(ro.id)}
-                      className={`w-full text-left p-2.5 rounded-lg border text-xs flex items-center justify-between transition-colors ${
+                      className={`w-full text-left p-2.5 rounded-xl border text-xs flex items-center justify-between transition-colors ${
                         ro.id === selectedOrderId
                           ? "bg-slate-200 border-slate-400 font-bold"
                           : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
@@ -533,7 +628,7 @@ export default function PackerStationPage() {
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span className="font-bold">{ro.orderNumber}</span>
                       </div>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] text-slate-500 truncate max-w-[140px]">
                         {ro.rider ? `Rider: ${ro.rider.name}` : "Awaiting rider"}
                       </span>
                     </button>
@@ -548,31 +643,47 @@ export default function PackerStationPage() {
         <main
           className={cn(
             "flex-1 flex flex-col bg-slate-50 overflow-hidden",
-            !selectedOrder ? "hidden md:flex" : "w-full flex"
+            // Mobile: only show if tab is 'picking'
+            mobileTab !== "picking" ? "hidden md:flex" : "flex",
+            "w-full"
           )}
         >
           {selectedOrder ? (
             <>
-              {/* Mobile Back to Queue Bar */}
-              <div className="md:hidden px-4 py-2.5 bg-white border-b border-border-subtle flex items-center justify-between shrink-0">
+              {/* Mobile Back-to-Queue Nav Bar (< md) */}
+              <div className="md:hidden px-3 py-2 bg-white border-b border-border-subtle flex items-center justify-between shrink-0 shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setSelectedOrderId(null)}
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-primary hover:underline"
+                  onClick={() => setMobileTab("queue")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-xs font-bold text-primary active:bg-slate-200 transition-colors"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back to Queue ({queueOrders.length})</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Queue ({queueOrders.length})</span>
                 </button>
-                <Badge variant="secondary" className="font-mono font-bold text-[11px]">
-                  #{selectedOrder.orderNumber}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono font-black text-sm text-surface-dark">
+                    #{selectedOrder.orderNumber}
+                  </span>
+                  <Badge
+                    variant={
+                      selectedOrder.status === "READY_FOR_PICKUP"
+                        ? "default"
+                        : selectedOrder.status === "PACKING"
+                        ? "accent"
+                        : "secondary"
+                    }
+                    className="text-[10px] font-bold"
+                  >
+                    {selectedOrder.status}
+                  </Badge>
+                </div>
               </div>
 
-              {/* Order Detail Banner */}
-              <div className="p-4 sm:p-5 bg-white border-b border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-                <div className="space-y-1">
+              {/* Order Meta Header Banner */}
+              <div className="p-3 sm:p-4 bg-white border-b border-border-subtle shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+                <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-black text-surface-dark tracking-tight">
+                    <h2 className="text-base sm:text-lg font-black text-surface-dark tracking-tight">
                       Order {selectedOrder.orderNumber}
                     </h2>
                     <Badge
@@ -583,48 +694,60 @@ export default function PackerStationPage() {
                           ? "accent"
                           : "secondary"
                       }
-                      className="font-bold uppercase text-[11px]"
+                      className="hidden sm:inline-flex font-bold uppercase text-[10px]"
                     >
                       {selectedOrder.status}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
                     <span>
-                      Customer: <strong>{selectedOrder.customer.name || "Walk-in/App Customer"}</strong>
+                      Customer: <strong>{selectedOrder.customer.name || "App Customer"}</strong>
                     </span>
-                    <span>
-                      Phone: <strong>{selectedOrder.customer.phone || "Not recorded"}</strong>
-                    </span>
-                    <span>
+                    {selectedOrder.customer.phone && (
+                      <span>
+                        Phone: <strong>{selectedOrder.customer.phone}</strong>
+                      </span>
+                    )}
+                    <span className="truncate">
                       Destination: <strong>{selectedOrder.address?.flatBuilding}, {selectedOrder.address?.streetArea}</strong>
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPrintModalOpen(true)}
-                    className="h-10 px-3.5 rounded-xl text-xs font-bold gap-1.5 border-slate-300"
+                    className="h-8 sm:h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-slate-300 text-slate-700"
                   >
-                    <Printer className="w-4 h-4 text-slate-700" />
-                    <span>Print Bag Slip</span>
+                    <Printer className="w-3.5 h-3.5 text-slate-700" />
+                    <span>Bag Slip</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Picking Progress Indicator */}
-              <div className="bg-emerald-50 border-b border-emerald-100 px-6 py-2.5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-emerald-900 uppercase tracking-wider">
-                    Picking Progress:
+              {/* Picking Progress Indicator (Mobile-friendly layout) */}
+              <div className="bg-emerald-50 border-b border-emerald-100 px-3 sm:px-6 py-2 shrink-0 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-black text-emerald-900 tracking-wide flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>PICKING PROGRESS</span>
                   </span>
-                  <span className="text-xs font-bold text-emerald-700">
-                    {pickedCount} of {totalItemCount} Items Checked ({pickProgressPercent}%)
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => checkAllItems(!isFullyPicked)}
+                      className="text-[11px] font-bold text-primary hover:underline"
+                    >
+                      {isFullyPicked ? "Uncheck all" : "Check all"}
+                    </button>
+                    <span className="font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      {pickedCount}/{totalItemCount} ({pickProgressPercent}%)
+                    </span>
+                  </div>
                 </div>
-                <div className="w-48 bg-emerald-200/80 rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-emerald-200/80 rounded-full h-2 overflow-hidden">
                   <div
                     className="bg-primary h-full transition-all duration-300 rounded-full"
                     style={{ width: `${pickProgressPercent}%` }}
@@ -633,16 +756,18 @@ export default function PackerStationPage() {
               </div>
 
               {/* Items Aisle Checklist (Scrollable) */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 pb-28">
                 {Object.entries(itemsByAisle).map(([aisleName, aisleItems]) => (
-                  <section key={aisleName} className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-700 bg-white/70 py-1.5 px-3 rounded-lg border border-slate-200/80">
-                      <Store className="w-4 h-4 text-primary" />
-                      <span>{aisleName}</span>
-                      <span className="text-slate-400 font-normal">({aisleItems.length} SKUs)</span>
+                  <section key={aisleName} className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 bg-white/80 py-1.5 px-3 rounded-xl border border-slate-200/80">
+                      <div className="flex items-center gap-1.5 min-w-0 truncate">
+                        <Store className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="truncate">{aisleName}</span>
+                      </div>
+                      <span className="text-slate-500 font-bold shrink-0">{aisleItems.length} SKUs</span>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 gap-2.5">
                       {aisleItems.map((item) => {
                         const isPicked = Boolean(pickedItemIds[item.id]);
 
@@ -650,22 +775,22 @@ export default function PackerStationPage() {
                           <div
                             key={item.id}
                             onClick={() => toggleItemPicked(item.id)}
-                            className={`min-h-[64px] p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99] select-none ${
                               isPicked
-                                ? "bg-emerald-50/50 border-emerald-300 shadow-sm"
-                                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                                ? "bg-emerald-50/60 border-emerald-300 shadow-xs"
+                                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs"
                             }`}
                           >
-                            <div className="flex items-center gap-3.5 min-w-0">
-                              {/* Large 44px touch target tactile checkbox */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* 44px Tactile Thumb Checkbox */}
                               <div
-                                className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold transition-all shrink-0 ${
+                                className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold transition-all shrink-0 ${
                                   isPicked
-                                    ? "bg-primary text-white shadow-md shadow-primary/20 scale-105"
-                                    : "border-2 border-slate-300 bg-slate-50 text-transparent hover:border-primary"
+                                    ? "bg-primary text-white shadow-xs scale-105"
+                                    : "border-2 border-slate-300 bg-slate-50 text-transparent"
                                 }`}
                               >
-                                <Check className="w-6 h-6 stroke-[3]" />
+                                <Check className="w-5 h-5 stroke-[3]" />
                               </div>
 
                               {/* Thumbnail */}
@@ -682,24 +807,29 @@ export default function PackerStationPage() {
                               {/* Product Info */}
                               <div className="min-w-0">
                                 <h4
-                                  className={`text-sm sm:text-base font-bold tracking-tight truncate ${
+                                  className={`text-xs sm:text-sm font-bold tracking-tight line-clamp-2 ${
                                     isPicked ? "line-through text-slate-400" : "text-surface-dark"
                                   }`}
                                 >
                                   {item.product.name}
                                 </h4>
-                                <div className="text-xs text-slate-500 flex items-center gap-2">
+                                <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
                                   <span>{item.product.packSize}</span>
                                   <span>•</span>
-                                  <span>₹{item.unitPrice} each</span>
+                                  <span>₹{item.unitPrice}</span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Quantity High-Contrast Badge */}
-                            <div className="shrink-0 flex items-center gap-3">
-                              <div className="h-10 px-3.5 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm tracking-wide shadow-sm">
-                                x{item.quantity} UNITS
+                            <div className="shrink-0 flex flex-col items-center justify-center pl-1">
+                              <div className="px-2.5 py-1 bg-slate-900 text-white rounded-xl flex flex-col items-center justify-center shadow-xs">
+                                <span className="font-black text-xs sm:text-sm leading-none">
+                                  x{item.quantity}
+                                </span>
+                                <span className="text-[8px] uppercase tracking-wider text-slate-300 font-bold">
+                                  pcs
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -710,64 +840,70 @@ export default function PackerStationPage() {
                 ))}
               </div>
 
-              {/* Station Action Footer (Always pinned at bottom) */}
-              <div className="p-4 sm:p-5 bg-white border-t border-border-subtle shadow-lg flex items-center justify-between gap-4 shrink-0">
-                <div className="text-xs text-slate-500 font-medium">
-                  {selectedOrder.status === "PENDING" && (
-                    <span>Tap <strong>Start Picking</strong> to lock order and begin floor traversal.</span>
-                  )}
-                  {selectedOrder.status === "PACKING" && (
-                    <span>Check all items and pack into SabQuick safety sealed tote.</span>
-                  )}
-                  {selectedOrder.status === "READY_FOR_PICKUP" && (
-                    <span className="text-emerald-700 font-bold">
-                      Order packed and staged in Dispatch Bay.
-                    </span>
-                  )}
-                </div>
+              {/* Sticky Safe-Area Station Action Footer */}
+              <div className="fixed sm:sticky bottom-0 left-0 right-0 p-3 sm:p-4 bg-white/95 backdrop-blur-md border-t border-border-subtle shadow-xl pb-[calc(env(safe-area-inset-bottom,0px)+12px)] shrink-0 z-20">
+                <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="hidden sm:block text-xs text-slate-500 font-medium">
+                    {selectedOrder.status === "PENDING" && (
+                      <span>Tap <strong>Start Picking</strong> to lock order and begin floor collection.</span>
+                    )}
+                    {selectedOrder.status === "PACKING" && (
+                      <span>Verify all items and seal into a SABQuick branded bag.</span>
+                    )}
+                    {selectedOrder.status === "READY_FOR_PICKUP" && (
+                      <span className="text-emerald-700 font-bold">
+                        Order packed and staged in Dispatch Bay.
+                      </span>
+                    )}
+                  </div>
 
-                <div className="flex items-center space-x-3">
-                  {selectedOrder.status === "PENDING" && (
-                    <Button
-                      variant="default"
-                      size="lg"
-                      onClick={() => handleTransitionStatus("PACKING")}
-                      disabled={actionLoading}
-                      className="h-12 px-6 rounded-xl font-black text-sm gap-2 shadow-md hover:shadow-lg bg-primary"
-                    >
-                      <Layers className="w-5 h-5" />
-                      <span>START PICKING</span>
-                    </Button>
-                  )}
+                  <div className="w-full sm:w-auto flex items-center gap-2">
+                    {selectedOrder.status === "PENDING" && (
+                      <Button
+                        variant="default"
+                        size="lg"
+                        onClick={() => handleTransitionStatus("PACKING")}
+                        disabled={actionLoading}
+                        className="w-full sm:w-auto h-12 px-6 rounded-xl font-black text-sm gap-2 shadow-md bg-primary hover:bg-primary-dark"
+                      >
+                        <Layers className="w-5 h-5" />
+                        <span>START PICKING ORDER</span>
+                      </Button>
+                    )}
 
-                  {selectedOrder.status === "PACKING" && (
-                    <Button
-                      variant="default"
-                      size="lg"
-                      onClick={() => handleTransitionStatus("READY_FOR_PICKUP")}
-                      disabled={actionLoading}
-                      className={`h-12 px-6 rounded-xl font-black text-sm gap-2 shadow-md hover:shadow-lg transition-all ${
-                        isFullyPicked
-                          ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/50"
-                          : "bg-slate-900 hover:bg-slate-800 text-white"
-                      }`}
-                    >
-                      <PackageCheck className="w-5 h-5" />
-                      <span>MARK ORDER PACKED & NOTIFY RIDERS</span>
-                    </Button>
-                  )}
+                    {selectedOrder.status === "PACKING" && (
+                      <Button
+                        variant="default"
+                        size="lg"
+                        onClick={() => handleTransitionStatus("READY_FOR_PICKUP")}
+                        disabled={actionLoading}
+                        className={`w-full sm:w-auto h-12 px-6 rounded-xl font-black text-sm gap-2 shadow-md transition-all ${
+                          isFullyPicked
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/50"
+                            : "bg-slate-900 hover:bg-slate-800 text-white"
+                        }`}
+                      >
+                        <PackageCheck className="w-5 h-5" />
+                        <span>
+                          {isFullyPicked
+                            ? "MARK PACKED & READY FOR RIDER"
+                            : `MARK PACKED (${pickedCount}/${totalItemCount})`}
+                        </span>
+                      </Button>
+                    )}
 
-                  {selectedOrder.status === "READY_FOR_PICKUP" && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => setPrintModalOpen(true)}
-                      className="h-12 px-6 rounded-xl font-black text-sm gap-2 border-emerald-500 text-emerald-700 bg-emerald-50"
-                    >
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      <span>PACKED & READY (PRINT SLIP)</span>
-                    </Button>
-                  )}
+                    {selectedOrder.status === "READY_FOR_PICKUP" && (
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={() => setPrintModalOpen(true)}
+                        className="w-full sm:w-auto h-12 px-6 rounded-xl font-black text-sm gap-2 border-emerald-500 text-emerald-700 bg-emerald-50"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span>PACKED &amp; READY (PRINT SLIP)</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </>
@@ -777,13 +913,23 @@ export default function PackerStationPage() {
                 <PackageCheck className="w-8 h-8" />
               </div>
               <h3 className="text-base font-black text-surface-dark">
-                {queueOrders.length === 0 ? "Packing Queue is Clear!" : "No Order Selected"}
+                {queueOrders.length === 0 ? "Packing Queue is Clear!" : "Select an Order"}
               </h3>
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
                 {queueOrders.length === 0
-                  ? "All received orders have been picked and packed. New incoming orders will appear here automatically."
-                  : "Select an active order from the queue on the left to begin dark-store aisle picking."}
+                  ? "All orders have been picked and packed. New incoming orders will appear here automatically."
+                  : "Tap an active order from the queue to open its aisle checklist."}
               </p>
+              {queueOrders.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMobileTab("queue")}
+                  className="mt-4 md:hidden rounded-xl font-bold text-xs"
+                >
+                  View Queue ({queueOrders.length})
+                </Button>
+              )}
             </div>
           )}
         </main>
@@ -792,11 +938,11 @@ export default function PackerStationPage() {
       {/* Bag Slip Print Preview Modal */}
       {selectedOrder && (
         <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
-          <DialogContent className="sm:max-w-md bg-white rounded-2xl p-6">
+          <DialogContent className="sm:max-w-md bg-white rounded-2xl p-5">
             <DialogHeader>
-              <DialogTitle className="text-lg font-black text-surface-dark flex items-center gap-2">
+              <DialogTitle className="text-base font-black text-surface-dark flex items-center gap-2">
                 <Printer className="w-5 h-5 text-primary" />
-                SabQuick Bag Label Simulation
+                SABQuick Bag Label Simulation
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
                 Print ready thermal slip for staging tote.
@@ -804,10 +950,10 @@ export default function PackerStationPage() {
             </DialogHeader>
 
             {/* Thermal Slip Preview Frame */}
-            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-4 font-mono text-xs text-slate-800 space-y-3">
-              <div className="flex flex-col items-center pb-2 border-b border-dashed border-slate-300 gap-1.5">
-                <Logo variant="thermal" size={170} />
-                <div className="text-[10px] text-slate-500 font-bold tracking-wider">HUB #01 - AMBIKAPUR, CHHATTISGARH</div>
+            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-3.5 font-mono text-xs text-slate-800 space-y-2.5">
+              <div className="flex flex-col items-center pb-2 border-b border-dashed border-slate-300 gap-1">
+                <Logo variant="thermal" size={150} />
+                <div className="text-[9px] text-slate-500 font-bold tracking-wider">HUB #01 - AMBIKAPUR, CHHATTISGARH</div>
               </div>
 
               <div className="space-y-1 text-[11px]">
@@ -841,65 +987,54 @@ export default function PackerStationPage() {
                 <span>₹{selectedOrder.totalAmount} ({selectedOrder.paymentMethod})</span>
               </div>
 
-              <div className="text-center pt-2 text-[10px] text-slate-500">
-                *** SCAN TO DISPATCH / HANDOVER ***
+              <div className="text-center pt-1 text-[9px] text-slate-500 font-bold">
+                *** SABQUICK SUPERFAST DELIVERY ***
               </div>
             </div>
 
-            <DialogFooter className="flex gap-2 sm:justify-between">
+            <DialogFooter className="flex gap-2 sm:justify-between pt-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPrintModalOpen(false)}
-                className="rounded-xl"
+                className="rounded-xl text-xs font-bold w-full"
               >
-                Close
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  window.print();
-                  setPrintModalOpen(false);
-                }}
-                className="rounded-xl font-bold bg-primary"
-              >
-                Trigger Printer
+                Close Slip
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Unpicked Items Confirmation Modal */}
+      {/* Unpicked Confirmation Dialog */}
       <Dialog open={unpickedConfirmModalOpen} onOpenChange={setUnpickedConfirmModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-2xl p-6">
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl p-5">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-rose-600 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              Unchecked Items In Order
+              <AlertCircle className="w-5 h-5 text-rose-500" />
+              Unchecked Items Remaining!
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-600 pt-1">
-              You have {totalItemCount - pickedCount} item(s) that have not been checked off on the floor checklist. Do you want to mark this order as completely packed regardless?
+            <DialogDescription className="text-xs text-slate-600">
+              Only {pickedCount} of {totalItemCount} items have been checked. Are you sure you want to mark this order packed and summon riders?
             </DialogDescription>
           </DialogHeader>
-
-          <DialogFooter className="flex gap-2 sm:justify-end pt-3">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setUnpickedConfirmModalOpen(false)}
-              className="rounded-xl"
+              className="rounded-xl text-xs font-bold"
             >
-              Cancel & Continue Picking
+              Continue Checking
             </Button>
             <Button
               variant="default"
               size="sm"
               onClick={() => executeStatusChange("READY_FOR_PICKUP")}
-              className="rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white"
+              disabled={actionLoading}
+              className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white"
             >
-              Override & Mark Packed
+              Force Pack &amp; Notify Riders
             </Button>
           </DialogFooter>
         </DialogContent>

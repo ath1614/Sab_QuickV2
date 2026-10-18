@@ -199,6 +199,11 @@ export async function sendOrderStatusPushNotification(
     let body = "";
 
     switch (newStatus) {
+      case OrderStatus.PENDING:
+        title = "Order Placed! ⚡";
+        body = `Your order #${order.orderNumber} is received. SABQuick dark store is preparing your groceries.`;
+        break;
+
       case OrderStatus.CONFIRMED:
         title = "Order Confirmed! ⚡";
         body = `Your order #${order.orderNumber} is confirmed! Our dark store team is packing it now.`;
@@ -206,7 +211,7 @@ export async function sendOrderStatusPushNotification(
 
       case OrderStatus.PACKING:
         title = "Assembling Fresh Items 🛍️";
-        body = `Order #${order.orderNumber} is being packed fresh at the SabQuick dark store.`;
+        body = `Order #${order.orderNumber} is being packed fresh at the SABQuick dark store.`;
         break;
 
       case OrderStatus.READY_FOR_PICKUP:
@@ -219,12 +224,12 @@ export async function sendOrderStatusPushNotification(
         const otpNote = order.deliveryOtp ? ` • Share OTP ${order.deliveryOtp}` : "";
         body = order.rider?.name
           ? `${order.rider.name} is on the way with your order #${order.orderNumber}${otpNote} (superfast delivery).`
-          : `Your SabQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (superfast delivery).`;
+          : `Your SABQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (superfast delivery).`;
         break;
 
       case OrderStatus.DELIVERED:
         title = "Order Delivered! 🎉";
-        body = `Order #${order.orderNumber} has been delivered. Thank you for shopping with SabQuick!`;
+        body = `Order #${order.orderNumber} has been delivered. Thank you for shopping with SABQuick!`;
         break;
 
       case OrderStatus.CANCELLED:

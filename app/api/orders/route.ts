@@ -373,23 +373,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. Dispatch Firebase Push Notification to Store Staff & Customer
-    if (order.status === "CONFIRMED") {
-      try {
-        const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
-        sendNewOrderStaffAlert({
-          id: order.id,
-          orderNumber: order.orderNumber,
-          totalAmount: order.totalAmount,
-          itemCount: order.items.length,
-        }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+    // 8. Dispatch Push Notification to Store Staff & Customer
+    try {
+      const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
+      // Alert store staff (Owner, Manager, Packer) of incoming order
+      sendNewOrderStaffAlert({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        itemCount: order.items.length,
+      }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
 
-        sendOrderStatusPushNotification(order.id, order.status).catch((e) =>
-          console.warn("[FCM Customer Order Push Warning]:", e)
-        );
-      } catch (pushErr) {
-        console.warn("[Push Notification Import Warning]:", pushErr);
-      }
+      // Alert customer of order receipt
+      sendOrderStatusPushNotification(order.id, order.status).catch((e) =>
+        console.warn("[FCM Customer Order Push Warning]:", e)
+      );
+    } catch (pushErr) {
+      console.warn("[Push Notification Import Warning]:", pushErr);
     }
 
     const responsePayload = {

@@ -160,6 +160,9 @@ export function ActiveOrderFloatingBar() {
       eventSource.addEventListener("status_update", (event: MessageEvent) => {
         try {
           const update = JSON.parse(event.data);
+          if (navigator?.vibrate) {
+            try { navigator.vibrate([40, 50, 40]); } catch {}
+          }
           if (update.status === "DELIVERED" || update.status === "CANCELLED") {
             setIsExiting(true);
             setTimeout(() => {
