@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import WebKit
+import CapApp_SPM
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, WKScriptMessageHandler {
@@ -32,6 +33,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, WKScriptMessageHandler {
     ]
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Retain SPM plugin classes against dead-code stripping
+        CapAppSPMInit.retainClasses()
+
         // 1. Intercept native UPI schemes from web checkout (Cashfree / direct UPI intent)
         NotificationCenter.default.addObserver(
             forName: .capacitorDecidePolicyForNavigationAction,

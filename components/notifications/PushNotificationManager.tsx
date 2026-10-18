@@ -6,6 +6,29 @@ import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 
 /**
+ * Programmatic helper to request push notification permission
+ * Can be called upon user interaction (e.g. order checkout or toggle).
+ */
+export async function promptPushPermissions(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    let status = await PushNotifications.checkPermissions();
+    if (status.receive !== "granted") {
+      status = await PushNotifications.requestPermissions();
+    }
+    if (status.receive === "granted") {
+      await PushNotifications.register();
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn("[PushNotifications] promptPushPermissions error:", err);
+    return false;
+  }
+}
+
+/**
  * Global Push Notification Lifecycle Controller
  *
  * Manages push notification registration, channel setup, foreground alerts,
@@ -14,146 +37,150 @@ import { Capacitor } from "@capacitor/core";
 export function PushNotificationManager() {
   const { data: session } = useSession();
   const router = useRouter();
+  const sessionUserIdRef = React.useRef(session?.user?.id);
+  sessionUserIdRef.current = session?.user?.id;
 
+  const syncTokenToServer = React.useCallback(async (tokenVal: string) => {
+    if (!tokenVal) return;
+    try {
+      await fetch("/api/notifications/register-device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: tokenVal,
+          platform: Capacitor.getPlatform().toUpperCase(),
+          deviceModel: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+        }),
+      });
+    } catch (syncErr) {
+      console.warn("[PushNotifications] server sync notice:", syncErr);
+    }
+  }, []);
+
+  // Main native push lifecycle effect - runs once on mount
   React.useEffect(() => {
-    let isMounted = true;
     let cleanupListeners: (() => void) | undefined;
 
     async function initPush() {
-      // 1. Mobile App Flow (Capacitor Android / iOS)
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const { PushNotifications } = await import("@capacitor/push-notifications");
+      if (!Capacitor.isNativePlatform()) return;
 
-          // Set up High Priority Notification Channels for Android
-          if (Capacitor.getPlatform() === "android") {
-            try {
-              await PushNotifications.createChannel({
-                id: "sabquick_orders",
-                name: "Order Updates",
-                description: "Live tracking, dispatch and delivery alerts for your groceries",
-                importance: 5,
-                visibility: 1,
-                sound: "default",
-                vibration: true,
-                lights: true,
-                lightColor: "#0B6E4F",
-              });
+      try {
+        const { PushNotifications } = await import("@capacitor/push-notifications");
 
-              await PushNotifications.createChannel({
-                id: "sabquick_staff_orders",
-                name: "Store Staff Alerts",
-                description: "Instant order notifications for packers and store managers",
-                importance: 5,
-                visibility: 1,
-                sound: "default",
-                vibration: true,
-                lights: true,
-                lightColor: "#00C853",
-              });
-            } catch (chanErr) {
-              console.warn("[PushNotifications] channel creation notice:", chanErr);
-            }
+        // 1. Set up High Priority Notification Channels for Android
+        if (Capacitor.getPlatform() === "android") {
+          try {
+            await PushNotifications.createChannel({
+              id: "sabquick_orders",
+              name: "Order Updates",
+              description: "Live tracking, dispatch and delivery alerts for your groceries",
+              importance: 5,
+              visibility: 1,
+              sound: "default",
+              vibration: true,
+              lights: true,
+              lightColor: "#0B6E4F",
+            });
+
+            await PushNotifications.createChannel({
+              id: "sabquick_staff_orders",
+              name: "Store Staff Alerts",
+              description: "Instant order notifications for packers and store managers",
+              importance: 5,
+              visibility: 1,
+              sound: "default",
+              vibration: true,
+              lights: true,
+              lightColor: "#00C853",
+            });
+          } catch (chanErr) {
+            console.warn("[PushNotifications] channel creation notice:", chanErr);
           }
-
-          // Check & request permission
-          let permStatus = await PushNotifications.checkPermissions();
-          if (permStatus.receive === "prompt") {
-            permStatus = await PushNotifications.requestPermissions();
-          }
-
-          if (permStatus.receive === "granted") {
-            try {
-              // Register with APNs / FCM
-              await PushNotifications.register();
-            } catch (regCallErr) {
-              console.warn("[PushNotifications] Push registration call handled safely:", regCallErr);
-            }
-          }
-
-          // Registration Token Handler
-          const regListener = await PushNotifications.addListener(
-            "registration",
-            async (token) => {
-              if (!isMounted || !token?.value) return;
-              console.log("[PushNotifications] Device push token obtained:", token.value.substring(0, 16) + "...");
-
-              try {
-                localStorage.setItem("sabquick_device_token", token.value);
-              } catch (storageErr) {
-                console.warn("[PushNotifications] Could not save token to localStorage:", storageErr);
-              }
-
-              // If session exists, persist token to database
-              if (session?.user?.id) {
-                try {
-                  await fetch("/api/notifications/register-device", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      token: token.value,
-                      platform: Capacitor.getPlatform().toUpperCase(),
-                      deviceModel: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-                    }),
-                  });
-                } catch (regErr) {
-                  console.warn("[PushNotifications] server sync warning:", regErr);
-                }
-              }
-            }
-          );
-
-          // Registration Error Handler
-          const errListener = await PushNotifications.addListener(
-            "registrationError",
-            (error) => {
-              console.warn("[PushNotifications] registration failed:", error);
-            }
-          );
-
-          // Foreground Notification Received
-          const recListener = await PushNotifications.addListener(
-            "pushNotificationReceived",
-            (notification) => {
-              console.log("[PushNotifications] Received in foreground:", notification.title);
-            }
-          );
-
-          // Notification Tapped / Action Performed
-          const actListener = await PushNotifications.addListener(
-            "pushNotificationActionPerformed",
-            (action) => {
-              const data = action.notification.data;
-              console.log("[PushNotifications] Notification tapped:", data);
-              if (data?.url) {
-                router.push(data.url);
-              } else if (data?.orderNumber) {
-                router.push(`/orders/${data.orderNumber}`);
-              }
-            }
-          );
-
-          cleanupListeners = () => {
-            regListener.remove();
-            errListener.remove();
-            recListener.remove();
-            actListener.remove();
-          };
-        } catch (err) {
-          console.warn("[PushNotifications] Native push initialization skipped or failed:", err);
         }
+
+        // 2. Attach ALL listeners FIRST before calling register() per official Capacitor docs
+        const regListener = await PushNotifications.addListener(
+          "registration",
+          async (token) => {
+            if (!token?.value) return;
+            console.log("[PushNotifications] Device push token obtained:", token.value.substring(0, 16) + "...");
+
+            try {
+              localStorage.setItem("sabquick_device_token", token.value);
+            } catch (storageErr) {
+              console.warn("[PushNotifications] Could not save token to localStorage:", storageErr);
+            }
+
+            // Sync with backend if user is authenticated
+            if (sessionUserIdRef.current) {
+              await syncTokenToServer(token.value);
+            }
+          }
+        );
+
+        const errListener = await PushNotifications.addListener(
+          "registrationError",
+          (error) => {
+            console.warn("[PushNotifications] native registration failed:", error);
+          }
+        );
+
+        const recListener = await PushNotifications.addListener(
+          "pushNotificationReceived",
+          (notification) => {
+            console.log("[PushNotifications] Received in foreground:", notification.title);
+          }
+        );
+
+        const actListener = await PushNotifications.addListener(
+          "pushNotificationActionPerformed",
+          (action) => {
+            const data = action.notification.data;
+            console.log("[PushNotifications] Notification tapped:", data);
+            if (data?.url) {
+              router.push(data.url);
+            } else if (data?.orderNumber) {
+              router.push(`/orders/${data.orderNumber}`);
+            }
+          }
+        );
+
+        cleanupListeners = () => {
+          regListener.remove();
+          errListener.remove();
+          recListener.remove();
+          actListener.remove();
+        };
+
+        // 3. Check and request permission (triggers Apple native prompt on iOS if notDetermined)
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive !== "granted") {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        // 4. If granted, register with APNs / FCM
+        if (permStatus.receive === "granted") {
+          try {
+            await PushNotifications.register();
+          } catch (regCallErr) {
+            console.warn("[PushNotifications] Push registration call notice:", regCallErr);
+          }
+        } else {
+          console.log("[PushNotifications] User notification status:", permStatus.receive);
+        }
+      } catch (err) {
+        console.warn("[PushNotifications] Native push initialization notice:", err);
       }
     }
 
     initPush();
 
     return () => {
-      isMounted = false;
       if (cleanupListeners) {
         cleanupListeners();
       }
     };
-  }, [session?.user?.id, router]);
+  }, [router, syncTokenToServer]);
 
   // Sync cached token whenever user logs in or session refreshes
   React.useEffect(() => {
@@ -161,22 +188,12 @@ export function PushNotificationManager() {
     try {
       const cachedToken = localStorage.getItem("sabquick_device_token");
       if (cachedToken) {
-        fetch("/api/notifications/register-device", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token: cachedToken,
-            platform: Capacitor.getPlatform().toUpperCase(),
-            deviceModel: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-          }),
-        }).catch((err) => {
-          console.warn("[PushNotifications] Session login token sync notice:", err);
-        });
+        syncTokenToServer(cachedToken);
       }
     } catch {
       // ignore
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, syncTokenToServer]);
 
   return null;
 }
