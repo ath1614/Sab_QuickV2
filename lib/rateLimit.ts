@@ -28,7 +28,7 @@ export interface RateLimitResult {
 
 // Route-specific rate limit profiles
 const RATE_LIMIT_RULES = [
-  // 1. Sensitive SMS OTP Dispatch: Max 5 requests per 60s per IP
+  // 1. Sensitive SMS OTP Dispatch: Max 5 requests per 60s per IP (protects SMS gateway budget)
   {
     prefix: "/api/auth/otp/send",
     windowMs: 60_000,
@@ -36,37 +36,67 @@ const RATE_LIMIT_RULES = [
     banThreshold: 10,
     banDurationMs: 5 * 60_000, // 5 minutes ban if hammering
   },
-  // 2. OTP Verification: Max 10 requests per 60s per IP
+  // 2. OTP Verification: Max 15 requests per 60s per IP (prevents brute-force)
   {
     prefix: "/api/auth/otp/verify",
     windowMs: 60_000,
-    maxRequests: 10,
-    banThreshold: 20,
+    maxRequests: 15,
+    banThreshold: 30,
     banDurationMs: 5 * 60_000,
   },
-  // 3. Order Placement & Checkout: Max 20 requests per 60s per IP
+  // 3. Order Placement & Checkout: Max 30 requests per 60s per IP
   {
     prefix: "/api/orders",
     windowMs: 60_000,
-    maxRequests: 20,
-    banThreshold: 40,
-    banDurationMs: 3 * 60_000,
+    maxRequests: 30,
+    banThreshold: 60,
+    banDurationMs: 2 * 60_000,
   },
-  // 4. General API Endpoints: Max 120 requests per 60s per IP
+  // 4. Read-Only Public Catalog & Store Metadata: Max 1,200 requests per 60s per IP (generous for shared Wi-Fi & multiple testers)
+  {
+    prefix: "/api/products",
+    windowMs: 60_000,
+    maxRequests: 1200,
+    banThreshold: 2500,
+    banDurationMs: 30_000,
+  },
+  {
+    prefix: "/api/categories",
+    windowMs: 60_000,
+    maxRequests: 1200,
+    banThreshold: 2500,
+    banDurationMs: 30_000,
+  },
+  {
+    prefix: "/api/theme",
+    windowMs: 60_000,
+    maxRequests: 1200,
+    banThreshold: 2500,
+    banDurationMs: 30_000,
+  },
+  // 5. Staff Polling Endpoints (Manager & Packer live feed polling)
+  {
+    prefix: "/api/ops",
+    windowMs: 60_000,
+    maxRequests: 600,
+    banThreshold: 1500,
+    banDurationMs: 30_000,
+  },
+  // 6. General API Endpoints: Max 600 requests per 60s per IP (supports multiple active devices on single Wi-Fi router)
   {
     prefix: "/api/",
     windowMs: 60_000,
-    maxRequests: 120,
-    banThreshold: 250,
-    banDurationMs: 2 * 60_000,
+    maxRequests: 600,
+    banThreshold: 1500,
+    banDurationMs: 60_000,
   },
-  // 5. Storefront & Public Pages: Max 80 requests per 10s per IP (flood defense)
+  // 7. Storefront & Public Pages: Max 300 requests per 10s per IP (flood defense)
   {
     prefix: "/",
     windowMs: 10_000,
-    maxRequests: 80,
-    banThreshold: 150,
-    banDurationMs: 2 * 60_000,
+    maxRequests: 300,
+    banThreshold: 600,
+    banDurationMs: 60_000,
   },
 ];
 

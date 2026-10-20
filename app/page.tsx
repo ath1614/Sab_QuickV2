@@ -281,9 +281,13 @@ function StorefrontContent() {
     }
   }, []);
 
-  // 1. Fetch Theme & Categories
+  const [reloadTrigger, setReloadTrigger] = React.useState<number>(0);
+  const [productFetchError, setProductFetchError] = React.useState<string | null>(null);
+
+  // 1. Fetch Theme & Categories with auto-retry
   React.useEffect(() => {
-    async function loadMetadata() {
+    let cancelled = false;
+    async function loadMetadata(isRetry = false) {
       try {
         const [themeRes, catRes] = await Promise.all([
           fetch("/api/theme"),
@@ -292,15 +296,25 @@ function StorefrontContent() {
 
         if (themeRes.ok) {
           const themeData = await themeRes.json();
-          setTheme(themeData);
+          if (!cancelled) setTheme(themeData);
         }
 
         if (catRes.ok) {
           const catData = await catRes.json();
-          setCategories(catData.categories || []);
+          if (!cancelled) setCategories(catData.categories || []);
+        } else if (!isRetry) {
+          setTimeout(() => {
+            if (!cancelled) loadMetadata(true);
+          }, 1200);
         }
       } catch (err) {
-        console.warn("Failed to load store metadata:", err);
+        if (!isRetry) {
+          setTimeout(() => {
+            if (!cancelled) loadMetadata(true);
+          }, 1200);
+        } else {
+          console.warn("Failed to load store metadata:", err);
+        }
       }
     }
 
@@ -316,7 +330,11 @@ function StorefrontContent() {
         setAuthError("Please log in to access staff portals.");
       }
     }
-  }, [searchParams]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, reloadTrigger]);
 
   // Synchronize activeSearch if URL query param changes
   React.useEffect(() => {
@@ -324,10 +342,12 @@ function StorefrontContent() {
     setActiveSearch(urlSearch);
   }, [searchParams]);
 
-  // 2. Fetch Products based on Category & Search
+  // 2. Fetch Products based on Category & Search with auto-retry
   React.useEffect(() => {
-    async function loadProducts() {
+    let cancelled = false;
+    async function loadProducts(isRetry = false) {
       setIsLoadingProducts(true);
+      if (!isRetry) setProductFetchError(null);
       try {
         // When searching, bypass category scoping so user can find items across the entire catalog
         const hasSearch = Boolean(activeSearch && activeSearch.trim().length > 0);
@@ -349,17 +369,46 @@ function StorefrontContent() {
 
         if (res.ok) {
           const data = await res.json();
-          setProducts(data.products || []);
+          if (!cancelled) {
+            setProducts(data.products || []);
+            setProductFetchError(null);
+          }
+        } else {
+          if (!isRetry) {
+            // Auto-retry once after 1.2s in case of transient Wi-Fi packet drop or rate limit blip
+            setTimeout(() => {
+              if (!cancelled) loadProducts(true);
+            }, 1200);
+            return;
+          }
+          if (!cancelled) {
+            setProductFetchError(`HTTP ${res.status}: Unable to load catalog`);
+          }
         }
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
+      } catch (err: any) {
+        if (!isRetry) {
+          setTimeout(() => {
+            if (!cancelled) loadProducts(true);
+          }, 1200);
+          return;
+        }
+        if (!cancelled) {
+          console.error("Failed to fetch products:", err);
+          setProductFetchError(err?.message || "Network error loading products");
+        }
       } finally {
-        setIsLoadingProducts(false);
+        if (!cancelled) {
+          setIsLoadingProducts(false);
+        }
       }
     }
 
     loadProducts();
-  }, [categoryParam, subParam, activeSearch]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryParam, subParam, activeSearch, reloadTrigger]);
 
   // Category navigation selector
   const handleSelectCategory = (catSlug: string, subSlug?: string) => {
@@ -602,6 +651,27 @@ function StorefrontContent() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : productFetchError && products.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-rose-200/70 p-8 space-y-4 shadow-xs">
+            <div className="h-16 w-16 mx-auto rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500">
+              <RefreshCw className="w-8 h-8 text-rose-500" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-surface-dark">Storefront Connection Hiccup</h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Unable to load products right now. This usually happens during a quick Wi-Fi network hiccup. Tap below to reload.
+              </p>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setReloadTrigger((prev) => prev + 1)}
+              className="rounded-xl font-bold gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reload Products
+            </Button>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl border border-border-subtle p-8 space-y-4">

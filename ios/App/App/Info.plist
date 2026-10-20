@@ -62,16 +62,12 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>SABQuick uses your camera to scan delivery QR codes and OTP receipts.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>SABQuick uses your location to verify delivery within our superfast 3.5 km dark store geofence.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>SABQuick uses your location to show available groceries and deliver orders accurately to your doorstep.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>SABQuick uses your location to show available groceries and track live delivery to your doorstep.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SABQuick uses your location to verify delivery within our superfast 3.5 km dark store geofence.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -91,6 +87,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

@@ -240,26 +240,59 @@ function CategoriesContent() {
     return q;
   }, [cartItems]);
 
-  // Fetch initial catalog
+  const [reloadTrigger, setReloadTrigger] = React.useState(0);
+  const [categoriesFetchError, setCategoriesFetchError] = React.useState<string | null>(null);
+
+  // Fetch initial catalog with auto-retry
   React.useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      fetch("/api/categories").then((r) => (r.ok ? r.json() : { categories: [] })),
-      fetch("/api/products").then((r) => (r.ok ? r.json() : { products: [] })),
-    ])
-      .then(([catData, prodData]) => {
-        if (cancelled) return;
-        setCategories(catData.categories || []);
-        setProducts(prodData.products || []);
-      })
-      .catch((err) => console.warn("Categories page load failed:", err))
-      .finally(() => {
+    setLoading(true);
+    setCategoriesFetchError(null);
+
+    async function loadCatalog(isRetry = false) {
+      try {
+        const [catRes, prodRes] = await Promise.all([
+          fetch("/api/categories"),
+          fetch("/api/products"),
+        ]);
+
+        if (catRes.ok && prodRes.ok) {
+          const catData = await catRes.json();
+          const prodData = await prodRes.json();
+          if (!cancelled) {
+            setCategories(catData.categories || []);
+            setProducts(prodData.products || []);
+            setCategoriesFetchError(null);
+          }
+        } else if (!isRetry) {
+          setTimeout(() => {
+            if (!cancelled) loadCatalog(true);
+          }, 1200);
+        } else {
+          if (!cancelled) {
+            setCategoriesFetchError("Unable to load category catalog");
+          }
+        }
+      } catch (err: any) {
+        if (!isRetry) {
+          setTimeout(() => {
+            if (!cancelled) loadCatalog(true);
+          }, 1200);
+        } else if (!cancelled) {
+          console.warn("Categories page load failed:", err);
+          setCategoriesFetchError(err?.message || "Connection failed");
+        }
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    loadCatalog();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadTrigger]);
 
   // Sync category and subcategory from URL search params
   React.useEffect(() => {
@@ -527,6 +560,22 @@ function CategoriesContent() {
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="h-60 rounded-xl bg-white animate-pulse" />
                 ))}
+              </div>
+            ) : categoriesFetchError && categories.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-rose-200 p-8 sm:p-12 text-center space-y-3 mt-4 shadow-xs">
+                <RefreshCw className="w-10 h-10 text-rose-400 mx-auto" />
+                <h3 className="text-sm font-bold text-slate-800">Connection Hiccup</h3>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                  Could not load categories due to a network glitch. Tap below to reload.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setReloadTrigger((prev) => prev + 1)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary-hover shadow-xs transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reload Categories
+                </button>
               </div>
             ) : panelProducts.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center space-y-3 mt-4">
