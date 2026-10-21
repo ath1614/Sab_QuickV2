@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import {
   Zap,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   RotateCw,
   AlertCircle,
@@ -14,8 +15,6 @@ import {
   CheckCircle2,
   Phone,
   User,
-  ShoppingBag,
-  Sparkle,
 } from "lucide-react";
 import { BRAND_ASSETS } from "@/lib/assets";
 import { Button } from "@/components/ui/button";
@@ -43,11 +42,9 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
   const [fullName, setFullName] = React.useState<string>("");
   const [isNewUser, setIsNewUser] = React.useState<boolean>(false);
   const [verifyCode, setVerifyCode] = React.useState<string>("");
-  const [otpDigits, setOtpDigits] = React.useState<string[]>(["", "", "", ""]);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
-  const [autoOtp, setAutoOtp] = React.useState<string | null>(null);
   const [countdown, setCountdown] = React.useState<number>(0);
 
   // Countdown timer effect for OTP resend
@@ -90,11 +87,9 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       setStep("OTP");
 
       if (data.freeOtp) {
-        setAutoOtp(data.freeOtp);
         setVerifyCode(data.freeOtp);
         setSuccessMsg("Verification code ready! Click 'Verify Code' below.");
       } else {
-        setAutoOtp(null);
         setSuccessMsg(data.message || "Verification code sent to your mobile phone.");
       }
     } catch (err: any) {
@@ -137,10 +132,10 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
             setErrorMsg(null);
             setSuccessMsg(null);
             setStep("NAME");
-          }, 400);
+          }, 350);
         } else {
           // Returning user or reviewer: complete immediately
-          setSuccessMsg("Authenticated successfully! Loading your store...");
+          setSuccessMsg("Authenticated successfully! Loading store...");
           if (onSuccess) {
             onSuccess();
           } else {
@@ -177,14 +172,14 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
         throw new Error(data.error || "Failed to save profile name");
       }
 
-      setSuccessMsg(`Welcome to SABQuick, ${cleanName}! Loading store...`);
+      setSuccessMsg(`Welcome, ${cleanName}! Loading store...`);
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         } else {
           window.location.reload();
         }
-      }, 500);
+      }, 400);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to update name. Please try again.");
     } finally {
@@ -193,50 +188,76 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-linear-to-b from-emerald-50/60 via-white to-slate-50 flex flex-col justify-between items-center px-4 py-8 sm:py-12 select-none overflow-y-auto">
-      {/* Top Banner / Delivery Pill */}
-      <div className="w-full max-w-md flex flex-col items-center text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200/60 text-emerald-800 text-xs font-bold tracking-wide shadow-xs animate-in fade-in duration-500">
-          <Zap className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
-          <span>India&apos;s Last-Minute Grocery App</span>
-        </div>
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-emerald-50/60 via-white to-slate-50 flex flex-col justify-between items-center px-4 pt-[max(env(safe-area-inset-top,0px),16px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none overflow-y-auto">
+      {/* Top Bar with Safe-Area Notch Clearance & Skip Pill */}
+      <div className="w-full max-w-sm sm:max-w-md flex items-center justify-between h-10 px-1">
+        {step !== "PHONE" ? (
+          <button
+            type="button"
+            onClick={() => {
+              setStep("PHONE");
+              setVerifyCode("");
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            aria-label="Go Back"
+            className="w-9 h-9 rounded-full bg-white/95 border border-slate-200/90 shadow-xs flex items-center justify-center text-slate-700 hover:text-surface-dark hover:bg-slate-50 transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="w-9 h-9" />
+        )}
 
-        {/* Brand Icon & Title */}
-        <div className="space-y-2 pt-2">
-          <div className="flex justify-center">
-            <div className="relative">
-              <img
-                src={BRAND_ASSETS.appIcon}
-                alt="SABQuick"
-                className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-contain shadow-md shadow-emerald-900/10 border border-emerald-100"
-              />
-              <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5" /> 10m
-              </span>
-            </div>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
-            SABQuick
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium max-w-xs mx-auto">
-            Fresh groceries, dairy &amp; daily essentials delivered to your doorstep in 10 minutes.
-          </p>
-        </div>
+        {/* Minimalist Top-Right "Skip" Button (Blinkit & Zepto parity) */}
+        {step === "PHONE" && onExploreAsGuest ? (
+          <button
+            type="button"
+            onClick={onExploreAsGuest}
+            className="px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xs text-xs font-bold text-slate-700 hover:text-primary hover:border-primary/40 active:scale-95 transition-all"
+          >
+            Skip
+          </button>
+        ) : (
+          <div className="w-9 h-9" />
+        )}
       </div>
 
-      {/* Main Container Card */}
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-100 space-y-5 my-6">
+      {/* Hero Section — Minimal, No Duplicate "SABQuick" text */}
+      <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center text-center my-auto py-2">
+        <div className="relative mb-3">
+          <img
+            src={BRAND_ASSETS.appIcon}
+            alt="SABQuick"
+            className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-contain shadow-lg shadow-emerald-950/10 border border-emerald-100/80 bg-white"
+          />
+          <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 ring-2 ring-white">
+            <Clock className="w-2.5 h-2.5" /> 10m
+          </span>
+        </div>
+
+        {/* Single punchy headline (Eliminates redundant "SABQuick" text) */}
+        <h1 className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
+          India&apos;s last minute app
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
+          Groceries delivered in <span className="font-bold text-primary">10 minutes</span>
+        </p>
+      </div>
+
+      {/* Form Container Card */}
+      <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/80 border border-slate-100 space-y-4 mb-2">
         {/* ============================================================ */}
         {/* STEP 1: MOBILE NUMBER INPUT                                  */}
         {/* ============================================================ */}
         {step === "PHONE" && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
-            <div className="space-y-1">
-              <h2 className="text-lg sm:text-xl font-black text-surface-dark">
-                Get started
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-0.5">
+              <h2 className="text-lg sm:text-xl font-black text-surface-dark tracking-tight">
+                Log In or Sign Up
               </h2>
               <p className="text-xs text-muted-foreground">
-                Enter your mobile number for instant doorstep verification.
+                Enter your mobile number for instant verification.
               </p>
             </div>
 
@@ -247,39 +268,34 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               </div>
             )}
 
-            {/* Mobile Number Input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-surface-dark flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-primary" /> Mobile Number
-              </label>
-              <div className="flex items-center rounded-2xl border-2 border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all bg-slate-50/60 overflow-hidden px-3.5 h-13">
-                <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 text-sm font-bold text-surface-dark">
-                  <span className="text-base">🇮🇳</span>
-                  <span>+91</span>
-                </div>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={10}
-                  placeholder="Enter 10-digit number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && phone.trim().length === 10) {
-                      handleSendOtp();
-                    }
-                  }}
-                  className="w-full h-full bg-transparent px-3 text-base font-bold font-mono tracking-wider text-surface-dark outline-none placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
-                  autoFocus
-                />
+            {/* Clean Mobile Number Input Box (Blinkit / Zepto format) */}
+            <div className="flex items-center rounded-2xl border-2 border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all bg-slate-50/70 overflow-hidden px-3.5 h-12">
+              <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 text-sm font-bold text-surface-dark select-none">
+                <span className="text-base">🇮🇳</span>
+                <span>+91</span>
               </div>
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+                placeholder="Enter mobile number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && phone.trim().length === 10) {
+                    handleSendOtp();
+                  }
+                }}
+                className="w-full h-full bg-transparent px-3 text-base font-bold font-mono tracking-wider text-surface-dark outline-none placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
+                autoFocus
+              />
             </div>
 
-            {/* Continue CTA */}
+            {/* Continue Button */}
             <Button
               variant="default"
-              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-900/15"
+              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-950/15"
               disabled={phone.trim().length !== 10 || isLoading}
               onClick={handleSendOtp}
             >
@@ -289,7 +305,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
                 </>
               ) : (
                 <>
-                  Continue with Mobile <ArrowRight className="w-4 h-4 shrink-0" />
+                  Continue <ArrowRight className="w-4 h-4 shrink-0" />
                 </>
               )}
             </Button>
@@ -300,26 +316,28 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
         {/* STEP 2: OTP VERIFICATION                                     */}
         {/* ============================================================ */}
         {step === "OTP" && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            {/* Header with phone & Change action */}
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-muted-foreground block font-medium">Verification Code For</span>
-                <span className="font-mono font-black text-sm text-surface-dark">+91 {phone}</span>
+                <h2 className="text-lg sm:text-xl font-black text-surface-dark tracking-tight">
+                  Verify Mobile
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Code sent to <span className="font-mono font-bold text-surface-dark">+91 {phone}</span>
+                </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => {
                   setStep("PHONE");
                   setVerifyCode("");
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className="text-xs text-primary font-bold hover:text-primary hover:bg-emerald-50 rounded-xl"
+                className="text-xs text-primary font-bold hover:underline"
               >
                 Change
-              </Button>
+              </button>
             </div>
 
             {errorMsg && (
@@ -338,9 +356,6 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
 
             {/* Segmented 6-digit OTP Inputs */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-surface-dark block text-center">
-                Enter Verification Code
-              </label>
               <OtpInput
                 value={verifyCode}
                 onChange={setVerifyCode}
@@ -381,7 +396,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
             {/* Verify CTA Button */}
             <Button
               variant="default"
-              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-900/15"
+              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-950/15"
               disabled={verifyCode.trim().length < 4 || isLoading}
               onClick={() => handleVerifyOtp()}
             >
@@ -402,16 +417,13 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
         {/* STEP 3: NAME PROMPT (NEW USER REGISTRATION)                   */}
         {/* ============================================================ */}
         {step === "NAME" && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center mx-auto text-emerald-700 shadow-xs">
-                <Sparkles className="w-7 h-7 text-emerald-600" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-surface-dark">
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-1">
+              <h2 className="text-lg sm:text-xl font-black text-surface-dark tracking-tight">
                 Welcome to SABQuick!
               </h2>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                What should we call you? Enter your name to personalize your orders and doorstep delivery.
+              <p className="text-xs text-muted-foreground">
+                What should we call you? Enter your name to complete your profile.
               </p>
             </div>
 
@@ -419,13 +431,6 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="flex-1">{errorMsg}</span>
-              </div>
-            )}
-
-            {successMsg && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="flex-1">{successMsg}</span>
               </div>
             )}
 
@@ -444,7 +449,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
                     handleSaveNameAndProceed();
                   }
                 }}
-                className="h-13 rounded-2xl font-bold text-base px-4 border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-slate-50/60"
+                className="h-12 rounded-2xl font-bold text-base px-4 border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-slate-50/70"
                 autoFocus
               />
             </div>
@@ -452,7 +457,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
             {/* Submit Name & Start Shopping */}
             <Button
               variant="default"
-              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-900/15"
+              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-950/15"
               disabled={fullName.trim().length < 2 || isLoading}
               onClick={handleSaveNameAndProceed}
             >
@@ -469,38 +474,14 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
           </div>
         )}
 
-        {/* Optional Explore as Guest (only shown on Phone step) */}
-        {step === "PHONE" && onExploreAsGuest && (
-          <div className="pt-2 text-center border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onExploreAsGuest}
-              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors py-1 inline-flex items-center gap-1"
-            >
-              <span>Explore store as guest</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Footer / Trust Badges */}
-      <div className="w-full max-w-md text-center space-y-2">
-        <div className="flex items-center justify-center gap-6 text-[11px] text-slate-500 font-semibold">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 100% Secure
-          </span>
-          <span className="flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5 text-emerald-600" /> 10-Min Fast
-          </span>
-          <span className="flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Best Quality
-          </span>
-        </div>
-        <p className="text-[10px] text-slate-400">
-          By proceeding, you agree to SABQuick&apos;s Terms of Service and Privacy Policy.
+        {/* Minimal Legal Footer */}
+        <p className="text-[10px] text-center text-slate-400 pt-1 leading-relaxed">
+          By continuing, you agree to our Terms of Service &amp; Privacy Policy.
         </p>
       </div>
+
+      {/* Safe Area Spacer */}
+      <div className="w-full h-2" />
     </div>
   );
 }
