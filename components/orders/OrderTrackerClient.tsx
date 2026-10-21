@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Zap,
-  Clock,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -41,7 +40,7 @@ const DynamicOrderRouteMap = dynamic(
       <div className="w-full h-[280px] sm:h-[320px] rounded-3xl bg-slate-100 flex flex-col items-center justify-center gap-2 border border-border-subtle animate-pulse">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
         <span className="text-xs text-muted-foreground font-medium">
-          Loading SabQuick transit route map...
+          Loading SABQuick transit route map...
         </span>
       </div>
     ),
@@ -97,7 +96,6 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
   const [order, setOrder] = React.useState<TrackedOrderData>(initialOrder);
   const [isAccordionOpen, setIsAccordionOpen] = React.useState<boolean>(false);
   const [copiedOtp, setCopiedOtp] = React.useState<boolean>(false);
-  const [remainingSeconds, setRemainingSeconds] = React.useState<number>(900); // 15 mins default
   const [isConnected, setIsConnected] = React.useState<boolean>(true);
   const [isPayingWithCashfree, setIsPayingWithCashfree] = React.useState<boolean>(false);
   const [cashfreeError, setCashfreeError] = React.useState<string | null>(null);
@@ -208,23 +206,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
     }
   };
 
-  // 1. Calculate Countdown ETA
-  React.useEffect(() => {
-    const createdTime = new Date(order.createdAt).getTime();
-    const targetDeliveryTime = createdTime + 15 * 60 * 1000; // 15 minutes SLA
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const diffSecs = Math.max(0, Math.floor((targetDeliveryTime - now) / 1000));
-      setRemainingSeconds(diffSecs);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [order.createdAt]);
-
-  // 2. Connect to Server-Sent Events (SSE) Stream
+  // 1. Connect to Server-Sent Events (SSE) Stream
   React.useEffect(() => {
     const eventSource = new EventSource(
       `/api/orders/${order.orderNumber}/stream`
@@ -350,9 +332,6 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
     },
   ];
 
-  const remainingMins = Math.floor(remainingSeconds / 60);
-  const remainingSecs = remainingSeconds % 60;
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Navigation Top Bar */}
@@ -442,7 +421,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
           </div>
         </div>
       ) : (
-        /* 1. HEADER CARD: Order Number & ETA Countdown */
+        /* 1. HEADER CARD: Order Number & Live Status */
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-border-subtle shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -468,28 +447,33 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
             </p>
           </div>
 
-          {/* Dynamic Countdown Pill */}
+          {/* Live Order Status Pill */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Clock className="w-5 h-5" />
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+                isDelivered
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-primary/10 text-primary"
+              }`}
+            >
+              {isDelivered ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              ) : currentStage === 3 ? (
+                <Truck className="w-5 h-5 text-primary" />
+              ) : currentStage === 2 ? (
+                <Package className="w-5 h-5 text-primary" />
+              ) : (
+                <ShoppingBag className="w-5 h-5 text-primary" />
+              )}
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
-                Estimated Delivery
+                Order Status
               </span>
-              <div className="font-mono text-lg font-black text-surface-dark flex items-center gap-1.5">
-                {isDelivered ? (
-                  <span className="text-primary">Delivered</span>
-                ) : (
-                  <>
-                    <span>
-                      {remainingMins}:{remainingSecs < 10 ? `0${remainingSecs}` : remainingSecs}
-                    </span>
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      Mins Left
-                    </span>
-                  </>
-                )}
+              <div className="text-base font-black text-surface-dark flex items-center gap-1.5">
+                {isDelivered
+                  ? "Delivered"
+                  : stages.find((s) => s.index === currentStage)?.name || "Confirmed"}
               </div>
             </div>
           </div>
@@ -688,7 +672,7 @@ export function OrderTrackerClient({ initialOrder }: OrderTrackerClientProps) {
                 </h3>
                 <p className="text-xs text-slate-300 max-w-sm">
                   Your grocery items were delivered in record time. Thank you for
-                  ordering with SabQuick!
+                  ordering with SABQuick!
                 </p>
               </div>
             ) : (

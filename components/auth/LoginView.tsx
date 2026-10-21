@@ -10,7 +10,6 @@ import {
   RotateCw,
   AlertCircle,
   Loader2,
-  Clock,
   Sparkles,
   CheckCircle2,
   Phone,
@@ -188,65 +187,66 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-emerald-50/60 via-white to-slate-50 flex flex-col justify-between items-center px-4 pt-[max(env(safe-area-inset-top,0px),16px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none overflow-y-auto">
-      {/* Top Bar with Safe-Area Notch Clearance & Skip Pill */}
-      <div className="w-full max-w-sm sm:max-w-md flex items-center justify-between h-10 px-1">
-        {step !== "PHONE" ? (
-          <button
-            type="button"
-            onClick={() => {
-              setStep("PHONE");
-              setVerifyCode("");
-              setErrorMsg(null);
-              setSuccessMsg(null);
-            }}
-            aria-label="Go Back"
-            className="w-9 h-9 rounded-full bg-white/95 border border-slate-200/90 shadow-xs flex items-center justify-center text-slate-700 hover:text-surface-dark hover:bg-slate-50 transition-all active:scale-95"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="w-9 h-9" />
-        )}
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-emerald-50/70 via-white to-slate-50 flex flex-col select-none overflow-hidden">
+      {/* Pinned Top Safe-Area Header: Pinned to shield notch & dynamic island with frosted glass */}
+      <header className="sticky top-0 z-30 w-full pt-[max(env(safe-area-inset-top,0px),12px)] pb-2 px-4 bg-emerald-50/80 backdrop-blur-md border-b border-emerald-100/50 flex justify-center shrink-0">
+        <div className="w-full max-w-sm sm:max-w-md flex items-center justify-between h-9">
+          {step !== "PHONE" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setStep("PHONE");
+                setVerifyCode("");
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              aria-label="Go Back"
+              className="w-9 h-9 rounded-full bg-white/95 border border-slate-200/90 shadow-xs flex items-center justify-center text-slate-700 hover:text-surface-dark hover:bg-slate-50 transition-all active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-9 h-9" />
+          )}
 
-        {/* Minimalist Top-Right "Skip" Button (Blinkit & Zepto parity) */}
-        {step === "PHONE" && onExploreAsGuest ? (
-          <button
-            type="button"
-            onClick={onExploreAsGuest}
-            className="px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xs text-xs font-bold text-slate-700 hover:text-primary hover:border-primary/40 active:scale-95 transition-all"
-          >
-            Skip
-          </button>
-        ) : (
-          <div className="w-9 h-9" />
-        )}
-      </div>
+          {/* Minimalist Top-Right "Skip" Button (Blinkit & Zepto parity) */}
+          {step === "PHONE" && onExploreAsGuest ? (
+            <button
+              type="button"
+              onClick={onExploreAsGuest}
+              className="px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xs text-xs font-bold text-slate-700 hover:text-primary hover:border-primary/40 active:scale-95 transition-all"
+            >
+              Skip
+            </button>
+          ) : (
+            <div className="w-9 h-9" />
+          )}
+        </div>
+      </header>
 
-      {/* Hero Section — Minimal, No Duplicate "SABQuick" text */}
-      <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center text-center my-auto py-2">
-        <div className="relative mb-3">
-          <img
-            src={BRAND_ASSETS.appIcon}
-            alt="SABQuick"
-            className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-contain shadow-lg shadow-emerald-950/10 border border-emerald-100/80 bg-white"
-          />
-          <span className="absolute -bottom-2 -right-2 bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 ring-2 ring-white">
-            <Clock className="w-2.5 h-2.5" /> 10m
-          </span>
+      {/* Scrollable Form Body: Glides cleanly under the blurred safe header */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain flex flex-col items-center justify-between px-4 py-2 pb-[max(env(safe-area-inset-bottom,0px),16px)]">
+        {/* Hero Section — Minimal, No Duplicate "SABQuick" text */}
+        <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center text-center my-auto py-2">
+          <div className="relative mb-3">
+            <img
+              src={BRAND_ASSETS.appIcon}
+              alt="SABQuick"
+              className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-contain shadow-lg shadow-emerald-950/10 border border-emerald-100/80 bg-white"
+            />
+          </div>
+
+          {/* Single punchy headline */}
+          <h1 className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
+            India&apos;s last minute app
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
+            Groceries delivered in <span className="font-bold text-primary">10 minutes</span>
+          </p>
         </div>
 
-        {/* Single punchy headline (Eliminates redundant "SABQuick" text) */}
-        <h1 className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
-          India&apos;s last minute app
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-          Groceries delivered in <span className="font-bold text-primary">10 minutes</span>
-        </p>
-      </div>
-
-      {/* Form Container Card */}
-      <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/80 border border-slate-100 space-y-4 mb-2">
+        {/* Form Container Card */}
+        <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/80 border border-slate-100 space-y-4 mb-2">
         {/* ============================================================ */}
         {/* STEP 1: MOBILE NUMBER INPUT                                  */}
         {/* ============================================================ */}
@@ -501,5 +501,6 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       {/* Safe Area Spacer */}
       <div className="w-full h-2" />
     </div>
-  );
+  </div>
+);
 }
