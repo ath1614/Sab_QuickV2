@@ -11,10 +11,11 @@ import {
   Loader2,
   Clock,
   Sparkles,
-  ShoppingBag,
   CheckCircle2,
   Phone,
   User,
+  ShoppingBag,
+  Sparkle,
 } from "lucide-react";
 import { BRAND_ASSETS } from "@/lib/assets";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
-  const [step, setStep] = React.useState<"PHONE" | "VERIFY">("PHONE");
+  const [step, setStep] = React.useState<"PHONE" | "OTP" | "NAME">("PHONE");
   const [phone, setPhone] = React.useState<string>("");
   const [fullName, setFullName] = React.useState<string>("");
   const [isNewUser, setIsNewUser] = React.useState<boolean>(false);
@@ -39,7 +40,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
   const [autoOtp, setAutoOtp] = React.useState<string | null>(null);
   const [countdown, setCountdown] = React.useState<number>(0);
 
-  // Countdown timer effect
+  // Countdown timer effect for OTP resend
   React.useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -48,6 +49,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  // Step 1: Send OTP to Phone
   const handleSendOtp = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -75,12 +77,12 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       setIsNewUser(Boolean(data.isNewUser));
       setCountdown(data.cooldown || 60);
       setVerifyCode("");
-      setStep("VERIFY");
+      setStep("OTP");
 
       if (data.freeOtp) {
         setAutoOtp(data.freeOtp);
         setVerifyCode(data.freeOtp);
-        setSuccessMsg("Verification code ready! Click 'Verify & Continue' below.");
+        setSuccessMsg("Verification code ready! Click 'Verify Code' below.");
       } else {
         setAutoOtp(null);
         setSuccessMsg(data.message || "Verification code sent to your mobile phone.");
@@ -92,7 +94,8 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
     }
   };
 
-  const handleVerifyAndLogin = async (codeToVerify?: string) => {
+  // Step 2: Verify OTP
+  const handleVerifyOtp = async (codeToVerify?: string) => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -102,25 +105,13 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       return;
     }
 
-    if (isNewUser && !fullName.trim()) {
-      setErrorMsg("Please enter your full name to complete registration.");
-      return;
-    }
-
     try {
       setIsLoading(true);
 
-      const signInPayload: Record<string, string> = {
+      const res = await signIn("credentials", {
         phone: phone.trim(),
         pin: cleanCode,
         otp: cleanCode,
-      };
-      if (fullName.trim()) {
-        signInPayload.name = fullName.trim();
-      }
-
-      const res = await signIn("credentials", {
-        ...signInPayload,
         redirect: false,
       });
 
@@ -129,15 +120,63 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       }
 
       if (res?.ok) {
-        setSuccessMsg("Authenticated successfully! Loading your store...");
+        // If this is a newly registered customer, transition smoothly to Step 3: Name
+        if (isNewUser) {
+          setSuccessMsg("Mobile verified successfully!");
+          setTimeout(() => {
+            setErrorMsg(null);
+            setSuccessMsg(null);
+            setStep("NAME");
+          }, 400);
+        } else {
+          // Returning user or reviewer: complete immediately
+          setSuccessMsg("Authenticated successfully! Loading your store...");
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            window.location.reload();
+          }
+        }
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Invalid verification code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 3: Save Name for New User
+  const handleSaveNameAndProceed = async () => {
+    setErrorMsg(null);
+    const cleanName = fullName.trim();
+    if (!cleanName || cleanName.length < 2) {
+      setErrorMsg("Please enter your name (at least 2 characters) to continue.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: cleanName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save profile name");
+      }
+
+      setSuccessMsg(`Welcome to SABQuick, ${cleanName}! Loading store...`);
+      setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         } else {
           window.location.reload();
         }
-      }
+      }, 500);
     } catch (err: any) {
-      setErrorMsg(err.message || "Invalid verification code. Please try again.");
+      setErrorMsg(err.message || "Failed to update name. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -175,10 +214,13 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
         </div>
       </div>
 
-      {/* Main Login Card (Blinkit / Zepto layout) */}
+      {/* Main Container Card */}
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/70 border border-slate-100 space-y-5 my-6">
-        {step === "PHONE" ? (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {/* ============================================================ */}
+        {/* STEP 1: MOBILE NUMBER INPUT                                  */}
+        {/* ============================================================ */}
+        {step === "PHONE" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="space-y-1">
               <h2 className="text-lg sm:text-xl font-black text-surface-dark">
                 Get started
@@ -242,8 +284,13 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               )}
             </Button>
           </div>
-        ) : (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        )}
+
+        {/* ============================================================ */}
+        {/* STEP 2: OTP VERIFICATION                                     */}
+        {/* ============================================================ */}
+        {step === "OTP" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             {/* Header with phone & Change action */}
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
               <div>
@@ -279,22 +326,6 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               </div>
             )}
 
-            {/* New User Name Prompt */}
-            {isNewUser && (
-              <div className="space-y-1.5 animate-in fade-in">
-                <label className="text-xs font-bold text-surface-dark flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" /> Full Name
-                </label>
-                <Input
-                  type="text"
-                  placeholder="e.g. Rahul Sharma"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="h-12 rounded-2xl font-medium"
-                />
-              </div>
-            )}
-
             {/* Segmented 6-digit OTP Inputs */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-surface-dark block text-center">
@@ -307,9 +338,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
                 disabled={isLoading}
                 autoFocus
                 onComplete={(code) => {
-                  if (!isNewUser || fullName.trim()) {
-                    handleVerifyAndLogin(code);
-                  }
+                  handleVerifyOtp(code);
                 }}
               />
               <p className="text-[11px] text-center text-muted-foreground">
@@ -344,7 +373,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               variant="default"
               className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-900/15"
               disabled={verifyCode.trim().length < 4 || isLoading}
-              onClick={() => handleVerifyAndLogin()}
+              onClick={() => handleVerifyOtp()}
             >
               {isLoading ? (
                 <>
@@ -352,15 +381,86 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4 shrink-0" /> Verify &amp; Continue
+                  <ShieldCheck className="w-4 h-4 shrink-0" /> Verify Code
                 </>
               )}
             </Button>
           </div>
         )}
 
-        {/* Optional Explore as Guest */}
-        {onExploreAsGuest && (
+        {/* ============================================================ */}
+        {/* STEP 3: NAME PROMPT (NEW USER REGISTRATION)                   */}
+        {/* ============================================================ */}
+        {step === "NAME" && (
+          <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-100/70 border border-emerald-200/60 flex items-center justify-center mx-auto text-emerald-700 shadow-xs">
+                <Sparkles className="w-7 h-7 text-emerald-600" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-surface-dark">
+                Welcome to SABQuick!
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                What should we call you? Enter your name to personalize your orders and doorstep delivery.
+              </p>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="flex-1">{errorMsg}</span>
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="flex-1">{successMsg}</span>
+              </div>
+            )}
+
+            {/* Name Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-surface-dark flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-primary" /> Full Name
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. Rahul Sharma"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && fullName.trim().length >= 2) {
+                    handleSaveNameAndProceed();
+                  }
+                }}
+                className="h-13 rounded-2xl font-bold text-base px-4 border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-slate-50/60"
+                autoFocus
+              />
+            </div>
+
+            {/* Submit Name & Start Shopping */}
+            <Button
+              variant="default"
+              className="w-full h-12 rounded-2xl font-black text-sm tracking-wide gap-2 shadow-md shadow-emerald-900/15"
+              disabled={fullName.trim().length < 2 || isLoading}
+              onClick={handleSaveNameAndProceed}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Setting up your account...
+                </>
+              ) : (
+                <>
+                  Start Shopping <ArrowRight className="w-4 h-4 shrink-0" />
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Optional Explore as Guest (only shown on Phone step) */}
+        {step === "PHONE" && onExploreAsGuest && (
           <div className="pt-2 text-center border-t border-slate-100">
             <button
               type="button"
