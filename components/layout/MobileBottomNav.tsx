@@ -25,15 +25,16 @@ function MobileBottomNavInner() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { items, openCart, getItemTotal } = useCartStore();
-  const { openAuthModal } = useAuthModalStore();
+  const { openAuthModal, isLoginScreenActive } = useAuthModalStore();
   const [operationsSheetOpen, setOperationsSheetOpen] = React.useState(false);
   const [phoneDrawerOpen, setPhoneDrawerOpen] = React.useState(false);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
 
-  // Hide bottom nav on dedicated full-screen order tracking, scanner pages, and staff operations dashboards
+  // Hide bottom nav on dedicated full-screen order tracking, scanner pages, staff operations dashboards, and login screen
   const isExcludedPage =
+    isLoginScreenActive ||
     (pathname?.startsWith("/orders/") && pathname !== "/orders/active") ||
     pathname?.startsWith("/packer") ||
     pathname?.startsWith("/manager") ||

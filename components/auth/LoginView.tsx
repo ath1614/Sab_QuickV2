@@ -21,6 +21,7 @@ import { BRAND_ASSETS } from "@/lib/assets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/auth/OtpInput";
+import { useAuthModalStore } from "@/store/useAuthModalStore";
 
 interface LoginViewProps {
   onSuccess?: () => void;
@@ -28,6 +29,15 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
+  const { setIsLoginScreenActive } = useAuthModalStore();
+
+  React.useEffect(() => {
+    setIsLoginScreenActive(true);
+    return () => {
+      setIsLoginScreenActive(false);
+    };
+  }, [setIsLoginScreenActive]);
+
   const [step, setStep] = React.useState<"PHONE" | "OTP" | "NAME">("PHONE");
   const [phone, setPhone] = React.useState<string>("");
   const [fullName, setFullName] = React.useState<string>("");
@@ -183,7 +193,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-emerald-50/60 via-white to-slate-50 flex flex-col justify-between items-center px-4 py-8 sm:py-12 select-none">
+    <div className="fixed inset-0 z-50 bg-linear-to-b from-emerald-50/60 via-white to-slate-50 flex flex-col justify-between items-center px-4 py-8 sm:py-12 select-none overflow-y-auto">
       {/* Top Banner / Delivery Pill */}
       <div className="w-full max-w-md flex flex-col items-center text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200/60 text-emerald-800 text-xs font-bold tracking-wide shadow-xs animate-in fade-in duration-500">
