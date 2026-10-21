@@ -261,7 +261,7 @@ export function DoorstepSettlement({
         </div>
 
         <p className="text-xs text-slate-300">
-          Enter the 4-digit Delivery OTP shown on the customer&apos;s SabQuick screen
+          Enter the 4-digit Delivery OTP shown on the customer&apos;s SABQuick screen
           to complete this delivery.
         </p>
 

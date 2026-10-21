@@ -325,7 +325,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
-                  placeholder="Enter 4 or 6-digit code"
+                  placeholder="Enter OTP"
                   value={verifyCode}
                   onChange={(e) => {
                     const clean = e.target.value.replace(/\D/g, "").slice(0, 6);
@@ -344,7 +344,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 />
               </div>
               <p className="text-[11px] text-center text-muted-foreground pt-0.5">
-                Enter the code sent to your mobile.
+                Enter the 4-digit or 6-digit code sent to your mobile.
               </p>
             </div>
 
