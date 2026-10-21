@@ -24,6 +24,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { BRAND_ASSETS } from "@/lib/assets";
+import { OtpInput } from "@/components/auth/OtpInput";
 
 interface AuthModalProps {
   open: boolean;
@@ -314,45 +315,25 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
             {/* Unified 4 to 6-Digit Code Input */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-surface-dark">
-                  Verification Code
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowCode(!showCode)}
-                  className="text-[11px] text-muted-foreground hover:text-surface-dark flex items-center gap-1 font-medium"
-                >
-                  {showCode ? (
-                    <>
-                      <EyeOff className="w-3 h-3" /> Hide
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-3 h-3" /> Show
-                    </>
-                  )}
-                </button>
-              </div>
+              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark block text-center">
+                Verification Code
+              </label>
 
-              <Input
-                type={showCode ? "text" : "password"}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                placeholder="••••••"
+              <OtpInput
                 value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && verifyCode.trim().length >= 4) {
+                onChange={setVerifyCode}
+                length={6}
+                disabled={isLoading}
+                autoFocus
+                onComplete={() => {
+                  if (!isNewUser || fullName.trim()) {
                     handleVerifyAndLogin();
                   }
                 }}
-                className="h-13 sm:h-14 text-center text-2xl sm:text-3xl font-black tracking-[0.25em] font-mono rounded-xl border border-border-subtle bg-slate-50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none w-full max-w-full box-border"
-                autoFocus
               />
+
               <p className="text-[11px] text-center text-muted-foreground">
-                Enter your 4-digit SMS OTP or 6-digit passcode to continue.
+                Enter the code sent to your mobile.
               </p>
             </div>
 

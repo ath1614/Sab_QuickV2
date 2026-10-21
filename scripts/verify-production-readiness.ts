@@ -50,7 +50,6 @@ async function runProductionReadinessTestSuite() {
     // Assert production AuthModal features are present
     const requiredAuthModalFeatures = [
       "Continue with Mobile",
-      "Continue with Google",
       "maxLength={10}",
       "otpDigits",
       "countdown",

@@ -28,6 +28,7 @@ import { AisleProductRow } from "@/components/catalog/AisleProductRow";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
 import { SplashScreen } from "@/components/brand/SplashScreen";
+import { LoginView } from "@/components/auth/LoginView";
 import { CustomLoadingScreen } from "@/components/ui/CustomLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +55,8 @@ const MAX_RAIL_PRODUCTS = 6;
 function StorefrontContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [guestBypass, setGuestBypass] = React.useState<boolean>(false);
   const [forcePreview, setForcePreview] = React.useState(false);
 
   const userRole = session?.user?.role;
@@ -456,6 +458,17 @@ function StorefrontContent() {
           launchDate={theme.launchDate}
           onEnterPreview={() => setForcePreview(true)}
         />
+      </>
+    );
+  }
+
+  // Blinkit / Zepto First-Screen Authentication Flow:
+  // Show dedicated onboarding & phone OTP login view if user is unauthenticated
+  if (status === "unauthenticated" && !guestBypass) {
+    return (
+      <>
+        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+        <LoginView onExploreAsGuest={() => setGuestBypass(true)} />
       </>
     );
   }
