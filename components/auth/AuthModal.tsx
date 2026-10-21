@@ -314,25 +314,36 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             )}
 
             {/* Unified 4 to 6-Digit Code Input */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-surface-dark block text-center">
-                Verification Code
-              </label>
-
-              <OtpInput
-                value={verifyCode}
-                onChange={setVerifyCode}
-                length={6}
-                disabled={isLoading}
-                autoFocus
-                onComplete={() => {
-                  if (!isNewUser || fullName.trim()) {
-                    handleVerifyAndLogin();
-                  }
-                }}
-              />
-
-              <p className="text-[11px] text-center text-muted-foreground">
+            <div className="space-y-1.5">
+              <div className="flex items-center rounded-xl border border-slate-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all bg-slate-50 overflow-hidden px-3 h-11">
+                <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 text-sm font-bold text-primary select-none">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-black uppercase tracking-wider">OTP</span>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="Enter 4 or 6-digit code"
+                  value={verifyCode}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setVerifyCode(clean);
+                    if (clean.length === 6) {
+                      handleVerifyAndLogin();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && verifyCode.trim().length >= 4) {
+                      handleVerifyAndLogin();
+                    }
+                  }}
+                  className="w-full h-full bg-transparent px-3 text-base font-bold font-mono tracking-widest text-surface-dark outline-none placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px] text-center text-muted-foreground pt-0.5">
                 Enter the code sent to your mobile.
               </p>
             </div>

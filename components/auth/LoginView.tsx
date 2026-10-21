@@ -354,19 +354,37 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
               </div>
             )}
 
-            {/* Segmented 6-digit OTP Inputs */}
-            <div className="space-y-2">
-              <OtpInput
-                value={verifyCode}
-                onChange={setVerifyCode}
-                length={6}
-                disabled={isLoading}
-                autoFocus
-                onComplete={(code) => {
-                  handleVerifyOtp(code);
-                }}
-              />
-              <p className="text-[11px] text-center text-muted-foreground">
+            {/* Clean OTP Input Field (Matching Phone Input Style) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center rounded-2xl border-2 border-slate-200 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all bg-slate-50/70 overflow-hidden px-3.5 h-12">
+                <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-200 text-sm font-bold text-primary select-none">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-black uppercase tracking-wider">OTP</span>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="Enter 4 or 6-digit code"
+                  value={verifyCode}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setVerifyCode(clean);
+                    if (clean.length === 6) {
+                      handleVerifyOtp(clean);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && verifyCode.trim().length >= 4) {
+                      handleVerifyOtp();
+                    }
+                  }}
+                  className="w-full h-full bg-transparent px-3 text-base font-bold font-mono tracking-widest text-surface-dark outline-none placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[11px] text-center text-muted-foreground pt-0.5">
                 Enter the code sent to your mobile.
               </p>
             </div>
