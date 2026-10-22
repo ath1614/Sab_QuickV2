@@ -52,51 +52,51 @@ const RATE_LIMIT_RULES = [
     banThreshold: 60,
     banDurationMs: 2 * 60_000,
   },
-  // 4. Read-Only Public Catalog & Store Metadata: Max 1,200 requests per 60s per IP (generous for shared Wi-Fi & multiple testers)
+  // 4. Read-Only Public Catalog & Store Metadata: Max 3,000 requests per 60s per IP (generous for shared Wi-Fi & high scroll speed)
   {
     prefix: "/api/products",
     windowMs: 60_000,
-    maxRequests: 1200,
-    banThreshold: 2500,
-    banDurationMs: 30_000,
+    maxRequests: 3000,
+    banThreshold: 6000,
+    banDurationMs: 15_000,
   },
   {
     prefix: "/api/categories",
     windowMs: 60_000,
-    maxRequests: 1200,
-    banThreshold: 2500,
-    banDurationMs: 30_000,
+    maxRequests: 3000,
+    banThreshold: 6000,
+    banDurationMs: 15_000,
   },
   {
     prefix: "/api/theme",
     windowMs: 60_000,
-    maxRequests: 1200,
-    banThreshold: 2500,
-    banDurationMs: 30_000,
+    maxRequests: 3000,
+    banThreshold: 6000,
+    banDurationMs: 15_000,
   },
   // 5. Staff Polling Endpoints (Manager & Packer live feed polling)
   {
     prefix: "/api/ops",
     windowMs: 60_000,
-    maxRequests: 600,
-    banThreshold: 1500,
-    banDurationMs: 30_000,
+    maxRequests: 1000,
+    banThreshold: 2500,
+    banDurationMs: 15_000,
   },
-  // 6. General API Endpoints: Max 600 requests per 60s per IP (supports multiple active devices on single Wi-Fi router)
+  // 6. General API Endpoints: Max 1,500 requests per 60s per IP (supports multiple active devices on single Wi-Fi router)
   {
     prefix: "/api/",
     windowMs: 60_000,
-    maxRequests: 600,
-    banThreshold: 1500,
-    banDurationMs: 60_000,
+    maxRequests: 1500,
+    banThreshold: 3000,
+    banDurationMs: 30_000,
   },
-  // 7. Storefront & Public Pages: Max 300 requests per 10s per IP (flood defense)
+  // 7. Storefront & Public Pages: Max 2,000 requests per 60s per IP (supports smooth scrolling & prefetching on shared Wi-Fi)
   {
     prefix: "/",
-    windowMs: 10_000,
-    maxRequests: 300,
-    banThreshold: 600,
-    banDurationMs: 60_000,
+    windowMs: 60_000,
+    maxRequests: 2000,
+    banThreshold: 5000,
+    banDurationMs: 15_000,
   },
 ];
 

@@ -13,8 +13,16 @@ export async function middleware(req: NextRequest) {
   }
 
   // 2. Sliding-Window IP Rate Limiter & Flood Shield (protects against 10,000+ request bombardment)
+  // Speculative Next.js viewport prefetch requests from <Link> components on scroll are exempted
+  const isPrefetch =
+    req.headers.get("x-middleware-prefetch") === "1" ||
+    req.headers.get("purpose") === "prefetch" ||
+    req.headers.get("sec-purpose") === "prefetch";
+
   const clientIp = getClientIp(req.headers);
-  const rateLimit = checkRateLimit(clientIp, pathname);
+  const rateLimit = isPrefetch
+    ? { success: true, limit: 9999, remaining: 9999, retryAfterSeconds: 0 }
+    : checkRateLimit(clientIp, pathname);
 
   if (!rateLimit.success) {
     const isApi = pathname.startsWith("/api/");
