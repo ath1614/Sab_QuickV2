@@ -165,10 +165,16 @@ async function login(browser) {
   const phone = page.getByPlaceholder(/mobile number/i).first();
   if (await phone.count()) {
     await phone.fill(PHONE);
-    await page.getByRole("button", { name: /^Continue/i }).first().click();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(400);
     const otp = page.getByPlaceholder(/enter otp/i).first();
-    await otp.waitFor({ timeout: 10000 });
+    await page.getByRole("button", { name: /^Continue/i }).first().click();
+    try {
+      await otp.waitFor({ timeout: 10000 });
+    } catch {
+      // The first click can land before hydration on a cold production load.
+      await page.getByRole("button", { name: /^Continue/i }).first().click().catch(() => {});
+      await otp.waitFor({ timeout: 20000 });
+    }
     await otp.fill(CODE);
     await page.waitForTimeout(1200);
     // A full-length code auto-submits; only click when the form is still up.

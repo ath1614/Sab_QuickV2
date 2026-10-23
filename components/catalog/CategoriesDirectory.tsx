@@ -59,8 +59,8 @@ function CategoryCircleButton({
       </div>
 
       {/* Category Name Under Circle - Fixed 2-line height ensures all circles and labels align perfectly */}
-      <div className="h-[28px] sm:h-[32px] flex items-start justify-center max-w-[68px] sm:max-w-[84px]">
-        <span className="block text-[10px] sm:text-[11px] md:text-xs font-bold text-slate-800 text-center leading-[14px] sm:leading-[16px] line-clamp-2 group-hover:text-primary transition-colors">
+      <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px]">
+        <span className="block text-[10px] sm:text-[11px] md:text-xs font-bold text-slate-800 text-center leading-[14px] sm:leading-[16px] line-clamp-2 md:line-clamp-3 group-hover:text-primary transition-colors">
           {cat.name}
         </span>
       </div>
@@ -133,7 +133,7 @@ export function CategoriesDirectory({
                 +{remainingCount} MORE
               </span>
             </div>
-            <div className="h-[28px] sm:h-[32px] flex items-start justify-center max-w-[68px] sm:max-w-[84px]">
+            <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px]">
               <span className="block text-[10px] sm:text-[11px] md:text-xs font-black text-primary text-center leading-[14px] sm:leading-[16px]">
                 All Aisles
               </span>
