@@ -308,8 +308,8 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
       ) : (
         <div className="space-y-3">
           {/* Desktop Table (hidden on mobile) */}
-          <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs">
+          <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-xs">
+            <table className="w-full min-w-[760px] text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Order Number</th>

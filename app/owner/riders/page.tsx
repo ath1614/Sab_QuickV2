@@ -143,8 +143,8 @@ export default function OwnerRidersPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col selection:bg-emerald-500 selection:text-white pb-12">
       {/* Header with Safe Area Notch Protection */}
-      <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 flex items-center justify-between transition-all">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 flex flex-wrap items-center justify-between gap-2 transition-all">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/owner"
             className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors"

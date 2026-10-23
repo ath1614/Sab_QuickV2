@@ -57,8 +57,9 @@ interface ProductItem {
   id: string;
   title: string;
   imageUrl: string;
-  packSize: string;
-  price: number;
+  unitQuantity: string;
+  mrp: number;
+  salePrice: number;
   stockCount: number;
   isAvailable: boolean;
   category: {
@@ -931,9 +932,9 @@ export default function OwnerControlPage() {
     <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased">
       {/* Top Bar */}
       <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center justify-between sm:justify-start space-x-3">
-            <div className="flex items-center space-x-2.5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center justify-between xl:justify-start gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <Link
                 href="/"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 shadow-xs"
@@ -946,8 +947,8 @@ export default function OwnerControlPage() {
               <Link href="/" title="Back to Storefront">
                 <Logo variant="icon" size={36} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
               </Link>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
                     SabQuick <span className="text-primary">{isOwner ? "Owner Hub" : "Operations Hub"}</span>
                   </h1>
@@ -955,7 +956,7 @@ export default function OwnerControlPage() {
                     {isOwner ? "PRO" : "MANAGER"}
                   </Badge>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium line-clamp-2">
                   {isOwner ? "Financial metrics, catalog & theme branding" : "Live floor orchestration, SLA dispatch & live orders"}
                 </p>
               </div>
@@ -981,8 +982,8 @@ export default function OwnerControlPage() {
             </Button>
           </div>
 
-          {/* Action Controls */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Action Controls — wrap on tablet instead of clipping the overflow */}
+          <div className="flex flex-wrap items-center gap-2 py-0.5 min-w-0 xl:justify-end">
             <Link href="/owner/catalog" className="shrink-0">
               <Button variant="accent" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm px-2.5 sm:px-3">
                 <FolderTree className="w-3.5 h-3.5" />
@@ -1043,13 +1044,6 @@ export default function OwnerControlPage() {
               </Button>
             </button>
 
-            <Link href="/" className="shrink-0">
-              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
-                <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
-                <span>Store</span>
-              </Button>
-            </Link>
-
             <Button
               variant="outline"
               size="sm"
@@ -1071,9 +1065,9 @@ export default function OwnerControlPage() {
         </div>
       </header>
 
-      {/* Subheader Navigation Tabs */}
-      <div className="bg-white border-b border-border-subtle sticky top-[57px] z-20 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-2.5">
+      {/* Subheader Navigation Tabs — sticky only where the header is a single row */}
+      <div className="bg-white border-b border-border-subtle z-20 shadow-2xs xl:sticky xl:top-[57px]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center gap-1.5 sm:gap-2 py-2.5">
           {isOwner && (
           <button
             type="button"
@@ -1702,8 +1696,8 @@ export default function OwnerControlPage() {
             </div>
           </div>
 
-          <div className="max-h-[520px] overflow-y-auto">
-            <table className="w-full text-xs">
+          <div className="max-h-[520px] overflow-y-auto overflow-x-auto">
+            <table className="w-full min-w-[540px] text-xs">
               <thead className="bg-slate-50 sticky top-0 z-10 border-b border-border-subtle">
                 <tr className="text-left text-slate-500 font-black uppercase tracking-wider text-[10px]">
                   <th className="px-4 py-2.5">Product</th>
@@ -1724,15 +1718,22 @@ export default function OwnerControlPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-bold text-surface-dark truncate max-w-[180px]">{p.title}</div>
-                          <div className="text-[10px] text-slate-400">{p.packSize}</div>
+                          <div className="text-[10px] text-slate-400">{p.unitQuantity}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-2.5 hidden sm:table-cell text-slate-600 font-medium">
                       {p.category?.name}
                     </td>
-                    <td className="px-4 py-2.5 font-mono font-bold text-surface-dark">₹{p.price}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 font-mono font-bold text-surface-dark whitespace-nowrap">
+                      ₹{p.salePrice}
+                      {p.mrp > p.salePrice && (
+                        <span className="ml-1.5 text-[10px] font-normal text-slate-400 line-through">
+                          ₹{p.mrp}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       <span className={`font-bold ${p.isAvailable ? "text-emerald-600" : "text-rose-500"}`}>
                         {p.isAvailable ? "In Stock" : "Out of Stock"}
                       </span>

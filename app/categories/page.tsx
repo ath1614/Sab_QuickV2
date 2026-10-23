@@ -680,13 +680,13 @@ function CategoriesContent() {
 
         {/* Categories Grid (4 columns on mobile, 6-8 on tablet/desktop) */}
         {loading ? (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3.5 md:gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 sm:gap-3.5 md:gap-4">
             {Array.from({ length: 16 }).map((_, i) => (
               <div key={i} className="h-24 rounded-2xl bg-white animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3.5 md:gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 sm:gap-3.5 md:gap-4">
             {categories
               .filter((c) => {
                 if (!searchText.trim()) return true;
@@ -708,7 +708,7 @@ function CategoriesContent() {
                     className="group flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 transition-all select-none cursor-pointer text-center"
                   >
                     {/* Thumbnail Image */}
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-200/80 flex items-center justify-center p-1 group-hover:scale-105 transition-transform duration-200">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-xl overflow-hidden bg-slate-50 border border-slate-200/80 flex items-center justify-center p-1.5 group-hover:scale-105 transition-transform duration-200">
                       {catImg ? (
                         <img
                           src={catImg}
@@ -722,8 +722,8 @@ function CategoriesContent() {
                     </div>
 
                     {/* Category Title */}
-                    <div className="w-full flex items-center justify-center min-h-[32px] mt-1.5 px-0.5">
-                      <span className="block w-full text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-[13px] sm:leading-[15px] text-center break-words hyphens-auto group-hover:text-primary transition-colors">
+                    <div className="w-full flex items-center justify-center min-h-[34px] sm:min-h-[38px] mt-2 px-0.5">
+                      <span className="block w-full text-[11px] sm:text-xs md:text-sm font-bold text-slate-800 line-clamp-2 leading-[14px] sm:leading-[16px] text-center break-words hyphens-auto group-hover:text-primary transition-colors">
                         {cat.name}
                       </span>
                     </div>

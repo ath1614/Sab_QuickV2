@@ -252,12 +252,12 @@ export default function BrandShowcasePage() {
 
         {/* 3. COMPACT HORIZONTAL MARK */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-black tracking-tight">3. Compact Horizontal Mark (`variant=&quot;compact&quot;`)</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Smartphone className="w-5 h-5 text-primary shrink-0" />
+              <h2 className="text-lg sm:text-xl font-black tracking-tight break-words">3. Compact Horizontal Mark (`variant=&quot;compact&quot;`)</h2>
             </div>
-            <Badge variant="outline" className="text-xs font-mono">
+            <Badge variant="outline" className="text-xs font-mono whitespace-normal">
               Headers &amp; Navbars (Height: 32–44px)
             </Badge>
           </div>
@@ -403,12 +403,12 @@ export default function BrandShowcasePage() {
 
         {/* 5. THERMAL RECEIPT STAMP */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Printer className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-black tracking-tight">5. Thermal POS Receipt Stamp (`variant=&quot;thermal&quot;`)</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Printer className="w-5 h-5 text-primary shrink-0" />
+              <h2 className="text-lg sm:text-xl font-black tracking-tight break-words">5. Thermal POS Receipt Stamp (`variant=&quot;thermal&quot;`)</h2>
             </div>
-            <Badge variant="outline" className="text-xs font-mono">
+            <Badge variant="outline" className="text-xs font-mono whitespace-normal">
               100% Monochrome B&amp;W &bull; ESC/POS Compatible
             </Badge>
           </div>

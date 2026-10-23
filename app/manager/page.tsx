@@ -26,7 +26,6 @@ import {
   Layers,
   Sparkles,
   FolderTree,
-  Store,
   ArrowLeft,
   Palette,
   Download,
@@ -391,9 +390,9 @@ export default function ManagerDispatchPage() {
     <div className="min-h-screen bg-slate-100 text-surface-dark flex flex-col antialiased">
       {/* Top Cockpit Header */}
       <header className="bg-white border-b border-border-subtle pt-[env(safe-area-inset-top,0px)] shadow-sm shrink-0 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center justify-between sm:justify-start space-x-3">
-            <div className="flex items-center space-x-2.5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center justify-between xl:justify-start gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <Link
                 href="/"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors shrink-0 shadow-xs"
@@ -406,8 +405,8 @@ export default function ManagerDispatchPage() {
               <Link href="/" title="Back to Storefront">
                 <Logo variant="icon" theme="dark" size={36} className="rounded-xl shadow-xs shrink-0 hover:opacity-90" />
               </Link>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-surface-dark leading-tight">
                     SabQuick <span className="text-primary">Dispatch Cockpit</span>
                   </h1>
@@ -437,8 +436,8 @@ export default function ManagerDispatchPage() {
             </Button>
           </div>
 
-          {/* Action Controls */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Action Controls — wrap on tablet instead of clipping the overflow */}
+          <div className="flex flex-wrap items-center gap-2 py-0.5 min-w-0 xl:justify-end">
             <Link href="/owner/catalog" className="shrink-0">
               <Button variant="accent" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-black gap-1.5 shadow-sm px-2.5 sm:px-3">
                 <FolderTree className="w-3.5 h-3.5" />
@@ -520,13 +519,6 @@ export default function ManagerDispatchPage() {
               )}
               <span>Backup DB</span>
             </Button>
-
-            <Link href="/" className="shrink-0">
-              <Button variant="outline" size="sm" className="h-8 sm:h-9 rounded-xl text-xs font-bold gap-1.5 px-2.5 sm:px-3 text-slate-700">
-                <Store className="w-3.5 h-3.5 text-slate-600" />
-                <span>Store</span>
-              </Button>
-            </Link>
 
             <Button
               variant="outline"

@@ -103,14 +103,14 @@ export function CategoriesDirectory({
         <button
           type="button"
           onClick={() => router.push("/categories")}
-          className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 select-none"
+          className="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 select-none min-h-[36px] px-1"
         >
           Browse all <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Modern Circular Category Grid: items-start pins all circles to the same top baseline */}
-      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 items-start justify-items-center">
+      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 items-start justify-items-center">
         {displayedCategories.map((cat) => (
           <CategoryCircleButton
             key={cat.id}

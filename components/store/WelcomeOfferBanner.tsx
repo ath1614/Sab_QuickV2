@@ -95,7 +95,7 @@ export function WelcomeOfferBanner() {
             <span className="bg-white text-emerald-900 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-xs shrink-0">
               New User Gift
             </span>
-            <p className="text-[11px] sm:text-xs font-bold text-white truncate sm:text-clip">
+            <p className="text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-2 sm:line-clamp-none">
               <span className="hidden sm:inline">Welcome to SabQuick! </span>
               <strong>100% Free Delivery</strong> on your first 2 orders!
             </p>
@@ -109,7 +109,7 @@ export function WelcomeOfferBanner() {
           {isAlreadyApplied || justApplied ? (
             <button
               onClick={() => openCart()}
-              className="h-7 px-2.5 rounded-lg text-[10px] sm:text-[11px] font-black bg-emerald-950/80 text-emerald-200 border border-emerald-400/40 flex items-center gap-1 hover:bg-emerald-950 transition-colors shadow-2xs"
+              className="h-8 px-2.5 rounded-lg text-[10px] sm:text-[11px] font-black bg-emerald-950/80 text-emerald-200 border border-emerald-400/40 flex items-center gap-1 hover:bg-emerald-950 transition-colors shadow-2xs"
             >
               <Check className="w-3 h-3 text-emerald-400" />
               <span>Applied In Cart</span>
@@ -117,7 +117,7 @@ export function WelcomeOfferBanner() {
           ) : (
             <button
               onClick={handleApply}
-              className="h-7 px-2.5 sm:px-3 rounded-lg text-[10px] sm:text-[11px] font-black bg-white hover:bg-emerald-50 text-emerald-900 flex items-center gap-1 shadow-sm transition-transform active:scale-95"
+              className="h-8 px-2.5 sm:px-3 rounded-lg text-[10px] sm:text-[11px] font-black bg-white hover:bg-emerald-50 text-emerald-900 flex items-center gap-1 shadow-sm transition-transform active:scale-95"
             >
               <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500" />
               <span>Claim Free Delivery</span>
@@ -128,7 +128,7 @@ export function WelcomeOfferBanner() {
           <button
             onClick={handleDismiss}
             aria-label="Dismiss banner"
-            className="w-6 h-6 rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors text-xs"
+            className="w-8 h-8 rounded-lg text-emerald-200 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors text-xs"
           >
             <X className="w-3.5 h-3.5" />
           </button>

@@ -24,6 +24,7 @@ import {
   Crown,
   ChevronDown,
   X,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,120 @@ const DEFAULT_STORE_ADDRESS: SavedAddressData = {
   distanceKm: 0.5,
   estimatedMinutes: 8,
 };
+
+/** Staff destinations, surfaced through one compact menu on tablet/desktop. */
+const STAFF_HUBS = [
+  {
+    href: "/packer",
+    label: "Packer Station",
+    description: "Pick and pack live orders",
+    icon: PackageCheck,
+    roles: ["PACKER", "MANAGER", "OWNER"],
+  },
+  {
+    href: "/manager",
+    label: "Manager Board",
+    description: "Dispatch and rider kanban",
+    icon: LayoutDashboard,
+    roles: ["MANAGER", "OWNER"],
+  },
+  {
+    href: "/owner",
+    label: "Owner Console",
+    description: "Revenue, catalog and settings",
+    icon: TrendingUp,
+    roles: ["OWNER"],
+  },
+  {
+    href: "/rider/dashboard",
+    label: "Rider Hub",
+    description: "Deliveries, shift and earnings",
+    icon: Bike,
+    roles: ["RIDER"],
+  },
+];
+
+function OperationsMenu({
+  role,
+  roles,
+}: {
+  role?: string | null;
+  roles?: string[] | null;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const closeIfOutside = (event: MouseEvent | TouchEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", closeIfOutside);
+    document.addEventListener("touchstart", closeIfOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeIfOutside);
+      document.removeEventListener("touchstart", closeIfOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  const roleList = roles?.length ? roles : role ? [role] : [];
+  const hubs = STAFF_HUBS.filter((hub) => hub.roles.some((r) => roleList.includes(r)));
+  if (hubs.length === 0) return null;
+
+  return (
+    <div className="relative hidden md:block shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Staff operations"
+        className="flex items-center gap-1.5 h-10 px-2 lg:px-3 rounded-xl border border-border-subtle bg-white hover:bg-slate-50 text-xs font-bold text-surface-dark transition-colors"
+      >
+        <Boxes className="w-4 h-4 text-primary shrink-0" />
+        <span className="hidden lg:inline">Ops</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-500 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border-subtle bg-white shadow-xl p-1.5 z-50"
+        >
+          {hubs.map((hub) => {
+            const Icon = hub.icon;
+            return (
+              <Link
+                key={hub.href}
+                href={hub.href}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex items-start gap-2.5 rounded-xl px-2.5 py-2.5 hover:bg-slate-50 transition-colors"
+              >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="w-4 h-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-bold text-surface-dark">{hub.label}</span>
+                  <span className="block text-[11px] text-muted-foreground leading-snug">
+                    {hub.description}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const SEARCH_PLACEHOLDERS = [
   "Search 'milk, bread, butter'...",
@@ -200,7 +315,7 @@ export function Navbar({
                 <button
                   type="button"
                   onClick={() => setLocationPickerOpen(true)}
-                  className="flex items-center text-[11px] text-muted-foreground gap-0.5 hover:text-primary transition-colors text-left font-semibold text-surface-dark max-w-[125px] xs:max-w-[155px] truncate"
+                  className="flex items-center text-[11px] text-muted-foreground gap-0.5 hover:text-primary transition-colors text-left font-semibold text-surface-dark max-w-[125px] xs:max-w-[155px] truncate min-h-[36px] py-1"
                   title="Change delivery location"
                 >
                   <span className="truncate">
@@ -268,7 +383,7 @@ export function Navbar({
                 placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="pl-11 pr-20 h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-[12.5px] font-medium placeholder:text-slate-400 shadow-2xs transition-all"
+                className="pl-11 pr-20 h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-base sm:text-[12.5px] font-medium placeholder:text-slate-400 shadow-2xs transition-all"
               />
 
               {/* Right Side: Clear Button OR Spicy 10-Min Micro-Badge */}
@@ -291,28 +406,34 @@ export function Navbar({
           </div>
 
           {/* ========================================================= */}
-          {/* 3. DESKTOP SINGLE ROW (Spacious header on >= sm screens)  */}
+          {/* 3. TABLET + DESKTOP ROW (>= sm)                            */}
+          {/* Three tiers keep the row inside the viewport on every      */}
+          {/* device App Store review uses:                              */}
+          {/*   sm–md (640–767)  : logo, search, account, cart           */}
+          {/*   md–xl (768–1279) : + address, Ops menu, verify, cart     */}
+          {/*   xl+   (1280+)    : + full name/role, map, sign out       */}
+          {/* Everything is min-w-0 so the search field absorbs slack.   */}
           {/* ========================================================= */}
-          <div className="hidden sm:flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-4 w-full">
+          <div className="hidden sm:flex h-16 lg:h-20 items-center gap-2 lg:gap-3 w-full min-w-0">
             {/* Logo & Interactive Geofence Address Trigger */}
-            <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 min-w-0">
+            <div className="flex items-center gap-2 lg:gap-3 shrink-0 min-w-0">
               <Link href="/" className="flex items-center hover:opacity-90 transition-opacity shrink-0 py-1" title="SABQuick Home">
                 <img
                   src={BRAND_ASSETS.navbarLogo}
                   alt="SABQuick"
-                  className="h-10 sm:h-12 max-w-[140px] sm:max-w-none w-auto object-contain shrink-0 drop-shadow-xs"
+                  className="h-8 lg:h-11 max-w-[104px] lg:max-w-[140px] w-auto object-contain shrink-0 drop-shadow-xs"
                 />
               </Link>
 
-              <div className="border-l border-slate-200 pl-2 sm:pl-3 min-w-0">
+              <div className="hidden md:block border-l border-slate-200 pl-2 lg:pl-3 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <Badge
                     variant="accent"
-                    className="inline-flex gap-1 text-[9px] sm:text-[10px] tracking-wide uppercase cursor-pointer hover:bg-primary-accent/80 transition-colors py-0.2 px-1.5 sm:px-2"
+                    className="inline-flex gap-1 text-[9px] lg:text-[10px] tracking-wide uppercase cursor-pointer hover:bg-primary-accent/80 transition-colors py-0.2 px-1.5 lg:px-2"
                     onClick={() => setLocationPickerOpen(true)}
                     title="Click to check or change delivery geofence"
                   >
-                    <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-surface-dark" /> Superfast
+                    <Zap className="w-2.5 h-2.5 lg:w-3 lg:h-3 fill-surface-dark" /> Superfast
                   </Badge>
                 </div>
 
@@ -320,43 +441,44 @@ export function Navbar({
                 <button
                   type="button"
                   onClick={() => setLocationPickerOpen(true)}
-                  className="flex items-center text-[11px] sm:text-xs text-muted-foreground gap-1 hover:text-primary transition-colors text-left group mt-0.5"
+                  className="flex items-center text-[11px] lg:text-xs text-muted-foreground gap-1 hover:text-primary transition-colors text-left group mt-0.5 max-w-[150px] xl:max-w-[220px] min-h-[32px]"
                   title="Change delivery address & map pin"
                 >
                   <MapPin className="w-3 h-3 text-primary shrink-0" />
-                  <span className="font-semibold text-surface-dark max-w-[105px] xs:max-w-[140px] sm:max-w-[180px] truncate underline-offset-2 group-hover:underline">
+                  <span className="font-semibold text-surface-dark truncate underline-offset-2 group-hover:underline">
                     {activeAddress.streetArea || activeAddress.flatBuilding}
                   </span>
-                  <span className="text-slate-400 text-[11px] hidden md:inline">
-                    ({activeAddress.distanceKm} km away)
+                  <span className="text-slate-400 text-[11px] hidden xl:inline shrink-0">
+                    ({activeAddress.distanceKm} km)
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Desktop Search Input */}
-            <div className="flex flex-1 max-w-md relative group">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 pointer-events-none transition-transform group-focus-within:scale-105">
+            {/* Search — flexes to fill whatever the other tiers leave over */}
+            <div className="flex flex-1 min-w-0 max-w-md relative group">
+              <div className="absolute left-2.5 lg:left-3 top-1/2 -translate-y-1/2 w-6 h-6 lg:w-7 lg:h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 pointer-events-none transition-transform group-focus-within:scale-105">
                 <Search className="w-3.5 h-3.5 stroke-[2.5]" />
               </div>
               <Input
                 type="text"
-                placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
+                placeholder={placeholderIndex % 2 === 0 ? "Search groceries…" : SEARCH_PLACEHOLDERS[placeholderIndex]}
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="pl-11 pr-20 h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-xs placeholder:text-slate-400 shadow-2xs transition-all"
+                className="pl-10 lg:pl-11 pr-10 xl:pr-20 h-10 lg:h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-base sm:text-xs placeholder:text-slate-400 shadow-2xs transition-all"
               />
               {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => onSearchChange?.("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center active:scale-90 transition-all"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center active:scale-90 transition-all"
                   title="Clear search"
+                  aria-label="Clear search"
                 >
-                  <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <X className="w-4 h-4 stroke-[2.5]" />
                 </button>
               ) : (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs pointer-events-none">
                   <Zap className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
                   <span>SUPERFAST</span>
                 </div>
@@ -364,46 +486,57 @@ export function Navbar({
             </div>
 
             {/* Actions & Authentication */}
-            <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
-              {/* Interactive Map & Geofence Picker Trigger */}
+            <div className="flex items-center gap-1 lg:gap-1.5 shrink-0">
+              {/* Geofence picker (the address pill duplicates this; icon-only)
+                  stays available for keyboard/mouse users on wide screens. */}
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => setLocationPickerOpen(true)}
-                className="hidden lg:inline-flex gap-1.5 rounded-xl border-border-subtle hover:bg-slate-50 text-xs font-semibold"
+                className="hidden xl:inline-flex h-10 w-10 rounded-xl border-border-subtle hover:bg-slate-50"
+                title="Map & Geofence"
+                aria-label="Map and geofence"
               >
-                <MapPin className="w-3.5 h-3.5 text-primary" /> Map & Geofence
+                <MapPin className="w-4 h-4 text-primary" />
               </Button>
 
               {/* Authentication Controller */}
               {status === "loading" ? (
-                <div className="h-8 w-16 sm:h-9 sm:w-24 bg-slate-100 rounded-lg animate-pulse" />
+                <div className="h-9 w-9 bg-slate-100 rounded-lg animate-pulse" />
               ) : user ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Dedicated, unclipped Verify Phone Number button when phone is not verified */}
+                <div className="flex items-center gap-1 lg:gap-1.5">
+                  {/* Verify phone: icon-only until there is room for the label */}
                   {!isPhoneVerified && (
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => setPhoneDrawerOpen(true)}
-                      className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 sm:h-9 px-2 sm:px-3 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer animate-pulse"
+                      className="bg-amber-500 hover:bg-amber-600 text-white font-bold h-9 px-2 xl:px-3 rounded-xl shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
                       title="Verify Phone Number"
+                      aria-label="Verify phone number"
                     >
-                      <Smartphone className="w-3.5 h-3.5" />
-                      <span className="whitespace-nowrap font-bold text-[11px] sm:text-xs">Verify Phone Number</span>
+                      <Smartphone className="w-4 h-4" />
+                      <span className="hidden xl:inline whitespace-nowrap font-bold text-xs">Verify Phone</span>
                     </Button>
                   )}
 
-                  {/* Desktop User Info & Role Badge - Clickable to open Account & Policies Sheet */}
+                  {/* Staff hubs collapse into one menu so the row never
+                      outgrows an iPad / small laptop. */}
+                  <OperationsMenu
+                    role={user.role}
+                    roles={(user as any).roles}
+                  />
+
+                  {/* Account — opens the operations sheet on every width */}
                   <button
                     type="button"
                     onClick={() => setOperationsSheetOpen(true)}
-                    className="flex items-center gap-1.5 sm:gap-2 p-1 pl-2 sm:pl-2.5 rounded-xl hover:bg-slate-100 border border-transparent hover:border-border-subtle transition-all text-right group cursor-pointer shrink-0"
+                    className="flex items-center gap-2 p-1 xl:pl-2.5 rounded-xl hover:bg-slate-100 border border-transparent hover:border-border-subtle transition-all text-right group cursor-pointer shrink-0"
                     title="View Account Profile, Orders & Legal Policies"
                   >
-                    <div className="hidden sm:flex flex-col items-end">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-surface-dark truncate max-w-[100px] lg:max-w-[120px] group-hover:text-primary transition-colors">
+                    <div className="hidden xl:flex flex-col items-end min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-surface-dark truncate max-w-[110px] group-hover:text-primary transition-colors">
                           {user.name || user.email?.split("@")[0]}
                         </span>
                         {user.role && user.role !== "CUSTOMER" && (
@@ -413,7 +546,6 @@ export function Navbar({
                         )}
                       </div>
 
-                      {/* Phone verification indicator */}
                       {isPhoneVerified && (
                         <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -421,62 +553,19 @@ export function Navbar({
                         </span>
                       )}
                     </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0 border border-primary/20 group-hover:bg-primary group-hover:text-white transition-colors">
                       {user.role === "OWNER" ? <Crown className="w-3.5 h-3.5 text-amber-500" /> : (user.name?.[0] || "U").toUpperCase()}
                     </div>
                   </button>
 
-                  {/* Operations Quick Links */}
-                  {user.role === "RIDER" && (
-                    <Link
-                      href="/rider/dashboard"
-                      className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-primary-accent text-surface-dark font-black text-xs flex items-center gap-1.5 shadow-sm hover:bg-primary-accent/90 transition-all"
-                    >
-                      <Bike className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Rider Hub</span>
-                    </Link>
-                  )}
-
-                  {["PACKER", "MANAGER", "OWNER"].includes(user.role as string) && (
-                    <Link
-                      href="/packer"
-                      className="hidden sm:flex h-9 px-3 rounded-xl bg-emerald-100 text-emerald-900 font-bold text-xs items-center gap-1.5 shadow-sm hover:bg-emerald-200 transition-all"
-                      title="Packer Picking Station"
-                    >
-                      <PackageCheck className="w-3.5 h-3.5 text-primary" />
-                      <span>Packer</span>
-                    </Link>
-                  )}
-
-                  {["MANAGER", "OWNER"].includes(user.role as string) && (
-                    <Link
-                      href="/manager"
-                      className="hidden sm:flex h-9 px-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs items-center gap-1.5 shadow-sm hover:bg-slate-200 transition-all"
-                      title="Live Manager Kanban Board"
-                    >
-                      <LayoutDashboard className="w-3.5 h-3.5 text-slate-700" />
-                      <span>Manager</span>
-                    </Link>
-                  )}
-
-                  {user.role === "OWNER" && (
-                    <Link
-                      href="/owner"
-                      className="hidden sm:flex h-9 px-3 rounded-xl bg-amber-100 text-amber-900 font-black text-xs items-center gap-1.5 shadow-sm hover:bg-amber-200 transition-all"
-                      title="Owner Executive Control"
-                    >
-                      <TrendingUp className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Owner</span>
-                    </Link>
-                  )}
-
-                  {/* Logout Button (Desktop only; mobile uses bottom navigation Account tab) */}
+                  {/* Sign out (also available inside the account sheet) */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="hidden sm:inline-flex rounded-xl h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-red-600"
+                    className="hidden xl:inline-flex rounded-xl h-9 w-9 p-0 text-muted-foreground hover:text-red-600"
                     title="Sign Out"
+                    aria-label="Sign out"
                   >
                     <LogOut className="w-4 h-4" />
                   </Button>
@@ -486,7 +575,7 @@ export function Navbar({
                   variant="outline"
                   size="sm"
                   onClick={() => setAuthModalOpen(true)}
-                  className="rounded-xl h-8 sm:h-10 px-2.5 sm:px-3.5 text-[11px] sm:text-xs font-semibold gap-1 sm:gap-1.5 border-border-subtle hover:bg-slate-50"
+                  className="rounded-xl h-9 sm:h-10 px-2.5 sm:px-3.5 text-[11px] sm:text-xs font-semibold gap-1 sm:gap-1.5 border-border-subtle hover:bg-slate-50 whitespace-nowrap"
                 >
                   <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                   <span>Sign In</span>
@@ -497,11 +586,11 @@ export function Navbar({
               <Button
                 variant="default"
                 onClick={handleOpenCart}
-                className="hidden sm:inline-flex relative gap-1.5 rounded-xl h-8 sm:h-11 px-2.5 sm:px-4 shadow-sm hover:shadow-md"
+                className="relative gap-1.5 rounded-xl h-10 lg:h-11 px-2.5 lg:px-4 shadow-sm hover:shadow-md shrink-0"
               >
-                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="font-semibold hidden sm:inline">Cart</span>
-                <span className="bg-primary-accent text-surface-dark text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-full">
+                <ShoppingBag className="w-4 h-4" />
+                <span className="font-semibold hidden lg:inline">Cart</span>
+                <span className="bg-primary-accent text-surface-dark text-[10px] lg:text-xs font-bold px-1.5 py-0.5 rounded-full">
                   {displayCartCount}
                 </span>
               </Button>

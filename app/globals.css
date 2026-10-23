@@ -119,12 +119,37 @@
   * {
     @apply border-border;
   }
+
+  /* No sideways page scroll on any device. iPad and iPhone are the ones
+     App Store review keeps bouncing on (guideline 4): a single row or a
+     fixed-width rail that pokes past the viewport lets the whole page
+     drift left, which is what the reviewer screenshot shows. `clip`
+     rather than `hidden` so `position: sticky` headers keep working. */
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     /* Prevent pull-to-refresh overscroll bounce on mobile PWA */
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Long words (product names, addresses, error messages) wrap instead of
+     widening their container. */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  li,
+  td,
+  th {
+    overflow-wrap: break-word;
   }
 
   /* ─────────────────────────────────────────────────────────
