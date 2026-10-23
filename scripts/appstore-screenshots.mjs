@@ -58,24 +58,54 @@ for (const device of DEVICES) {
     console.log(`✓ ${file}`);
   }
 
+  /** Wait until the catalog is really rendered: cards present, skeletons gone,
+   * and product art decoded. Fixed sleeps produced blank skeleton cards on
+   * slower phone viewports. */
+  async function waitForCatalog() {
+    await page
+      .locator('[aria-label^="View details for"]')
+      .first()
+      .waitFor({ timeout: 30000 })
+      .catch(() => {});
+    await page
+      .waitForFunction(() => document.querySelectorAll("[class*='animate-pulse']").length === 0, {
+        timeout: 20000,
+      })
+      .catch(() => {});
+    await page
+      .waitForFunction(
+        () => {
+          const imgs = [...document.querySelectorAll("img")].filter((i) => i.getBoundingClientRect().width > 0);
+          return imgs.length > 0 && imgs.every((i) => i.complete);
+        },
+        { timeout: 20000 }
+      )
+      .catch(() => {});
+  }
+
   // 1. Home
   await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(1500);
   const skip = page.getByRole("button", { name: /^Skip$/ }).first();
   if (await skip.isVisible().catch(() => false)) {
     await skip.click();
-    await page.waitForTimeout(1800);
   }
+  await waitForCatalog();
+  await page.waitForTimeout(400);
   await shot("01-home");
 
   // 2. Product detail sheet
   const detail = page.locator('[aria-label^="View details for"]').first();
   if (await detail.count()) {
+    await detail.scrollIntoViewIfNeeded().catch(() => {});
     await detail.click().catch(() => {});
-    await page.waitForTimeout(1600);
+    await page.waitForSelector('[role="dialog"]', { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(1200);
     await shot("02-product");
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(700);
+    await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+    await page.waitForTimeout(400);
   }
 
   // 3. Delivery map / geofence sheet
@@ -85,9 +115,19 @@ for (const device of DEVICES) {
     )
     .first();
   if (await mapTrigger.count()) {
+    await mapTrigger.scrollIntoViewIfNeeded().catch(() => {});
     await mapTrigger.click().catch(() => {});
     await page.waitForSelector(".leaflet-container", { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(2400);
+    // Phones scroll the sheet; bring the primary CTA into frame so the shot
+    // does not end on a half-cut button.
+    await page
+      .evaluate(() => {
+        const d = document.querySelector('[role="dialog"]');
+        if (d && d.scrollHeight > d.clientHeight + 4) d.scrollTop = d.scrollHeight;
+      })
+      .catch(() => {});
+    await page.waitForTimeout(600);
     await shot("03-location-map");
     await page.keyboard.press("Escape");
     await page.waitForTimeout(600);
@@ -95,12 +135,14 @@ for (const device of DEVICES) {
 
   // 4. All categories
   await page.goto(`${BASE}/categories`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(2400);
+  await waitForCatalog();
+  await page.waitForTimeout(400);
   await shot("04-categories");
 
   // 5. Category listing with product cards
   await page.goto(`${BASE}/?category=${encodeURIComponent(CATEGORY)}`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(2600);
+  await waitForCatalog();
+  await page.waitForTimeout(400);
   await shot("05-category");
 
   await ctx.close();

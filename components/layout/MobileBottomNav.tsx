@@ -54,7 +54,7 @@ function MobileBottomNavInner() {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-border-subtle/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] transition-all"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-border-subtle/80 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)] transition-all"
     >
       <div className="grid grid-cols-5 h-16 max-w-lg mx-auto items-center px-1">
         {/* 1. Home Tab */}

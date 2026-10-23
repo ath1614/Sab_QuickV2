@@ -39,7 +39,7 @@ function CategoryCircleButton({
       title={`Browse ${cat.name}`}
     >
       {/* Circular Image Container: 100% circular avatar with subtle inset frame for zoomed-out look */}
-      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-white border border-slate-200/90 shadow-2xs group-hover:shadow-md group-hover:border-primary/50 group-hover:ring-2 group-hover:ring-primary/20 flex items-center justify-center p-1 sm:p-1.5 overflow-hidden transition-all duration-200">
+      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-white border border-slate-200/90 shadow-2xs group-hover:shadow-md group-hover:border-primary/50 group-hover:ring-2 group-hover:ring-primary/20 flex items-center justify-center p-1 sm:p-1.5 overflow-hidden transition-all duration-200">
         <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center">
           {hasImage ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -59,7 +59,7 @@ function CategoryCircleButton({
       </div>
 
       {/* Category Name Under Circle - Fixed 2-line height ensures all circles and labels align perfectly */}
-      <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px]">
+      <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px] lg:max-w-[124px]">
         <span className="block text-[10px] sm:text-[11px] md:text-xs font-bold text-slate-800 text-center leading-[14px] sm:leading-[16px] line-clamp-2 md:line-clamp-3 group-hover:text-primary transition-colors">
           {cat.name}
         </span>
@@ -110,7 +110,10 @@ export function CategoriesDirectory({
       </div>
 
       {/* Modern Circular Category Grid: items-start pins all circles to the same top baseline */}
-      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 items-start justify-items-center">
+      {/* Column counts always divide the 10-slot grid, so no row is left with
+          a lonely trailing item. Tablet gets two rows of five; wide desktop
+          fits all ten on one line. */}
+      <div className="grid grid-cols-5 xl:grid-cols-10 gap-x-2 gap-y-3.5 sm:gap-x-4 sm:gap-y-6 items-start justify-items-center">
         {displayedCategories.map((cat) => (
           <CategoryCircleButton
             key={cat.id}
@@ -127,13 +130,13 @@ export function CategoriesDirectory({
             className="group flex flex-col items-center gap-1.5 focus:outline-none select-none transition-transform active:scale-90"
             title="Browse all categories"
           >
-            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-emerald-50/80 border-2 border-dashed border-primary/40 text-primary flex flex-col items-center justify-center shadow-2xs group-hover:bg-primary group-hover:text-white transition-all duration-200 shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-emerald-50/80 border-2 border-dashed border-primary/40 text-primary flex flex-col items-center justify-center shadow-2xs group-hover:bg-primary group-hover:text-white transition-all duration-200 shrink-0">
               <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" />
               <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-tight mt-0.5">
                 +{remainingCount} MORE
               </span>
             </div>
-            <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px]">
+            <div className="h-[30px] sm:h-[34px] md:h-[42px] flex items-start justify-center max-w-[68px] sm:max-w-[88px] md:max-w-[104px] lg:max-w-[124px]">
               <span className="block text-[10px] sm:text-[11px] md:text-xs font-black text-primary text-center leading-[14px] sm:leading-[16px]">
                 All Aisles
               </span>
