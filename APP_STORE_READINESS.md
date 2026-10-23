@@ -91,37 +91,38 @@ node scripts/ui-audit.mjs --widths 390,820,1180   # quick sweep
 
 App Store Connect requires, for a universal app:
 
-| Slot | Required size | Current file | State |
+| Slot | Required size | File | State |
 |---|---|---|---|
-| 13-inch iPad | 2048×2732 (or 2064×2752) | `appstore_screenshots/ipad-13-2048x2732-1..4.png` | **Stale — do not upload.** They were captured at a narrow viewport and show the phone header, a clipped welcome strip ("…on your firs…") and truncated category names. |
-| iPhone 6.7" | 1290×2796 | `iphone-6.7-screenshot-*.png` | Stale (same build as the rejected one) |
-| iPhone 6.5" | 1242×2688 | `iphone-6.5-screenshot-*.png` | Stale |
+| 13-inch iPad | 2048×2732 | `appstore_screenshots/2026-10/ipad-13-01..05-*.png` | **Ready** — captured from the deployed build |
+| iPhone 6.7" | 1290×2796 | `appstore_screenshots/2026-10/iphone-6.7-01..05-*.png` | **Ready** |
+| iPhone 6.5" | 1242×2688 | `appstore_screenshots/2026-10/iphone-6.5-01..05-*.png` | **Ready** |
 
-`scripts/appstore-screenshots.mjs` regenerates all three at the exact pixel sizes, using the
-fixed layout, browsing as a guest so no staff badge/name appears:
+15 files, every one size-checked with `sips`: 2048×2732, 1290×2796 and 1242×2688 exactly.
+The five screens per device are home, product detail, delivery-location map, category
+directory and a category listing. Captured as a guest (Skip on the login gate), so no
+account name, phone number or staff badge appears.
+
+Regenerate at any time — it must run against the deployed site, because the repository does
+not carry `/public/products` media:
 
 ```bash
 node scripts/appstore-screenshots.mjs --base https://srv1985371.hstgr.cloud
 # → appstore_screenshots/<YYYY-MM>/
-#   ipad-13-01-home.png … 05-category.png          (2048×2732)
-#   iphone-6.7-01-home.png … 05-category.png       (1290×2796)
-#   iphone-6.5-…                                   (1242×2688)
 ```
 
-Run it **after** the web fix is deployed — the app is a WebView around the live site, so
-screenshots taken before the deploy would show the old layout. The script's output was
-size-verified locally (2048×2732 / 1290×2796 / 1242×2688); the local capture shows
-placeholder initials because `/public/products` is not in the repository, which is why the
-final run must target the deployed URL.
+The script now waits for real product cards (no skeleton frames), keeps the sheet's
+"Save & Deliver Here" button in frame on phones, and renders the 10-category grid as two
+balanced rows of five on iPad instead of a 6/8-column layout with a two-item orphan row.
 
 ---
 
 ## 5. Remaining owner actions (cannot be done from this repo)
 
-1. **Deploy the web fix.** The iOS shell loads `https://srv1985371.hstgr.cloud`; until that
-   server runs this commit, the reviewer will see the old layout again.
-2. **Replace the screenshots** with the generator output (13-inch iPad slot is mandatory
-   because the app declares iPad support).
+1. ~~Deploy the web fix~~ — **done.** Web layout shipped in `a94e337` and `d594a05`, deployed
+   by the CI pipeline to `https://srv1985371.hstgr.cloud`, and confirmed live by finding the
+   new dialog/grid classes in the served JS chunks.
+2. ~~Replace the screenshots~~ — **done**, see section 4. Upload the `2026-10` set; the
+   13-inch iPad slot is mandatory because the app declares iPad support.
 3. **App Privacy questionnaire** in App Store Connect. The app collects: phone number,
    name, delivery address, order history, and payment status (processed by Cashfree/UPI —
    the app does not store card numbers). Declare these as *linked to the user* and used for
@@ -138,6 +139,18 @@ final run must target the deployed URL.
    screen; mention the exact iPad Air 11-inch check.
 
 ---
+
+## 5b. Verification of the deployed build
+
+| Check | Result |
+|---|---|
+| GitHub Actions `validate-and-build` (tsc, DB, core suites, `next build`) | passed |
+| GitHub Actions `deploy-to-vps` | passed — container rebuilt and recreated |
+| Live site serves the fixed bundle | confirmed: `grid-cols-5 xl:grid-cols-10`, opaque nav and wrapping-sheet classes present in `/_next/static` chunks |
+| Home, filtered home, `/categories`, `/orders`, `/delete-account` at 320 / 390 / 744 / 820 / 1180 / 1920 | 30 checks, 0 overflow |
+| Delivery sheet, 320 → 1440 | 11 / 11 widths, map gaps equal, no child outside the sheet |
+| Rotation + Split View with the sheet open | map re-measured, tiles 100 % coverage |
+| Store captures | 15 / 15 at exact App Store pixel sizes, inspected visually |
 
 ## 6. Risks worth knowing
 
@@ -157,3 +170,7 @@ final run must target the deployed URL.
   sizes of the listed devices. iPad Split View, Stage Manager and rotation were simulated
   by resizing the viewport and are handled by the new `ResizeObserver`; a quick pass on a
   real iPad before upload is still worthwhile.
+- **Seasonal hero copy.** The live homepage currently reads "Merry Christmas — Holiday
+  Treats Delivered" with Christmas imagery. It is not a guideline violation, but it will
+  appear in the review screenshots and looks out of season in October — update the banner
+  content before capturing the final set if you want evergreen shots.

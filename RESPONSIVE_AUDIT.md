@@ -213,7 +213,24 @@ inside the 200 ms budget; the CLS is a known cosmetic trade-off, not a layout ov
 
 ---
 
-## 7. Remaining recommendations (not blocking this submission)
+## 7. Round 3 — deployed verification and store captures
+
+**Date:** 23 Oct 2026 · shipped in `a94e337` + `d594a05`, deployed to
+`https://srv1985371.hstgr.cloud` by CI (`validate-and-build` → `deploy-to-vps`, both green).
+
+| Item | Result |
+|---|---|
+| Live bundle contains the fixes | verified in the served `/_next/static` chunks (wrapping sheet, `grid-cols-5 xl:grid-cols-10`, opaque bottom nav) |
+| Re-audit after the change | 6 devices × 5 routes = 30 checks, **0 overflow** |
+| Home category grid on iPad | was 8 columns → rows of 8 + 2 orphans; now 5 columns with 96 px avatars → **two rows of five** |
+| Bottom nav on phones | `bg-white/95` + blur let product buttons ghost through; now opaque |
+| Store screenshots | 15 captured from production at exact App Store sizes, inspected: home, product, map sheet, categories, category |
+
+One implementation detail worth keeping: the screenshot tool now waits for real product cards
+and decoded images (fixed sleeps produced skeleton tiles at 430 px) and scrolls the phone
+sheet so the primary CTA is not half-cut in the marketing frame.
+
+## 8. Remaining recommendations (not blocking this submission)
 
 1. **iPhone zoom** — `maximumScale: 1, userScalable: false` is still set in
    `app/layout.tsx`. Allowing pinch-zoom is better accessibility, but 14 px inputs would then
