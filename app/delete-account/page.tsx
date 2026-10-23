@@ -287,7 +287,7 @@ export default function DeleteAccountPage() {
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                     required
                     disabled={Boolean(session?.user?.phone) || isLoading}
-                    className="h-11 rounded-xl font-mono font-semibold"
+                    className="h-11 rounded-xl font-mono font-semibold text-base lg:text-sm"
                   />
                 </div>
               </div>
@@ -303,7 +303,7 @@ export default function DeleteAccountPage() {
                   onChange={(e) => setConfirmText(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="h-11 rounded-xl font-mono font-bold"
+                  className="h-11 rounded-xl font-mono font-bold text-base lg:text-sm"
                 />
               </div>
 

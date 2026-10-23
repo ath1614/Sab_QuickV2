@@ -803,7 +803,7 @@ export default function OwnerCatalogPage() {
               placeholder="Search categories, subcategories, or products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-11 bg-slate-900 border-2 border-slate-700 text-xs text-white rounded-xl focus:border-emerald-400 font-medium"
+              className="pl-9 h-11 bg-slate-900 border-2 border-slate-700 text-base lg:text-xs text-white rounded-xl focus:border-emerald-400 font-medium"
             />
           </div>
 

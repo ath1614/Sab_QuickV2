@@ -633,7 +633,7 @@ export default function ManagerDispatchPage() {
               value={skuSearch}
               onChange={(e) => setSkuSearch(e.target.value)}
               placeholder="Search SKU name (e.g. Milk, Eggs)..."
-              className="h-9 pl-9 pr-4 text-xs rounded-xl bg-white border-slate-300"
+              className="h-9 pl-9 pr-4 text-base lg:text-xs rounded-xl bg-white border-slate-300"
             />
 
             {/* Fast SKU Dropdown Results */}

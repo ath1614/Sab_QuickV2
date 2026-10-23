@@ -217,7 +217,7 @@ export function LocationPickerModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-6 gap-4">
         <DialogHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm">
                 <MapPin className="w-4 h-4" />
@@ -259,8 +259,8 @@ export function LocationPickerModal({
             isServiceable={serviceability.isServiceable}
             distanceKm={serviceability.distanceKm}
           />
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-            <span>
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] leading-tight text-muted-foreground px-1">
+            <span className="hidden sm:inline">
               Store Hub: {STORE_CONFIG.lat.toFixed(4)}, {STORE_CONFIG.lng.toFixed(4)}
             </span>
             <span>
@@ -278,11 +278,11 @@ export function LocationPickerModal({
         {/* Structured Address Form */}
         <div className="space-y-3 pt-2">
           {/* Label selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0">
               Save as:
             </span>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <Button
                 type="button"
                 size="sm"
@@ -323,7 +323,7 @@ export function LocationPickerModal({
                 placeholder="e.g. Flat 402, Royal Residency"
                 value={flatBuilding}
                 onChange={(e) => setFlatBuilding(e.target.value)}
-                className="h-10 text-xs rounded-xl"
+                className="h-11 sm:h-10 text-base sm:text-xs rounded-xl"
               />
             </div>
             <div className="space-y-1">
@@ -334,7 +334,7 @@ export function LocationPickerModal({
                 placeholder="e.g. Near Metro Gate 2"
                 value={landmark}
                 onChange={(e) => setLandmark(e.target.value)}
-                className="h-10 text-xs rounded-xl"
+                className="h-11 sm:h-10 text-base sm:text-xs rounded-xl"
               />
             </div>
           </div>
@@ -347,7 +347,7 @@ export function LocationPickerModal({
               placeholder="e.g. Gandhi Chowk, Ambikapur, Chhattisgarh"
               value={streetArea}
               onChange={(e) => setStreetArea(e.target.value)}
-              className="h-10 text-xs rounded-xl"
+              className="h-11 sm:h-10 text-base sm:text-xs rounded-xl"
             />
           </div>
         </div>
@@ -359,20 +359,24 @@ export function LocationPickerModal({
             variant="default"
             disabled={!serviceability.isServiceable || isSaving}
             onClick={handleSaveAddress}
-            className="w-full h-11 rounded-xl text-sm font-bold gap-2 shadow-md disabled:opacity-50"
+            className="w-full h-12 sm:h-11 rounded-xl text-sm font-bold gap-2 shadow-md disabled:opacity-50 whitespace-normal text-center leading-snug"
           >
             {isSaving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Saving Address...
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Saving Address...
               </>
             ) : serviceability.isServiceable ? (
               <>
-                <ShieldCheck className="w-4 h-4" /> Save & Deliver Here (Superfast Delivery)
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>
+                  Save & Deliver Here{" "}
+                  <span className="hidden sm:inline">(Superfast Delivery)</span>
+                </span>
               </>
             ) : (
               <>
-                <AlertTriangle className="w-4 h-4" /> Cannot Deliver Outside 3.5 km
-                Zone
+                <AlertTriangle className="w-4 h-4 shrink-0" /> Cannot Deliver Outside
+                3.5 km Zone
               </>
             )}
           </Button>

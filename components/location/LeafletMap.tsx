@@ -101,7 +101,25 @@ export default function LeafletMap({
     mapInstanceRef.current = map;
     customerMarkerRef.current = customerMarker;
 
+    // Leaflet caches the container size at creation time. The sheet animates
+    // open and the map box is height-clamped per device, and rotating an iPad
+    // resizes it again — without this the tiles stay laid out for the old size
+    // (grey bands, pin off-centre).
+    const invalidate = () => {
+      if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize({ animate: false });
+    };
+    const raf = requestAnimationFrame(invalidate);
+    const settle = setTimeout(invalidate, 320);
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(invalidate) : null;
+    if (observer && mapContainerRef.current) observer.observe(mapContainerRef.current);
+    window.addEventListener("orientationchange", invalidate);
+
     return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(settle);
+      observer?.disconnect();
+      window.removeEventListener("orientationchange", invalidate);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -191,12 +209,12 @@ export default function LeafletMap({
   };
 
   return (
-    <div className="relative w-full h-[320px] rounded-2xl overflow-hidden border border-border-subtle shadow-inner">
+    <div className="relative w-full h-[clamp(200px,32dvh,320px)] sm:h-[320px] rounded-2xl overflow-hidden border border-border-subtle shadow-inner">
       {/* Map DOM Container */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* Floating GPS Button */}
-      <div className="absolute bottom-4 left-4 z-[400]">
+      <div className="absolute bottom-4 left-3 z-[400]">
         <Button
           type="button"
           size="sm"
@@ -211,14 +229,14 @@ export default function LeafletMap({
       </div>
 
       {/* Floating Geofence Status Overlay Badge */}
-      <div className="absolute top-3 left-3 z-[400] pointer-events-none">
-        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-border-subtle shadow-sm text-xs font-semibold">
+      <div className="absolute top-3 left-3 right-3 z-[400] pointer-events-none">
+        <div className="inline-flex max-w-full items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-border-subtle shadow-sm text-xs font-semibold">
           <span
             className={`w-2.5 h-2.5 rounded-full ${
               isServiceable ? "bg-primary-accent animate-pulse" : "bg-red-500"
             }`}
           />
-          <span className="text-surface-dark">
+          <span className="text-surface-dark leading-tight">
             {isServiceable
               ? `${distanceKm} km from Dark Store (Inside 3.5 km)`
               : `${distanceKm} km from Dark Store (Outside 3.5 km)`}

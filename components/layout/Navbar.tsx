@@ -465,7 +465,7 @@ export function Navbar({
                 placeholder={placeholderIndex % 2 === 0 ? "Search groceries…" : SEARCH_PLACEHOLDERS[placeholderIndex]}
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="pl-10 lg:pl-11 pr-10 xl:pr-20 h-10 lg:h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-base sm:text-xs placeholder:text-slate-400 shadow-2xs transition-all"
+                className="pl-10 lg:pl-11 pr-10 xl:pr-20 h-10 lg:h-11 w-full bg-slate-50/90 border-slate-200/90 hover:bg-slate-100/70 focus-visible:bg-white focus-visible:border-emerald-600 focus-visible:ring-3 focus-visible:ring-emerald-500/15 rounded-2xl text-base lg:text-sm placeholder:text-slate-400 shadow-2xs transition-all"
               />
               {searchQuery ? (
                 <button
@@ -487,13 +487,15 @@ export function Navbar({
 
             {/* Actions & Authentication */}
             <div className="flex items-center gap-1 lg:gap-1.5 shrink-0">
-              {/* Geofence picker (the address pill duplicates this; icon-only)
-                  stays available for keyboard/mouse users on wide screens. */}
+              {/* Geofence picker. Visible only at 640–767: below that the
+                  phone header has its address button, from md up the address
+                  pill opens the same sheet. Without this, iPad mini portrait
+                  (744 px) had no way to change the delivery location. */}
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setLocationPickerOpen(true)}
-                className="hidden xl:inline-flex h-10 w-10 rounded-xl border-border-subtle hover:bg-slate-50"
+                className="hidden sm:inline-flex md:hidden h-10 w-10 rounded-xl border-border-subtle hover:bg-slate-50"
                 title="Map & Geofence"
                 aria-label="Map and geofence"
               >

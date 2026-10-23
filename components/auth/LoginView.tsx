@@ -225,9 +225,14 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
       </header>
 
       {/* Scrollable Form Body: Glides cleanly under the blurred safe header */}
-      <div className="flex-1 w-full overflow-y-auto overscroll-contain flex flex-col items-center justify-between px-4 py-2 pb-[max(env(safe-area-inset-bottom,0px),16px)]">
-        {/* Hero Section — Minimal, No Duplicate "SABQuick" text */}
-        <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center text-center my-auto py-2">
+      {/* Centred as one group on iPad/desktop instead of hero-at-top /
+          form-pinned-to-bottom, which left a dead half-screen on tablets. */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain flex flex-col items-center gap-4 sm:gap-6 px-4 py-3 pb-[max(env(safe-area-inset-bottom,0px),16px)]">
+        {/* Hero Section — Minimal, No Duplicate "SABQuick" text.
+            mt-auto / mb-auto on hero + card centre the pair when there is room
+            and collapse to 0 when the keyboard makes the content scroll, so
+            nothing can be pushed above the scroll origin. */}
+        <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center text-center py-1 mt-auto">
           <div className="relative mb-3">
             <img
               src={BRAND_ASSETS.appIcon}
@@ -246,7 +251,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
         </div>
 
         {/* Form Container Card */}
-        <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/80 border border-slate-100 space-y-4 mb-2">
+        <div className="w-full max-w-sm sm:max-w-md bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-slate-200/80 border border-slate-100 space-y-4 mb-auto">
         {/* ============================================================ */}
         {/* STEP 1: MOBILE NUMBER INPUT                                  */}
         {/* ============================================================ */}
@@ -279,7 +284,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={10}
-                placeholder="Enter mobile number"
+                placeholder="Mobile number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 onKeyDown={(e) => {

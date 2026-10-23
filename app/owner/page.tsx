@@ -1680,13 +1680,13 @@ export default function OwnerControlPage() {
                   value={inventorySearch}
                   onChange={(e) => setInventorySearch(e.target.value)}
                   placeholder="Search SKUs..."
-                  className="pl-8 h-9 w-40 sm:w-56 text-xs rounded-xl"
+                  className="pl-8 h-9 w-40 sm:w-56 text-base lg:text-xs rounded-xl"
                 />
               </div>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="h-9 rounded-xl border border-border-subtle bg-white text-xs font-bold px-2.5 outline-none focus:ring-2 focus:ring-primary/30"
+                className="h-9 rounded-xl border border-border-subtle bg-white text-base lg:text-xs font-bold px-2.5 outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <option value="ALL">All Categories</option>
                 {uniqueCategories.map((c) => (

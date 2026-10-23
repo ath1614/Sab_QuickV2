@@ -242,7 +242,7 @@ export default function RiderApplyPage() {
                     placeholder="e.g. Rahul Sharma"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white text-xs"
+                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white text-base lg:text-xs"
                   />
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function RiderApplyPage() {
                     placeholder="10-digit phone number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
+                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-base lg:text-xs"
                   />
                 </div>
                 <span className="text-[10px] text-slate-400 mt-1 block">
@@ -280,7 +280,7 @@ export default function RiderApplyPage() {
                     placeholder="e.g. Bareilly"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="h-10 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white text-xs font-medium"
+                    className="h-10 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white text-base lg:text-xs font-medium"
                   />
                 </div>
 
@@ -291,7 +291,7 @@ export default function RiderApplyPage() {
                   <select
                     value={vehicleType}
                     onChange={(e) => setVehicleType(e.target.value)}
-                    className="w-full h-10 rounded-xl bg-slate-950 border border-slate-700 px-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-400"
+                    className="w-full h-10 rounded-xl bg-slate-950 border border-slate-700 px-2.5 text-base lg:text-xs text-white font-medium focus:outline-none focus:border-emerald-400"
                   >
                     <option value="Bike / Motorcycle">Bike / Motorcycle</option>
                     <option value="Electric Scooter (EV)">Electric Scooter (EV)</option>
@@ -311,7 +311,7 @@ export default function RiderApplyPage() {
                     placeholder="UP25 20220000000 (Optional for Bicycle)"
                     value={licenseNumber}
                     onChange={(e) => setLicenseNumber(e.target.value)}
-                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white uppercase text-xs font-mono"
+                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white uppercase text-base lg:text-xs font-mono"
                   />
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function RiderApplyPage() {
                     placeholder="Family member phone number"
                     value={emergencyPhone}
                     onChange={(e) => setEmergencyPhone(e.target.value.replace(/\D/g, ""))}
-                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
+                    className="h-10 pl-9 bg-slate-950 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-base lg:text-xs"
                   />
                 </div>
               </div>

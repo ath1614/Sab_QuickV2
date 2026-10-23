@@ -10,8 +10,10 @@ moment it ships to the site.
 - `capacitor.config.ts` → `server.url` points at the production site
   (`https://srv1985371.hstgr.cloud`). The WebView loads the live site; there
   is no bundled web copy to keep in sync.
-- `android/` is the only native shell checked in (iOS can be added later with
-  `npx cap add ios` once an Apple Developer account exists).
+- `android/` and `ios/` are both checked in. The iOS target (`ios/App`) is
+  `com.sabquick.app`, family 1,2 (iPhone + iPad), iOS 15+, build number bumped
+  per submission. See [APP_STORE_READINESS.md](APP_STORE_READINESS.md) for the
+  review checklist and the screenshot generator.
 - CI (`build-capacitor-app` job) builds a debug APK on every push after the
   web `npm run build` succeeds.
 

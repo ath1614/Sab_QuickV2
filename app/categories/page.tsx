@@ -664,7 +664,7 @@ function CategoriesContent() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search all categories or products..."
-            className="w-full h-11 sm:h-12 pl-11 pr-10 rounded-2xl bg-white border border-slate-200 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
+            className="w-full h-11 sm:h-12 pl-11 pr-10 rounded-2xl bg-white border border-slate-200 text-base lg:text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
           />
           {searchText && (
             <button

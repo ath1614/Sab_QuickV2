@@ -117,7 +117,23 @@ export default function OrderRouteMap({
 
     mapInstanceRef.current = map;
 
+    // The card is height-clamped per device and resizes on iPad rotation /
+    // Split View. Re-measure so tiles always fill the frame.
+    const invalidate = () => {
+      if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize({ animate: false });
+    };
+    const raf = requestAnimationFrame(invalidate);
+    const settle = setTimeout(invalidate, 320);
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(invalidate) : null;
+    if (observer && mapContainerRef.current) observer.observe(mapContainerRef.current);
+    window.addEventListener("orientationchange", invalidate);
+
     return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(settle);
+      observer?.disconnect();
+      window.removeEventListener("orientationchange", invalidate);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -129,8 +145,8 @@ export default function OrderRouteMap({
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* Floating Distance & SLA Overlay Chip */}
-      <div className="absolute top-3 left-3 z-[400] pointer-events-none">
-        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-border-subtle shadow-md text-xs font-bold text-surface-dark">
+      <div className="absolute top-3 left-3 right-3 z-[400] pointer-events-none">
+        <div className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-0.5 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-border-subtle shadow-md text-xs font-bold text-surface-dark">
           <span className="flex h-2.5 w-2.5 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-accent opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-accent"></span>

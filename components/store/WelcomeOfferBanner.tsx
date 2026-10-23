@@ -87,15 +87,15 @@ export function WelcomeOfferBanner() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2.5 sm:gap-4 relative z-10">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="hidden sm:flex w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-white/20 border border-white/30 items-center justify-center shrink-0 shadow-2xs">
             <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200" />
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-            <span className="bg-white text-emerald-900 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-xs shrink-0">
+            <span className="hidden min-[360px]:inline-block bg-white text-emerald-900 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-xs shrink-0">
               New User Gift
             </span>
-            <p className="text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-2 sm:line-clamp-none">
+            <p className="text-[10.5px] min-[360px]:text-[11px] sm:text-xs font-bold text-white leading-snug line-clamp-2 sm:line-clamp-none">
               <span className="hidden sm:inline">Welcome to SabQuick! </span>
               <strong>100% Free Delivery</strong> on your first 2 orders!
             </p>
@@ -119,8 +119,9 @@ export function WelcomeOfferBanner() {
               onClick={handleApply}
               className="h-8 px-2.5 sm:px-3 rounded-lg text-[10px] sm:text-[11px] font-black bg-white hover:bg-emerald-50 text-emerald-900 flex items-center gap-1 shadow-sm transition-transform active:scale-95"
             >
-              <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500" />
-              <span>Claim Free Delivery</span>
+              <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
+              <span className="min-[360px]:hidden">Claim</span>
+              <span className="hidden min-[360px]:inline">Claim Free Delivery</span>
               <ArrowRight className="w-3 h-3 hidden sm:inline" />
             </button>
           )}
