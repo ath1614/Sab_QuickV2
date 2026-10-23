@@ -77,7 +77,7 @@ export function WelcomeOfferBanner() {
   return (
     <aside
       aria-label="Welcome promotional offer"
-      className="relative z-40 bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white shadow-md border-b border-emerald-500/30 overflow-hidden"
+      className="relative z-20 bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white shadow-md border-b border-emerald-500/30 overflow-hidden"
     >
       {/* Background ambient lighting */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
