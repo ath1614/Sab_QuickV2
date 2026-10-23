@@ -226,12 +226,12 @@ export function OwnerCustomersTab() {
       )}
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-md">
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
             <Users className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Total Customers</p>
             <h3 className="text-xl sm:text-2xl font-black text-white">{kpis.totalCustomers}</h3>
           </div>
@@ -241,7 +241,7 @@ export function OwnerCustomersTab() {
           <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Phone Verified</p>
             <h3 className="text-xl sm:text-2xl font-black text-white">{kpis.verifiedCustomers}</h3>
           </div>
@@ -251,7 +251,7 @@ export function OwnerCustomersTab() {
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
             <ShoppingBag className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Repeat Buyers</p>
             <h3 className="text-xl sm:text-2xl font-black text-white">{kpis.repeatCustomers}</h3>
           </div>
@@ -261,7 +261,7 @@ export function OwnerCustomersTab() {
           <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border-2 border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
             <IndianRupee className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Customer GMV</p>
             <h3 className="text-xl sm:text-2xl font-black text-white">
               ₹{(Number(kpis?.totalLifetimeRevenue || 0)).toLocaleString("en-IN")}
@@ -344,7 +344,7 @@ export function OwnerCustomersTab() {
       ) : (
         <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-xl">
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-200">
               <thead className="bg-slate-950 text-slate-400 text-[11px] uppercase tracking-wider font-bold border-b-2 border-slate-800">
                 <tr>
@@ -442,7 +442,7 @@ export function OwnerCustomersTab() {
           </div>
 
           {/* Mobile Touch Cards */}
-          <div className="md:hidden divide-y-2 divide-slate-800">
+          <div className="lg:hidden divide-y-2 divide-slate-800">
             {filteredCustomers.map((cust) => (
               <div key={cust.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
