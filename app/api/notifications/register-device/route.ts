@@ -3,6 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import {
+  importApnsToken,
+  isApnsDeviceToken,
+  maskPushToken,
+  trimPushError,
+} from "@/lib/pushTokens";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -37,46 +43,28 @@ export async function POST(req: NextRequest) {
 
     const { token, platform, deviceModel } = parseResult.data;
     let effectiveToken = token;
+    let pushError: string | null = null;
+    let tokenKind: "apns" | "fcm" = isApnsDeviceToken(token) ? "apns" : "fcm";
 
-    // On iOS, if device registered with 64-char hex APNs token, exchange for FCM token
-    if (platform === "IOS" && /^[a-fA-F0-9]{64}$/.test(token)) {
-      try {
-        const { getFirebaseAdminApp } = await import("@/lib/firebase-admin");
-        const app = getFirebaseAdminApp();
-        const tokenObj = await (app.options.credential as any)?.getAccessToken?.();
-        if (tokenObj?.access_token) {
-          const exchangeApns = async (isSandbox: boolean) => {
-            const res = await fetch("https://iid.googleapis.com/iid/v1:batchImport", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${tokenObj.access_token}`,
-                access_token_auth: "true",
-              },
-              body: JSON.stringify({
-                application: "com.sabquick.app",
-                sandbox: isSandbox,
-                apns_tokens: [token],
-              }),
-            });
-            const data = await res.json().catch(() => null);
-            return data?.results?.[0]?.registration_token || null;
-          };
+    // On iOS the Capacitor plugin hands us a raw APNs token. Firebase can only
+    // send to an FCM registration token, so exchange it and keep the exact
+    // failure reason when that import does not work.
+    if (platform === "IOS" && isApnsDeviceToken(token)) {
+      const imported = await importApnsToken(token);
 
-          // Try production first (for TestFlight & App Store release builds), then sandbox (for Xcode debug builds)
-          let fcmToken = await exchangeApns(false);
-          if (!fcmToken) {
-            fcmToken = await exchangeApns(true);
-          }
-          if (fcmToken) {
-            console.log("[APNs-to-FCM exchange success]:", fcmToken.substring(0, 16) + "...");
-            effectiveToken = fcmToken;
-          } else {
-            console.warn("[APNs-to-FCM exchange warning]: Could not exchange APNs token with Google IID (both prod and sandbox returned null)");
-          }
-        }
-      } catch (apnsErr) {
-        console.warn("[APNs-to-FCM exchange notice]:", apnsErr);
+      if (imported.fcmToken) {
+        effectiveToken = imported.fcmToken;
+        tokenKind = "fcm";
+        console.log(
+          `[APNs-to-FCM exchange success] ${maskPushToken(imported.fcmToken)} (${imported.sandbox ? "sandbox" : "production"})`
+        );
+      } else {
+        pushError = trimPushError(
+          imported.error || "APNs token could not be imported into Firebase."
+        );
+        console.warn(
+          `[APNs-to-FCM exchange failed] ${maskPushToken(token)}: ${pushError}`
+        );
       }
     }
 
@@ -87,6 +75,8 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
         platform,
         deviceModel: deviceModel || undefined,
+        lastError: pushError,
+        lastErrorAt: pushError ? new Date() : null,
         updatedAt: new Date(),
       },
       create: {
@@ -94,12 +84,22 @@ export async function POST(req: NextRequest) {
         token: effectiveToken,
         platform,
         deviceModel: deviceModel || undefined,
+        lastError: pushError,
+        lastErrorAt: pushError ? new Date() : null,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Device registered for push notifications.",
+      message: pushError
+        ? "Device saved, but iOS push delivery is not ready yet."
+        : "Device registered for push notifications.",
+      // fcmReady=false means this device will not receive pushes until the
+      // Firebase iOS app / APNs auth key is fixed. The app reports this back so
+      // /api/notifications/status can show it without server log access.
+      fcmReady: platform === "IOS" ? tokenKind === "fcm" : true,
+      tokenKind,
+      pushError,
     });
   } catch (error: any) {
     console.error("[POST /api/notifications/register-device error]:", error);

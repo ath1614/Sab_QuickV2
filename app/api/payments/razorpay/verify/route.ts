@@ -76,10 +76,25 @@ export async function POST(req: NextRequest) {
         razorpayPaymentId,
         razorpaySignature,
       },
+      include: { items: true },
     });
 
     // Notify packer tablets and dispatch boards via Redis Pub/Sub
     await updateOrderStatus(orderId, OrderStatus.CONFIRMED);
+
+    // Prepaid orders no longer alert staff at creation: the new-order push is
+    // sent here, once the payment is actually confirmed.
+    try {
+      const { sendNewOrderStaffAlert } = await import("@/lib/notifications");
+      sendNewOrderStaffAlert({
+        id: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
+        totalAmount: updatedOrder.totalAmount,
+        itemCount: updatedOrder.items.length,
+      }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+    } catch (pushErr) {
+      console.warn("[Push Notification Import Warning]:", pushErr);
+    }
 
     return NextResponse.json({
       success: true,

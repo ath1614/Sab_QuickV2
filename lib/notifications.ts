@@ -2,6 +2,12 @@ import { getFirebaseAdminApp } from "@/lib/firebase-admin";
 import { getMessaging } from "firebase-admin/messaging";
 import prisma from "@/lib/prisma";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import {
+  importApnsToken,
+  isApnsDeviceToken,
+  maskPushToken,
+  trimPushError,
+} from "@/lib/pushTokens";
 import { Role, OrderStatus } from "@prisma/client";
 
 export interface PushNotificationPayload {
@@ -35,49 +41,50 @@ export async function sendPushToUser(
     const app = getFirebaseAdminApp();
     const messaging = getMessaging(app);
 
-    // Resolve any raw 64-char hex APNs tokens to FCM registration tokens
+    // Resolve any raw 64-char hex APNs tokens to FCM registration tokens.
+    // Every failure is recorded on the DeviceToken row: an unexplained skip
+    // looks identical to "the customer has notifications switched off".
     const validTokens: string[] = [];
     const validTokenRecords: Array<{ id: string; token: string }> = [];
+    const skippedTokenIds: string[] = [];
 
     for (const d of deviceTokens) {
-      if (d.platform === "IOS" && /^[a-fA-F0-9]{64}$/.test(d.token)) {
-        try {
-          const tokenObj = await (app.options.credential as any)?.getAccessToken?.();
-          if (tokenObj?.access_token) {
-            const exchangeApns = async (isSandbox: boolean) => {
-              const res = await fetch("https://iid.googleapis.com/iid/v1:batchImport", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${tokenObj.access_token}`,
-                  access_token_auth: "true",
-                },
-                body: JSON.stringify({
-                  application: "com.sabquick.app",
-                  sandbox: isSandbox,
-                  apns_tokens: [d.token],
-                }),
-              });
-              const data = await res.json().catch(() => null);
-              return data?.results?.[0]?.registration_token || null;
-            };
+      if (d.platform === "IOS" && isApnsDeviceToken(d.token)) {
+        const imported = await importApnsToken(d.token);
 
-            let fcmToken = await exchangeApns(false);
-            if (!fcmToken) fcmToken = await exchangeApns(true);
+        if (imported.fcmToken) {
+          await prisma.deviceToken
+            .update({
+              where: { id: d.id },
+              data: {
+                token: imported.fcmToken,
+                lastError: null,
+                lastErrorAt: null,
+              },
+            })
+            .catch(() => null);
 
-            if (fcmToken) {
-              await prisma.deviceToken.update({
-                where: { id: d.id },
-                data: { token: fcmToken },
-              }).catch(() => null);
-              validTokens.push(fcmToken);
-              validTokenRecords.push({ id: d.id, token: fcmToken });
-              continue;
-            }
-          }
-        } catch (exErr) {
-          console.warn("[On-the-fly APNs exchange warning]:", exErr);
+          validTokens.push(imported.fcmToken);
+          validTokenRecords.push({ id: d.id, token: imported.fcmToken });
+          continue;
         }
+
+        const reason = trimPushError(
+          imported.error || "APNs token could not be imported into Firebase."
+        );
+        skippedTokenIds.push(d.id);
+        console.warn(
+          `[APNs import failed] ${maskPushToken(d.token)}: ${reason}`
+        );
+        await prisma.deviceToken
+          .update({
+            where: { id: d.id },
+            data: {
+              lastError: `APNs import: ${reason}`,
+              lastErrorAt: new Date(),
+            },
+          })
+          .catch(() => null);
       } else {
         validTokens.push(d.token);
         validTokenRecords.push({ id: d.id, token: d.token });
@@ -85,52 +92,101 @@ export async function sendPushToUser(
     }
 
     if (validTokens.length === 0) {
-      return { successCount: 0, failureCount: 0 };
+      return { successCount: 0, failureCount: skippedTokenIds.length };
     }
 
     const channelId = payload.channelId || "sabquick_orders";
 
-    const response = await messaging.sendEachForMulticast({
-      tokens: validTokens,
-      notification: {
-        title: payload.title,
-        body: payload.body,
-      },
-      data: payload.data || {},
-      android: {
-        priority: "high",
+    let response;
+    try {
+      response = await messaging.sendEachForMulticast({
+        tokens: validTokens,
         notification: {
-          channelId,
-          sound: payload.sound || "default",
-          icon: "ic_stat_notification",
-          color: "#0B6E4F",
-          clickAction: "FLUTTER_NOTIFICATION_CLICK", // Compatible across platforms
+          title: payload.title,
+          body: payload.body,
         },
-      },
-      apns: {
-        payload: {
-          aps: {
+        data: payload.data || {},
+        android: {
+          priority: "high",
+          notification: {
+            channelId,
             sound: payload.sound || "default",
-            badge: 1,
-            alert: {
-              title: payload.title,
-              body: payload.body,
+            icon: "ic_stat_notification",
+            color: "#0B6E4F",
+            clickAction: "FLUTTER_NOTIFICATION_CLICK", // Compatible across platforms
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: payload.sound || "default",
+              badge: 1,
+              alert: {
+                title: payload.title,
+                body: payload.body,
+              },
             },
           },
         },
-      },
+      });
+    } catch (sendErr: any) {
+      // A project-level failure (e.g. messaging/third-party-auth-error when the
+      // APNs key is missing) rejects the whole batch. Persist it on every token
+      // so it is visible in diagnostics instead of only in server logs.
+      const reason = trimPushError(
+        `${sendErr?.code || "messaging/send-failed"}: ${sendErr?.message || sendErr}`
+      );
+      console.error("[FCM sendPushToUser Error]:", reason);
+      await prisma.deviceToken
+        .updateMany({
+          where: { id: { in: validTokenRecords.map((r) => r.id) } },
+          data: { lastError: reason, lastErrorAt: new Date() },
+        })
+        .catch(() => null);
+      return {
+        successCount: 0,
+        failureCount: validTokens.length + skippedTokenIds.length,
+      };
+    }
+
+    const staleTokenIds: string[] = [];
+    const deliveredIds: string[] = [];
+
+    response.responses.forEach((res, idx) => {
+      const record = validTokenRecords[idx];
+      if (!record) return;
+
+      if (res.success) {
+        deliveredIds.push(record.id);
+        return;
+      }
+
+      const code = res.error?.code || "messaging/unknown";
+      const reason = trimPushError(`${code}: ${res.error?.message || "delivery failed"}`);
+
+      if (code === "messaging/registration-token-not-registered") {
+        staleTokenIds.push(record.id);
+      } else {
+        // Keep the row (the token may be temporarily unusable) but record why.
+        prisma.deviceToken
+          .update({
+            where: { id: record.id },
+            data: { lastError: reason, lastErrorAt: new Date() },
+          })
+          .catch(() => null);
+      }
+
+      console.warn(`[FCM delivery failed] ${maskPushToken(record.token)}: ${reason}`);
     });
 
-    // Clean up stale or unregistered tokens
-    const staleTokenIds: string[] = [];
-    response.responses.forEach((res, idx) => {
-      if (!res.success && res.error) {
-        const code = res.error.code;
-        if (code === "messaging/registration-token-not-registered") {
-          staleTokenIds.push(validTokenRecords[idx].id);
-        }
-      }
-    });
+    if (deliveredIds.length > 0) {
+      await prisma.deviceToken
+        .updateMany({
+          where: { id: { in: deliveredIds } },
+          data: { lastError: null, lastErrorAt: null },
+        })
+        .catch(() => null);
+    }
 
     if (staleTokenIds.length > 0) {
       await prisma.deviceToken.deleteMany({
@@ -140,7 +196,7 @@ export async function sendPushToUser(
 
     return {
       successCount: response.successCount,
-      failureCount: response.failureCount,
+      failureCount: response.failureCount + skippedTokenIds.length,
     };
   } catch (error: any) {
     console.error("[FCM sendPushToUser Error]:", error?.message || error);

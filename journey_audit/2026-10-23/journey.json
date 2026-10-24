@@ -1,0 +1,81 @@
+{
+  "base": "https://srv1985371.hstgr.cloud",
+  "ranAt": "2026-10-23T19:04:26.098Z",
+  "devices": [
+    {
+      "name": "820x1180",
+      "w": 820,
+      "h": 1180
+    }
+  ],
+  "steps": [
+    {
+      "step": "owner-owner?tab=customers",
+      "path": "/owner?tab=customers",
+      "title": "SabQuick | Superfast Grocery Delivery",
+      "vw": 820,
+      "docW": 820,
+      "overflow": 0,
+      "offenders": [],
+      "brokenImages": [],
+      "sheetBox": null,
+      "errorCopy": [],
+      "textLength": 2739,
+      "headings": [
+        "SabQuick Owner Hub"
+      ],
+      "screenshot": "journey_audit/2026-10-23/owner-owner?tab=customers-820.png"
+    }
+  ],
+  "consoleErrors": [],
+  "failedRequests": [
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/categories",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/products",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/owner?tab=customers",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    },
+    {
+      "device": "820x1180",
+      "step": "https://srv1985371.hstgr.cloud/owner?tab=customers",
+      "url": "https://srv1985371.hstgr.cloud/api/theme",
+      "reason": "net::ERR_ABORTED"
+    }
+  ]
+}

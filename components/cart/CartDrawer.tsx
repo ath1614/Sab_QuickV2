@@ -43,6 +43,7 @@ import {
   launchNativeCashfree,
   getUpiAppPackage,
   isCashfreeSdkPolicyBlock,
+  toCustomerPaymentMessage,
 } from "@/lib/upi";
 import {
   OrderCelebrationModal,
@@ -629,7 +630,7 @@ export function CartDrawer() {
                 nativeResult.status === "SUCCESS"
                   ? verified.error ||
                     "We could not confirm your payment with the bank yet. Your items are still in your cart."
-                  : nativeResult.error ||
+                  : toCustomerPaymentMessage(nativeResult.error) ||
                     "The payment was not completed in your UPI app. Your items are still in your cart.",
               orderNumber: data.orderNumber,
             });
@@ -670,8 +671,14 @@ export function CartDrawer() {
           mode: cfData.mode || "production",
         });
 
-        // On the phone inside native Capacitor container (iOS/Android), invoke the official Cashfree native SDK
-        if (Capacitor.isNativePlatform() && !nativeUpiBlocked) {
+        // On iOS inside native Capacitor container, invoke the official Cashfree native SDK.
+        // On Android, use the Cashfree Web-Bridge checkout (_self) with window.Android (CashfreeUpiBridge)
+        // for a single, seamless UPI bottom sheet with zero keystore/integrity mismatches.
+        if (
+          Capacitor.isNativePlatform() &&
+          Capacitor.getPlatform() === "ios" &&
+          !nativeUpiBlocked
+        ) {
           const cashfreeEnvironment =
             String(
               cfData.mode || process.env.NEXT_PUBLIC_CASHFREE_ENV || "production"
@@ -686,10 +693,29 @@ export function CartDrawer() {
               environment: cashfreeEnvironment,
             });
 
-            if (
-              nativeResult &&
-              !isCashfreeSdkPolicyBlock(nativeResult)
-            ) {
+            /**
+             * Three outcomes must NOT cancel the order; they all fall through
+             * to the hosted Cashfree page with the same order:
+             *
+             *  - UNAVAILABLE: the native plugin/method never reached the SDK
+             *    (unregistered plugin, older build).
+             *  - a Cashfree policy block: Cashfree refuses its own native SDK
+             *    for sideloaded installs.
+             *
+             * Only a real attempt that came back FAILED counts as a failed
+             * payment and releases the reserved stock.
+             */
+            const nativeUnavailable =
+              !nativeResult ||
+              nativeResult.status === "UNAVAILABLE" ||
+              isCashfreeSdkPolicyBlock(nativeResult);
+
+            if (nativeUnavailable) {
+              console.warn(
+                "[Native Cashfree] Native checkout unavailable, using the hosted checkout instead:",
+                nativeResult?.error
+              );
+            } else {
               const verified = await verifyCashfreePaymentOnServer(
                 data.orderId,
                 nativeResult.status === "SUCCESS" ? 4 : 2,
@@ -726,8 +752,7 @@ export function CartDrawer() {
                   nativeResult.status === "SUCCESS"
                     ? verified.error ||
                       "We could not confirm your payment with the bank yet. Your items are still in your cart."
-                    : nativeResult.error ||
-                      "The payment was not completed. Your items are still in your cart.",
+                    : toCustomerPaymentMessage(nativeResult.error),
                 orderNumber: data.orderNumber,
               });
               return;

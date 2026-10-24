@@ -101,6 +101,36 @@ export function isCashfreeSdkPolicyBlock(result: {
   return /is not enabled or approved/i.test(String(result?.error || ""));
 }
 
+/**
+ * True when the bridge rejected a call because the plugin or method was never
+ * registered natively - e.g. an older build, or the Swift plugin missing from
+ * capacitor.config.json's packageClassList.
+ *
+ * That is an integration problem, not a customer payment failure, so callers
+ * must fall back to the hosted checkout instead of cancelling the order.
+ */
+export function isPluginUnavailableError(message?: string): boolean {
+  const text = String(message || "");
+  return (
+    /plugin is not implemented/i.test(text) ||
+    /is not implemented on/i.test(text) ||
+    /method_not_implemented/i.test(text) ||
+    /no such method/i.test(text)
+  );
+}
+
+/**
+ * Customer-facing copy for a failed payment. Native bridge text like
+ * '"NativeUpi" plugin is not implemented on ios' belongs in logs, never on a
+ * checkout screen.
+ */
+export function toCustomerPaymentMessage(message?: string): string {
+  if (!message || isPluginUnavailableError(message) || /not a native platform/i.test(message)) {
+    return "The payment could not be started. Your items are still in your cart.";
+  }
+  return message;
+}
+
 export const NativeUpi = registerPlugin<NativeUpiPlugin>("NativeUpi");
 
 /**
@@ -142,24 +172,41 @@ export async function launchNativeCashfreeUpiIntent(
 
 export async function launchNativeCashfree(
   options: CashfreeNativeOptions
-): Promise<CashfreeNativeResult | null> {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      if (NativeUpi.launchCashfreeNativeUpi) {
-        return await NativeUpi.launchCashfreeNativeUpi(options);
-      }
-    } catch (e: any) {
-      console.warn("Native Cashfree UPI error, trying Drop checkout:", e);
-      try {
-        if (NativeUpi.launchCashfreeNativeDrop) {
-          return await NativeUpi.launchCashfreeNativeDrop(options);
-        }
-      } catch (dropErr: any) {
-        return { status: "FAILED", orderId: options.orderId, error: dropErr?.message || "Payment launch failed" };
-      }
-    }
+): Promise<NativeUpiLaunchResult> {
+  if (!Capacitor.isNativePlatform()) {
+    return { status: "UNAVAILABLE", orderId: options.orderId, error: "Not a native platform" };
   }
-  return null;
+
+  try {
+    if (NativeUpi.launchCashfreeNativeUpi) {
+      return await NativeUpi.launchCashfreeNativeUpi(options);
+    }
+    return { status: "UNAVAILABLE", orderId: options.orderId, error: "Native UPI checkout not supported" };
+  } catch (e: any) {
+    const message = String(e?.message || e || "Payment launch failed");
+
+    // The bridge never reached the SDK: fall back to the hosted page, do not
+    // treat this as a failed payment.
+    if (isPluginUnavailableError(message)) {
+      return { status: "UNAVAILABLE", orderId: options.orderId, error: message };
+    }
+
+    console.warn("Native Cashfree UPI error, trying Drop checkout:", e);
+    try {
+      if (NativeUpi.launchCashfreeNativeDrop) {
+        return await NativeUpi.launchCashfreeNativeDrop(options);
+      }
+    } catch (dropErr: any) {
+      const dropMessage = String(dropErr?.message || dropErr || "Payment launch failed");
+      return {
+        status: isPluginUnavailableError(dropMessage) ? "UNAVAILABLE" : "FAILED",
+        orderId: options.orderId,
+        error: dropMessage,
+      };
+    }
+
+    return { status: "UNAVAILABLE", orderId: options.orderId, error: message };
+  }
 }
 
 export async function getInstalledUpiApps(): Promise<InstalledUpiApp[]> {

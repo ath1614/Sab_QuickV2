@@ -29,6 +29,46 @@ export async function promptPushPermissions(): Promise<boolean> {
 }
 
 /**
+ * Reports what the device knows about push to the server so
+ * /api/notifications/status can explain a silent "no notifications" without
+ * attaching Xcode to a TestFlight build.
+ */
+async function reportPushClientStatus(payload: {
+  permission: string;
+  registered: boolean;
+  fcmReady?: boolean;
+  error?: string | null;
+}) {
+  if (!Capacitor.isNativePlatform()) return;
+
+  try {
+    const platform = Capacitor.getPlatform().toUpperCase();
+    const signature = JSON.stringify({ ...payload, platform });
+
+    // The manager mounts on every navigation; only send a changed report.
+    if (localStorage.getItem("sabquick_push_status_report") === signature) return;
+
+    const body = { ...payload, platform, reportedAt: new Date().toISOString() };
+    const res = await fetch("/api/notifications/client-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    });
+
+    if (res.ok) {
+      try {
+        localStorage.setItem("sabquick_push_status_report", signature);
+      } catch {
+        // Private mode: report again next launch, harmless.
+      }
+    }
+  } catch (err) {
+    console.warn("[PushNotifications] Could not report push status:", err);
+  }
+}
+
+/**
  * Global Push Notification Lifecycle Controller
  *
  * Manages push notification registration, channel setup, foreground audio chime,
@@ -75,7 +115,7 @@ export function PushNotificationManager() {
   const syncTokenToServer = React.useCallback(async (tokenVal: string) => {
     if (!tokenVal) return;
     try {
-      await fetch("/api/notifications/register-device", {
+      const res = await fetch("/api/notifications/register-device", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,8 +124,30 @@ export function PushNotificationManager() {
           deviceModel: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
         }),
       });
-    } catch (syncErr) {
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        void reportPushClientStatus({
+          permission: "granted",
+          registered: true,
+          fcmReady: data.fcmReady !== false,
+          error: data.pushError || null,
+        });
+      } else {
+        void reportPushClientStatus({
+          permission: "granted",
+          registered: false,
+          error: data.error || `Device registration failed (HTTP ${res.status}).`,
+        });
+      }
+    } catch (syncErr: any) {
       console.warn("[PushNotifications] server sync notice:", syncErr);
+      void reportPushClientStatus({
+        permission: "granted",
+        registered: false,
+        error: syncErr?.message || "Device registration request failed.",
+      });
     }
   }, []);
 
@@ -137,6 +199,8 @@ export function PushNotificationManager() {
             if (!token?.value) return;
             console.log("[PushNotifications] Device push token obtained:", token.value.substring(0, 16) + "...");
 
+            void reportPushClientStatus({ permission: "granted", registered: true });
+
             try {
               localStorage.setItem("sabquick_device_token", token.value);
             } catch (storageErr) {
@@ -154,6 +218,13 @@ export function PushNotificationManager() {
           "registrationError",
           (error) => {
             console.warn("[PushNotifications] native registration failed:", error);
+            void reportPushClientStatus({
+              permission: "unknown",
+              registered: false,
+              error: String(
+                (error as any)?.error || (error as any)?.message || error
+              ),
+            });
           }
         );
 
@@ -200,9 +271,19 @@ export function PushNotificationManager() {
           }
         } else {
           console.log("[PushNotifications] User notification status:", permStatus.receive);
+          void reportPushClientStatus({
+            permission: permStatus.receive,
+            registered: false,
+            error: "Notification permission was not granted.",
+          });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn("[PushNotifications] Native push initialization notice:", err);
+        void reportPushClientStatus({
+          permission: "unknown",
+          registered: false,
+          error: String(err?.message || err),
+        });
       }
     }
 
@@ -218,14 +299,41 @@ export function PushNotificationManager() {
   // Sync cached token whenever user logs in or session refreshes
   React.useEffect(() => {
     if (!session?.user?.id || !Capacitor.isNativePlatform()) return;
+
+    let cachedToken: string | null = null;
     try {
-      const cachedToken = localStorage.getItem("sabquick_device_token");
-      if (cachedToken) {
-        syncTokenToServer(cachedToken);
-      }
+      cachedToken = localStorage.getItem("sabquick_device_token");
     } catch {
-      // ignore
+      // Storage unavailable: fall through to the permission probe.
     }
+
+    if (cachedToken) {
+      syncTokenToServer(cachedToken);
+      return;
+    }
+
+    // No token yet. Record the permission state so a denied prompt is
+    // distinguishable from a registration failure in /api/notifications/status
+    // (the pre-login report is rejected with 401 and never stored).
+    (async () => {
+      try {
+        const { PushNotifications } = await import("@capacitor/push-notifications");
+        const status = await PushNotifications.checkPermissions();
+        if (status.receive !== "granted") {
+          void reportPushClientStatus({
+            permission: status.receive,
+            registered: false,
+            error: "Notification permission was not granted.",
+          });
+        }
+      } catch (err: any) {
+        void reportPushClientStatus({
+          permission: "unknown",
+          registered: false,
+          error: String(err?.message || err),
+        });
+      }
+    })();
   }, [session?.user?.id, syncTokenToServer]);
 
   // In-app floating banner has been removed per UX preference (relying on native OS banners and audio alerts)

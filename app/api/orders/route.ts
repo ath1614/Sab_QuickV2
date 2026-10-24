@@ -374,22 +374,35 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Dispatch Push Notification to Store Staff & Customer
-    try {
-      const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
-      // Alert store staff (Owner, Manager, Packer) of incoming order
-      sendNewOrderStaffAlert({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        totalAmount: order.totalAmount,
-        itemCount: order.items.length,
-      }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+    //
+    // Prepaid orders are only created here, not paid: the customer may still
+    // fail or abandon checkout. Alerting the store now would put a "new order"
+    // in front of staff for an order that becomes Cancelled seconds later, so
+    // the confirmation path (Cashfree verify / webhook) sends this alert once
+    // the money is actually confirmed.
+    const isPrepaidOnline =
+      order.paymentMethod === "CASHFREE" ||
+      order.paymentMethod === "ONLINE_PREPAID" ||
+      order.paymentMethod === "RAZORPAY";
 
-      // Alert customer of order receipt
-      sendOrderStatusPushNotification(order.id, order.status).catch((e) =>
-        console.warn("[FCM Customer Order Push Warning]:", e)
-      );
-    } catch (pushErr) {
-      console.warn("[Push Notification Import Warning]:", pushErr);
+    if (!isPrepaidOnline) {
+      try {
+        const { sendNewOrderStaffAlert, sendOrderStatusPushNotification } = await import("@/lib/notifications");
+        // Alert store staff (Owner, Manager, Packer) of incoming order
+        sendNewOrderStaffAlert({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          itemCount: order.items.length,
+        }).catch((e) => console.warn("[FCM New Order Alert Warning]:", e));
+
+        // Alert customer of order receipt
+        sendOrderStatusPushNotification(order.id, order.status).catch((e) =>
+          console.warn("[FCM Customer Order Push Warning]:", e)
+        );
+      } catch (pushErr) {
+        console.warn("[Push Notification Import Warning]:", pushErr);
+      }
     }
 
     const responsePayload = {

@@ -247,14 +247,19 @@ model ThemeCampaign {
 }
 
 model DeviceToken {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token       String   @unique
-  platform    String   // "ANDROID" | "IOS" | "WEB"
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  platform    String    // "ANDROID" | "IOS" | "WEB"
   deviceModel String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Diagnostics: the last reason this token could not be delivered to.
+  // APNs import and FCM send failures used to be swallowed, which made an
+  // iOS device with no notifications impossible to debug.
+  lastError   String?
+  lastErrorAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
 }

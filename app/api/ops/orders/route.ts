@@ -25,12 +25,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 1. Query recent and active orders with full relation graph (excluding unpaid online orders)
+    // 1. Query recent and active orders with full relation graph.
+    //
+    // Hide checkouts that are still open and unpaid (staff cannot act on them),
+    // but keep cancelled prepaid attempts: they are shown with a "Payment
+    // failed" badge instead of being counted as store cancellations.
     const rawOrders = await prisma.order.findMany({
       where: {
         NOT: {
-          paymentMethod: "CASHFREE",
-          paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] },
+          AND: [
+            {
+              paymentMethod: {
+                in: ["CASHFREE", "ONLINE_PREPAID", "RAZORPAY"],
+              },
+            },
+            { status: OrderStatus.PENDING },
+            { paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] } },
+          ],
         },
       },
       orderBy: { createdAt: "desc" },

@@ -102,8 +102,26 @@ const STATUS_FILTERS = [
   { label: "Ready", value: "READY_FOR_PICKUP", color: "bg-purple-500" },
   { label: "Out for Delivery", value: "OUT_FOR_DELIVERY", color: "bg-orange-500" },
   { label: "Delivered", value: "DELIVERED", color: "bg-emerald-500" },
+  { label: "Payment Failed", value: "PAYMENT_FAILED", color: "bg-amber-500" },
   { label: "Cancelled", value: "CANCELLED", color: "bg-rose-500" },
 ];
+
+/**
+ * An online order that never got paid and was released as cancelled. It is not
+ * a store cancellation, so it gets its own badge and filter instead of inflating
+ * the cancelled count.
+ */
+function isFailedPrepaidPayment(order: {
+  status: string;
+  paymentStatus: string;
+  paymentMethod: string;
+}): boolean {
+  return (
+    order.status === "CANCELLED" &&
+    order.paymentStatus === "FAILED" &&
+    ["CASHFREE", "ONLINE_PREPAID", "RAZORPAY"].includes(order.paymentMethod)
+  );
+}
 
 export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
   const [fetchedOrders, setFetchedOrders] = React.useState<StoreOrder[]>([]);
@@ -147,7 +165,12 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
   const filteredOrders = React.useMemo(() => {
     return (orders || []).filter((o) => {
       if (!o) return false;
-      const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "PAYMENT_FAILED"
+          ? isFailedPrepaidPayment(o)
+          : o.status === statusFilter &&
+            !(statusFilter === "CANCELLED" && isFailedPrepaidPayment(o)));
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -192,8 +215,12 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (order: StoreOrder) => {
+    if (isFailedPrepaidPayment(order)) {
+      return <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-black text-[10px]">PAYMENT FAILED</Badge>;
+    }
+
+    switch (order.status) {
       case "PENDING":
         return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-black text-[10px]">PENDING</Badge>;
       case "PACKING":
@@ -207,7 +234,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
       case "CANCELLED":
         return <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-black text-[10px]">CANCELLED</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{order.status}</Badge>;
     }
   };
 
@@ -249,6 +276,10 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
             const count =
               f.value === "ALL"
                 ? (orders || []).length
+                : f.value === "PAYMENT_FAILED"
+                ? (orders || []).filter((o) => o && isFailedPrepaidPayment(o)).length
+                : f.value === "CANCELLED"
+                ? (orders || []).filter((o) => o?.status === "CANCELLED" && !isFailedPrepaidPayment(o)).length
                 : (orders || []).filter((o) => o?.status === f.value).length;
 
             return (
@@ -378,7 +409,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                       {/* Status Selector */}
                       <td className="px-4 py-3.5">
                         <div className="space-y-1.5">
-                          {getStatusBadge(order.status)}
+                          {getStatusBadge(order)}
                           <div>
                             <select
                               value={order.status}
@@ -476,7 +507,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                         </Badge>
                       )}
                     </div>
-                    {getStatusBadge(order.status)}
+                    {getStatusBadge(order)}
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
@@ -582,7 +613,7 @@ export function OwnerOrdersTab(props: OwnerOrdersTabProps = {}) {
                 <div>
                   <DialogTitle className="text-base font-black text-surface-dark flex items-center gap-2">
                     <span>Order {selectedOrder.orderNumber}</span>
-                    {getStatusBadge(selectedOrder.status)}
+                    {getStatusBadge(selectedOrder)}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-500 pt-0.5">
                     Placed on {new Date(selectedOrder.createdAt).toLocaleString()}

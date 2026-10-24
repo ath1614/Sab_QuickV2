@@ -35,6 +35,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, WKScriptMessageHandler {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Retain SPM plugin classes against dead-code stripping
         CapAppSPMInit.retainClasses()
+        _ = NativeUpiPlugin.self
+        _ = SabBridgeViewController.self
 
         // 1. Intercept native UPI schemes from web checkout (Cashfree / direct UPI intent)
         NotificationCenter.default.addObserver(

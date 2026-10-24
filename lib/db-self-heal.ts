@@ -95,6 +95,10 @@ export async function ensureDatabaseSchema() {
       CREATE INDEX IF NOT EXISTS "DeviceToken_userId_idx" ON "DeviceToken"("userId");
     `);
 
+    // 6b. Push delivery diagnostics (why a token was skipped or rejected)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "DeviceToken" ADD COLUMN IF NOT EXISTS "lastError" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "DeviceToken" ADD COLUMN IF NOT EXISTS "lastErrorAt" TIMESTAMP(3);`);
+
     // 7. Ensure ThemeConfig has isStoreLive and launchDate for Pre-Launch Coming Soon mode
     await prisma.$executeRawUnsafe(`ALTER TABLE "ThemeConfig" ADD COLUMN IF NOT EXISTS "isStoreLive" BOOLEAN DEFAULT true;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "ThemeConfig" ADD COLUMN IF NOT EXISTS "launchDate" TIMESTAMP(3);`);
