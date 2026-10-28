@@ -157,16 +157,18 @@ async function runProductionReadinessTestSuite() {
     }
     console.log("   ✓ middleware.ts: Guard rules verified for /owner, /manager, /packer, /rider, and /api/owner.");
 
-    // Verify Owner-Only Staff Provisioning API file exists and enforces OWNER
-    const staffApiPath = path.join(projectRoot, "app", "api", "owner", "staff", "create", "route.ts");
+    // Verify Owner-Only Staff Provisioning API file exists and enforces OWNER.
+    // Create/update/delete live in one route; the old /staff/create duplicate was
+    // removed so there is a single authorization surface.
+    const staffApiPath = path.join(projectRoot, "app", "api", "owner", "staff", "route.ts");
     if (!fs.existsSync(staffApiPath)) {
-      throw new Error("app/api/owner/staff/create/route.ts does not exist.");
+      throw new Error("app/api/owner/staff/route.ts does not exist.");
     }
     const staffApiCode = fs.readFileSync(staffApiPath, "utf-8");
-    if (!staffApiCode.includes("session.user.role !== Role.OWNER")) {
-      throw new Error("staff create route does not strictly enforce Role.OWNER.");
+    if (!staffApiCode.includes("session.user?.role !== Role.OWNER")) {
+      throw new Error("staff route does not strictly enforce Role.OWNER.");
     }
-    console.log("   ✓ /api/owner/staff/create: Strict Role.OWNER authorization check verified.");
+    console.log("   ✓ /api/owner/staff: Strict Role.OWNER authorization check verified.");
 
     // Test creating staff via Prisma (simulating owner action)
     const testStaffPhone = "9876599902";
