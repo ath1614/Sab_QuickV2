@@ -43,6 +43,13 @@ const phoneSchema = z
   .trim()
   .regex(/^[6-9]\d{9}$/, "must be a valid 10-digit Indian mobile number");
 
+/**
+ * Docker compose passes every declared key, so an unset optional value arrives
+ * as an empty string rather than undefined. Normalise that before validation.
+ */
+const emptyToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
 const productionEnvSchema = z
   .object({
     NEXTAUTH_SECRET: z.string().min(32, "must be at least 32 characters"),
@@ -55,14 +62,17 @@ const productionEnvSchema = z
         (value) => value.startsWith("https://") || value.startsWith("http://localhost"),
         "must be an https:// URL in production"
       ),
-    OWNER_PHONE: phoneSchema.optional(),
-    OWNER_PASSCODE: z
-      .string()
-      .min(8, "must be at least 8 characters")
-      .refine((value) => !KNOWN_OWNER_PASSCODES.has(value.toLowerCase()), {
-        message: "must not be a password that has appeared in the repository",
-      })
-      .optional(),
+    OWNER_PHONE: z.preprocess(emptyToUndefined, phoneSchema.optional()),
+    OWNER_PASSCODE: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .min(8, "must be at least 8 characters")
+        .refine((value) => !KNOWN_OWNER_PASSCODES.has(value.toLowerCase()), {
+          message: "must not be a password that has appeared in the repository",
+        })
+        .optional()
+    ),
     ONLINE_PAYMENTS_ENABLED: z.enum(["true", "false"]).optional(),
     CASHFREE_APP_ID: z.string().optional(),
     CASHFREE_SECRET_KEY: z.string().optional(),
