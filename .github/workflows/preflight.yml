@@ -1,0 +1,33 @@
+name: Production Preflight
+
+# Read-only gate. Reports which keys exist in the VPS .env.prod and whether the
+# app containers are healthy. Never prints a secret value.
+on:
+  workflow_dispatch:
+
+jobs:
+  check-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect VPS environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST || '187.126.112.24' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          script: |
+            cd /opt/sabquick || exit 1
+            for k in NEXTAUTH_SECRET NEXTAUTH_URL OWNER_PHONE OWNER_PASSCODE DATABASE_URL REDIS_URL ONLINE_PAYMENTS_ENABLED CASHFREE_APP_ID CASHFREE_SECRET_KEY CASHFREE_API_VERSION ALLOW_MASTER_OTP REVIEWER_PHONE REVIEWER_PASSCODE DEMO_REVIEW_PHONE DEMO_REVIEW_OTP SMS_GATEWAY_API_KEY FAST2SMS_API_KEY RENFLAIR_API_KEY TWOFACTOR_API_KEY FIREBASE_PROJECT_ID FIREBASE_CLIENT_EMAIL FIREBASE_PRIVATE_KEY; do
+              if grep -q "^$k=" .env.prod 2>/dev/null; then
+                echo "$k=present"
+              else
+                echo "$k=missing"
+              fi
+            done
+            awk -F= '/^NEXTAUTH_SECRET=/{v=$2; gsub(/"/,"",v); print "NEXTAUTH_SECRET_LENGTH="length(v)}' .env.prod
+            echo "--- containers ---"
+            docker ps --format '{{.Names}}|{{.Status}}' || true
+            echo "--- disk ---"
+            df -h / | tail -1 || true
