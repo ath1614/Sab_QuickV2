@@ -48,8 +48,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 1 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">1</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">1</span>
               Hyper-Local Fulfillment Service &amp; Geofence SLA
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -68,8 +68,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 2 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">2</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">2</span>
               Pricing, Inventory &amp; Payment Methods
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -86,8 +86,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 3 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">3</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">3</span>
               Order Cancellation &amp; Returns
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -100,8 +100,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 4 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">4</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">4</span>
               Age Eligibility &amp; Parental Consent
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -111,8 +111,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 5 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">5</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">5</span>
               Customer Conduct &amp; Zero Abuse Policy
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -122,8 +122,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 6 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">6</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">6</span>
               Grievance Redressal Mechanism &amp; Support
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -140,8 +140,8 @@ export default function TermsOfServicePage() {
 
           {/* Section 7 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">7</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">7</span>
               Governing Law &amp; Jurisdiction
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">

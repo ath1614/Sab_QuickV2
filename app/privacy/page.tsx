@@ -49,8 +49,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 1 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">1</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">1</span>
               Introduction &amp; Scope
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -61,8 +61,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 2 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">2</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">2</span>
               Information We Collect &amp; Exact Use
             </h2>
             <div className="space-y-3 text-xs sm:text-sm text-slate-600">
@@ -110,8 +110,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 3 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">3</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">3</span>
               Third-Party Subprocessors
             </h2>
             <p className="text-xs sm:text-sm text-slate-600">
@@ -126,8 +126,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 4 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">4</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">4</span>
               Apple App Store &amp; Google Play Account Deletion Right
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -156,8 +156,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 5 */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-surface-dark flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-extrabold">5</span>
+            <h2 className="text-lg font-bold text-surface-dark flex items-start gap-2.5">
+              <span className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-extrabold">5</span>
               Grievance Officer &amp; Store Contact
             </h2>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 space-y-1 font-mono">

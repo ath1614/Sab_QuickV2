@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import {
   Zap,
@@ -242,12 +243,12 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
             />
           </div>
 
-          {/* Single punchy headline */}
+          {/* Single punchy headline — no delivery-time promise */}
           <h1 className="text-2xl sm:text-3xl font-black text-surface-dark tracking-tight">
-            India&apos;s last minute app
+            Sab kuch, ek tap mein
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Groceries delivered in <span className="font-bold text-primary">10 minutes</span>
+            Fresh groceries &amp; daily essentials from our Ambikapur store.
           </p>
         </div>
 
@@ -498,9 +499,23 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
           </div>
         )}
 
-        {/* Minimal Legal Footer */}
-        <p className="text-[10px] text-center text-slate-400 pt-1 leading-relaxed">
-          By continuing, you agree to our Terms of Service &amp; Privacy Policy.
+        {/* Minimal Legal Footer — both policies are tappable */}
+        <p className="text-[11px] text-center text-slate-400 pt-1 leading-relaxed">
+          By continuing, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="inline-block whitespace-nowrap font-semibold text-slate-600 underline underline-offset-2 decoration-slate-300 hover:text-primary hover:decoration-primary/50 transition-colors"
+          >
+            Terms of Service
+          </Link>{" "}
+          &amp;{" "}
+          <Link
+            href="/privacy"
+            className="inline-block whitespace-nowrap font-semibold text-slate-600 underline underline-offset-2 decoration-slate-300 hover:text-primary hover:decoration-primary/50 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import {
   Dialog,
@@ -252,7 +253,23 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             </Button>
 
             <p className="text-[11px] text-center text-muted-foreground pt-1">
-              By proceeding, you agree to SABQuick&apos;s Terms of Service and Privacy Policy.
+              By proceeding, you agree to SABQuick&apos;s{" "}
+              <Link
+                href="/terms"
+                onClick={() => onOpenChange(false)}
+                className="inline-block whitespace-nowrap font-semibold underline underline-offset-2 hover:text-primary transition-colors"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                onClick={() => onOpenChange(false)}
+                className="inline-block whitespace-nowrap font-semibold underline underline-offset-2 hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              .
             </p>
           </div>
         ) : (
