@@ -28,6 +28,8 @@ jobs:
             done
             awk -F= '/^NEXTAUTH_SECRET=/{v=$2; gsub(/"/,"",v); print "NEXTAUTH_SECRET_LENGTH="length(v)}' .env.prod
             echo "--- containers ---"
-            docker ps --format '{{.Names}}|{{.Status}}' || true
+            docker ps -a --format '{{.Names}}|{{.Status}}' || true
+            echo "--- app logs ---"
+            docker logs --tail 100 sabquick-app-prod 2>&1 || true
             echo "--- disk ---"
             df -h / | tail -1 || true
