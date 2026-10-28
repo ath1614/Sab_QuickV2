@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 # Stage 1: Dependencies Cache
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN npm ci
 # ------------------------------------------------------------------------------
 # Stage 2: Application Builder
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
@@ -30,13 +30,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Inlined public environment variables for client build
-ARG NEXT_PUBLIC_RAZORPAY_KEY_ID
 ARG NEXT_PUBLIC_STORE_LAT
 ARG NEXT_PUBLIC_STORE_LNG
 ARG NEXT_PUBLIC_STORE_MAX_RADIUS_KM
 ARG NEXT_PUBLIC_STORE_UPI_ID
 ARG NEXT_PUBLIC_STORE_UPI_NAME
 ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_CASHFREE_ENV
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -44,13 +44,13 @@ ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
 ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 ARG NEXT_PUBLIC_FIREBASE_APP_ID
 
-ENV NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID
 ENV NEXT_PUBLIC_STORE_LAT=$NEXT_PUBLIC_STORE_LAT
 ENV NEXT_PUBLIC_STORE_LNG=$NEXT_PUBLIC_STORE_LNG
 ENV NEXT_PUBLIC_STORE_MAX_RADIUS_KM=$NEXT_PUBLIC_STORE_MAX_RADIUS_KM
 ENV NEXT_PUBLIC_STORE_UPI_ID=$NEXT_PUBLIC_STORE_UPI_ID
 ENV NEXT_PUBLIC_STORE_UPI_NAME=$NEXT_PUBLIC_STORE_UPI_NAME
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_CASHFREE_ENV=$NEXT_PUBLIC_CASHFREE_ENV
 ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY
 ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -69,7 +69,7 @@ RUN npm run build
 # ------------------------------------------------------------------------------
 # Stage 3: Minimal Production Runner
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 

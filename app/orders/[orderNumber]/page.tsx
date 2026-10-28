@@ -53,18 +53,23 @@ export default async function OrderTrackingPage({
   // 3. Ownership / Role Validation
   const userRole = session.user.role;
   const isOwner = session.user.id === order.customerId;
-  const isStaff = ["RIDER", "PACKER", "MANAGER", "OWNER"].includes(userRole);
+  const isAssignedRider =
+    userRole === "RIDER" && order.riderId === session.user.id;
+  const isStaff =
+    ["PACKER", "MANAGER", "OWNER"].includes(userRole) || isAssignedRider;
 
   if (!isOwner && !isStaff) {
     redirect("/?auth_error=unauthorized_role");
   }
+
+  const canSeeDeliveryOtp = isOwner || isAssignedRider;
 
   // 4. Format serializable payload for Client Component
   const initialOrder: TrackedOrderData = {
     orderId: order.id,
     orderNumber: order.orderNumber,
     status: order.status,
-    deliveryOtp: order.deliveryOtp || "1234",
+    deliveryOtp: canSeeDeliveryOtp ? order.deliveryOtp || "" : "",
     subtotal: order.subtotal,
     deliveryFee: order.deliveryFee,
     handlingFee: order.handlingFee,

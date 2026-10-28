@@ -9,10 +9,13 @@ import { Role } from "@prisma/client";
 import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
 import {
+  MASTER_OTP,
   isMasterOtpEnabled,
   isOtpLocked,
+  otpStorageKey,
   recordOtpFailure,
   resetOtpAttempts,
+  verifyOtpHash,
 } from "@/lib/otp";
 import {
   hashPasscode,
@@ -24,7 +27,9 @@ import {
 } from "@/lib/passcode";
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
+  // No fallback: NextAuth refuses to run without a secret, and instrumentation.ts
+  // refuses to boot production with a missing or published value.
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -158,7 +163,9 @@ export const authOptions: NextAuthOptions = {
 
         if (!credentials?.phone) {
           throw new Error("Mobile number is required.");
-        }        const phone = credentials.phone.trim();
+        }
+
+        const phone = credentials.phone.trim();
         const pin = credentials.pin?.trim();
         const otp = credentials.otp?.trim();
         const authCode = (pin || otp || "").trim();
@@ -175,47 +182,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Must be a valid 10-digit Indian mobile number.");
         }
 
-        // 1. Google Play Reviewer Full-Access Account (Bypass SMS & unlock all roles)
-        const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
-        const reviewerPasscode = process.env.REVIEWER_PASSCODE?.trim() || "742918";
-
-        if (phone === reviewerPhone) {
-          if (authCode !== reviewerPasscode) {
-            throw new Error("Invalid verification code. Please try again.");
-          }
-
-          const reviewerUser = await prisma.user.upsert({
-            where: { phone: reviewerPhone },
-            update: {
-              name: "Google Play Reviewer",
-              role: Role.OWNER,
-              roles: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER, Role.CUSTOMER],
-              phoneVerified: true,
-            },
-            create: {
-              phone: reviewerPhone,
-              name: "Google Play Reviewer",
-              email: "reviewer@sabquick.com",
-              role: Role.OWNER,
-              roles: [Role.OWNER, Role.MANAGER, Role.PACKER, Role.RIDER, Role.CUSTOMER],
-              phoneVerified: true,
-            },
-          });
-
-          return {
-            id: reviewerUser.id,
-            name: reviewerUser.name,
-            email: reviewerUser.email,
-            role: reviewerUser.role,
-            roles: reviewerUser.roles?.length ? reviewerUser.roles : [reviewerUser.role],
-            phone: reviewerUser.phone,
-            phoneVerified: reviewerUser.phoneVerified,
-          };
-        }
-
-        // 2. Store Owner Verification (via Passcode)
-        const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
-        if (phone === ownerPhone) {
+        // 1. Store Owner Verification (via Passcode)
+        //
+        // There is deliberately no fallback phone or passcode here. The owner
+        // phone and passcode are provisioned through the production environment;
+        // a fresh install with no owner row and no OWNER_PASSCODE cannot log in.
+        const ownerPhone = process.env.OWNER_PHONE?.trim();
+        if (ownerPhone && phone === ownerPhone) {
           if (await isPinLocked(phone)) {
             throw new Error(
               "Too many incorrect attempts. Access locked for 15 minutes to protect your account."
@@ -229,14 +202,20 @@ export const authOptions: NextAuthOptions = {
 
           let storedOwnerPin = ownerRecord?.pin ?? null;
 
-          if (ownerRecord && !storedOwnerPin) {
-            const provisioned = process.env.OWNER_PASSCODE || "140974";
-            const hashed = hashPasscode(provisioned);
-            await prisma.user.update({
-              where: { id: ownerRecord.id },
-              data: { pin: hashed },
-            });
-            storedOwnerPin = hashed;
+          if (!storedOwnerPin) {
+            const provisioned = process.env.OWNER_PASSCODE?.trim();
+            if (!provisioned) {
+              throw new Error(
+                "Owner account is not provisioned. Set OWNER_PASSCODE on the server."
+              );
+            }
+            storedOwnerPin = hashPasscode(provisioned);
+            if (ownerRecord) {
+              await prisma.user.update({
+                where: { id: ownerRecord.id },
+                data: { pin: storedOwnerPin, pinChangedAt: new Date() },
+              });
+            }
           }
 
           const ownerPinOk = verifyPasscode(authCode, storedOwnerPin);
@@ -251,19 +230,25 @@ export const authOptions: NextAuthOptions = {
           if (storedOwnerPin && !isPasscodeHashed(storedOwnerPin)) {
             await prisma.user.update({
               where: { phone: ownerPhone },
-              data: { pin: hashPasscode(authCode) },
+              data: { pin: hashPasscode(authCode), pinChangedAt: new Date() },
             });
           }
 
           const ownerUser = await prisma.user.upsert({
             where: { phone: ownerPhone },
-            update: { role: Role.OWNER, phoneVerified: true },
+            update: {
+              role: Role.OWNER,
+              roles: [Role.OWNER],
+              phoneVerified: true,
+              disabledAt: null,
+            },
             create: {
               phone: ownerPhone,
-              name: process.env.OWNER_NAME || "Anurag Soni",
-              email: process.env.OWNER_EMAIL || "sabsupermart68@gmail.com",
+              name: process.env.OWNER_NAME || "Store Owner",
+              email: process.env.OWNER_EMAIL || null,
               role: Role.OWNER,
-              pin: hashPasscode(authCode),
+              roles: [Role.OWNER],
+              pin: storedOwnerPin ?? hashPasscode(authCode),
               phoneVerified: true,
             },
           });
@@ -279,7 +264,7 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // 3. Internal Staff Verification (Manager, Packer, Rider via Staff PIN)
+        // 2. Internal Staff Verification (Manager, Packer, Rider via Staff PIN)
         const staffUser = await prisma.user.findUnique({
           where: { phone },
         });
@@ -379,19 +364,16 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
-        const validOtp = await redis.get(`otp:phone:${phone}`);
-        const isMasterTestOtp =
-          (authCode === "1234" && isMasterOtpEnabled()) ||
-          (phone === (process.env.DEMO_REVIEW_PHONE || "9999999999") &&
-            authCode === (process.env.DEMO_REVIEW_OTP || "1234"));
+        const storedOtpHash = await redis.get(otpStorageKey(phone));
+        const isMasterTestOtp = authCode === MASTER_OTP && isMasterOtpEnabled();
 
-        if (!isMasterTestOtp && (!validOtp || validOtp !== authCode)) {
+        if (!isMasterTestOtp && !verifyOtpHash(phone, authCode, storedOtpHash)) {
           await recordOtpFailure(phone);
           throw new Error("Invalid or expired verification code. Please request a new one.");
         }
 
         if (!isMasterTestOtp) {
-          await redis.del(`otp:phone:${phone}`);
+          await redis.del(otpStorageKey(phone));
         }
 
         await resetOtpAttempts(phone);
@@ -434,51 +416,133 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, account }) {
-      if (user) {
-        if (account?.provider === "google" && user.email) {
-          let dbUser = await prisma.user.findUnique({
-            where: { email: user.email },
-          });
-          if (!dbUser) {
-            dbUser = await prisma.user.create({
-              data: {
-                email: user.email,
-                name: user.name || "Customer",
-                role: Role.CUSTOMER,
-                roles: [Role.CUSTOMER],
-                phoneVerified: false,
+      /**
+       * Every callback tick re-reads the authoritative user row. This is what
+       * makes role changes, deactivation, and sessionVersion rotation effective
+       * without waiting for the 30-day JWT to expire.
+       */
+      let dbUser:
+        | {
+            id: string;
+            role: Role;
+            roles: Role[];
+            phone: string | null;
+            phoneVerified: boolean;
+            sessionVersion: number;
+            disabledAt: Date | null;
+          }
+        | null = null;
+
+      try {
+        if (user) {
+          if (account?.provider === "google" && user.email) {
+            dbUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              select: {
+                id: true,
+                role: true,
+                roles: true,
+                phone: true,
+                phoneVerified: true,
+                sessionVersion: true,
+                disabledAt: true,
+              },
+            });
+            if (!dbUser) {
+              dbUser = await prisma.user.create({
+                data: {
+                  email: user.email,
+                  name: user.name || "Customer",
+                  role: Role.CUSTOMER,
+                  roles: [Role.CUSTOMER],
+                  phoneVerified: false,
+                },
+                select: {
+                  id: true,
+                  role: true,
+                  roles: true,
+                  phone: true,
+                  phoneVerified: true,
+                  sessionVersion: true,
+                  disabledAt: true,
+                },
+              });
+            }
+          } else {
+            dbUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: {
+                id: true,
+                role: true,
+                roles: true,
+                phone: true,
+                phoneVerified: true,
+                sessionVersion: true,
+                disabledAt: true,
               },
             });
           }
-          token.id = dbUser.id;
-          token.role = dbUser.role;
-          token.roles = dbUser.roles?.length ? dbUser.roles : [dbUser.role];
-          token.phone = dbUser.phone;
-          token.phoneVerified = dbUser.phoneVerified;
-        } else {
-          token.id = user.id;
-          token.role = user.role;
-          token.roles = (user as any).roles || [user.role];
-          token.phone = user.phone;
-          token.phoneVerified = user.phoneVerified;
-        }
-      } else if (token.id) {
-        // Refresh dynamic user state from database
-        try {
-          const freshUser = await prisma.user.findUnique({
+        } else if (token.id) {
+          dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { id: true, role: true, roles: true, phone: true, phoneVerified: true },
+            select: {
+              id: true,
+              role: true,
+              roles: true,
+              phone: true,
+              phoneVerified: true,
+              sessionVersion: true,
+              disabledAt: true,
+            },
           });
-          if (freshUser) {
-            token.role = freshUser.role;
-            token.roles = freshUser.roles?.length ? freshUser.roles : [freshUser.role];
-            token.phone = freshUser.phone;
-            token.phoneVerified = freshUser.phoneVerified;
-          }
-        } catch (err) {
-          console.error("Failed to refresh user in JWT callback:", err);
         }
+      } catch (err) {
+        console.error("Failed to refresh user in JWT callback:", err);
       }
+
+      if (user) {
+        if (!dbUser || dbUser.disabledAt) {
+          (token as any).invalid = true;
+          token.id = "";
+          token.role = Role.CUSTOMER;
+          token.roles = [Role.CUSTOMER];
+          token.phone = undefined;
+          token.phoneVerified = false;
+          return token;
+        }
+
+        token.id = dbUser.id;
+        token.role = dbUser.role;
+        token.roles = dbUser.roles?.length ? dbUser.roles : [dbUser.role];
+        token.phone = dbUser.phone;
+        token.phoneVerified = dbUser.phoneVerified;
+        (token as any).sessionVersion = dbUser.sessionVersion;
+        (token as any).invalid = false;
+        return token;
+      }
+
+      if (token.id) {
+        const tokenVersion =
+          typeof (token as any).sessionVersion === "number"
+            ? ((token as any).sessionVersion as number)
+            : 0;
+
+        if (!dbUser || dbUser.disabledAt || dbUser.sessionVersion !== tokenVersion) {
+          (token as any).invalid = true;
+          token.id = "";
+          token.role = Role.CUSTOMER;
+          token.roles = [Role.CUSTOMER];
+          token.phone = undefined;
+          token.phoneVerified = false;
+          return token;
+        }
+
+        token.role = dbUser.role;
+        token.roles = dbUser.roles?.length ? dbUser.roles : [dbUser.role];
+        token.phone = dbUser.phone;
+        token.phoneVerified = dbUser.phoneVerified;
+      }
+
       return token;
     },
     async session({ session, token }) {

@@ -48,8 +48,7 @@ role, across the deployed website and the Flutter app. Both consume the
    switches to the PIN input.
 2. Client sends `{ phone, pin }` to the same NextAuth credentials callback.
 3. Owner: passcode is compared with a **constant-time** equality check
-   (`crypto.timingSafeEqual`) against the DB `pin` (self-provisioned from
-   `OWNER_PASSCODE` on first login, documented default `140974`).
+   (`crypto.timingSafeEqual`) against the DB `pin` (self-provisioned from the required `OWNER_PASSCODE` environment variable; no default).
 4. Staff: PIN checked the same way; wrong PIN → `Incorrect Staff PIN`.
 5. On success the session JWT carries the staff role(s); middleware and API
    routes gate `/owner`, `/manager`, `/packer`, `/rider/*` accordingly.

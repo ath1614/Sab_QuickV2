@@ -156,7 +156,7 @@ DOMAIN_NAME=sabquick.yourdomain.com
 NEXTAUTH_URL=https://sabquick.yourdomain.com
 NEXT_PUBLIC_APP_URL=https://sabquick.yourdomain.com
 
-NEXTAUTH_SECRET=u0N5t...YOUR_GENERATED_KEY...=
+NEXTAUTH_SECRET=<run: openssl rand -base64 32>
 
 POSTGRES_USER=sabquick_prod_user
 POSTGRES_PASSWORD=YOUR_STRONG_PG_PASSWORD

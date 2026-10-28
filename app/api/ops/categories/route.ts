@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
 import { z } from "zod";
+
+const HOME_CATALOG_KEY = "cache:products:home:v1";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +136,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
+
     return NextResponse.json(
       { success: true, category, message: "Category created successfully." },
       { status: 201 }
@@ -236,6 +241,8 @@ export async function DELETE(req: NextRequest) {
       where: { id },
     });
 
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: `"${targetCategory.name}" ${targetCategory.parentId ? "sub-aisle" : "aisle"} deleted successfully.`,
@@ -254,6 +261,8 @@ const updateCategorySchema = z.object({
   slug: z.string().trim().min(1, "Slug is required").optional(),
   imageUrl: z.string().nullable().optional(),
   displayRank: z.number().int().optional(),
+  // Moving a subcategory (and all of its products) to another parent aisle.
+  parentId: z.string().min(1, "Target category is required").nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -280,7 +289,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { id, name, slug, imageUrl, displayRank } = parseResult.data;
+    const { id, name, slug, imageUrl, displayRank, parentId } = parseResult.data;
 
     const existingCategory = await prisma.category.findUnique({
       where: { id },
@@ -288,6 +297,62 @@ export async function PATCH(req: NextRequest) {
 
     if (!existingCategory) {
       return NextResponse.json({ error: "Category not found." }, { status: 404 });
+    }
+
+    // A subcategory can be moved to a different parent without touching its
+    // products: they reference the subcategory, not the parent aisle.
+    let moveToParentId: string | undefined;
+    let movedToName: string | null = null;
+    let movedProductCount = 0;
+
+    if (parentId !== undefined && parentId !== existingCategory.parentId) {
+      if (existingCategory.parentId === null) {
+        return NextResponse.json(
+          {
+            error:
+              "Only subcategories can be moved between categories. Rename this category or move its subcategories individually.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!parentId) {
+        return NextResponse.json(
+          { error: "Choose a destination category for this subcategory." },
+          { status: 400 }
+        );
+      }
+
+      const targetParent = await prisma.category.findUnique({
+        where: { id: parentId },
+        select: { id: true, name: true, parentId: true },
+      });
+
+      if (!targetParent) {
+        return NextResponse.json(
+          { error: "Destination category not found." },
+          { status: 404 }
+        );
+      }
+
+      if (targetParent.parentId !== null) {
+        return NextResponse.json(
+          { error: "Subcategories can only be moved into a top-level category." },
+          { status: 400 }
+        );
+      }
+
+      const childCount = await prisma.category.count({ where: { parentId: id } });
+      if (childCount > 0) {
+        return NextResponse.json(
+          { error: "Only subcategories can be moved between categories." },
+          { status: 400 }
+        );
+      }
+
+      moveToParentId = parentId;
+      movedToName = targetParent.name;
+      movedProductCount = await prisma.product.count({ where: { categoryId: id } });
     }
 
     let cleanSlug = existingCategory.slug;
@@ -321,13 +386,23 @@ export async function PATCH(req: NextRequest) {
         ...(slug ? { slug: cleanSlug } : {}),
         ...(imageUrl !== undefined ? { imageUrl: imageUrl || null } : {}),
         ...(displayRank !== undefined ? { displayRank } : {}),
+        ...(moveToParentId !== undefined ? { parentId: moveToParentId } : {}),
       },
     });
+
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
+
+    const message = movedToName
+      ? `Subcategory "${updatedCategory.name}" moved to "${movedToName}" with ${movedProductCount} product${
+          movedProductCount === 1 ? "" : "s"
+        }.`
+      : `Aisle "${updatedCategory.name}" updated successfully.`;
 
     return NextResponse.json({
       success: true,
       category: updatedCategory,
-      message: `Aisle "${updatedCategory.name}" updated successfully.`,
+      movedProductCount,
+      message,
     });
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : "Failed to update category.";

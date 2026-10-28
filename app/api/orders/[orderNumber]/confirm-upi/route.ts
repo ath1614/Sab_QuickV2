@@ -80,6 +80,16 @@ export async function POST(
       });
     }
 
+    if (
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.DELIVERED
+    ) {
+      return NextResponse.json(
+        { success: false, error: "This order can no longer be confirmed as paid." },
+        { status: 409 }
+      );
+    }
+
     let isVerified = false;
     let verifiedTxnId = utr || `UPI-${Date.now()}`;
 
@@ -92,7 +102,10 @@ export async function POST(
         try {
           const payments = await getCashfreeOrderPayments(order.orderNumber);
           const successfulPayment = payments.find(
-            (p) => p.payment_status === "SUCCESS" && p.payment_amount >= order.totalAmount
+            (p) =>
+              p.payment_status === "SUCCESS" &&
+              p.payment_amount === order.totalAmount &&
+              p.payment_currency === "INR"
           );
 
           if (successfulPayment) {
@@ -104,10 +117,19 @@ export async function POST(
         }
       }
 
-      // C. Direct UPI App Intent or QR payment (Blinkit / Zepto direct UPI flow)
+      // C. A client-supplied UTR is a claim, not proof of payment.
+      // Never transition an order to PAID from this path. The claim flow and
+      // manager reconciliation replace the old auto-confirm branch.
       if (!isVerified) {
-        isVerified = true;
-        verifiedTxnId = utr ? `UTR-${utr}` : `UPI-${Date.now()}`;
+        return NextResponse.json(
+          {
+            success: false,
+            code: "PAYMENT_UNVERIFIED",
+            error:
+              "Payment has not been confirmed by the gateway yet. If you paid via UPI, keep the UTR and contact the store for verification.",
+          },
+          { status: 402 }
+        );
       }
     }
 

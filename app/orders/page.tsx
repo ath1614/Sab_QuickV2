@@ -272,7 +272,7 @@ export default function OrdersPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 font-mono text-base font-black text-emerald-950">
-                        {String(order.deliveryOtp || "1234").split("").map((digit, i) => (
+                        {String(order.deliveryOtp || "----").split("").map((digit, i) => (
                           <span
                             key={i}
                             className="w-8 h-8 rounded-xl bg-white border border-emerald-300 shadow-xs flex items-center justify-center text-primary"

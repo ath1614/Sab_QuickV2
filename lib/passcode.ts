@@ -39,14 +39,8 @@ export function verifyPasscode(submittedPin: string, storedValue: string | null 
     return crypto.timingSafeEqual(computedKey, expectedBuffer);
   }
 
-  // 2. Backward compatibility for legacy plaintext PINs
-  if (storedValue.length === trimmedPin.length) {
-    return crypto.timingSafeEqual(
-      Buffer.from(storedValue),
-      Buffer.from(trimmedPin)
-    );
-  }
-
+  // Plaintext PINs are no longer accepted. Run `npm run db:migrate-pins`
+  // before deploying this build so legacy rows are hashed exactly once.
   return false;
 }
 

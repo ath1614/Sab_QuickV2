@@ -10,6 +10,7 @@ import path from "path";
 import { PrismaClient, Role } from "@prisma/client";
 import redis from "../lib/redis";
 import { validateProductionEnv, REQUIRED_PRODUCTION_ENVS } from "../lib/env";
+import { generateOtp, hashOtp, otpStorageKey, verifyOtpHash } from "../lib/otp";
 
 const prisma = new PrismaClient();
 const projectRoot = path.resolve(__dirname, "..");
@@ -195,7 +196,7 @@ async function runProductionReadinessTestSuite() {
     // -------------------------------------------------------------
     console.log("🧪 TEST 4: Testing Strict OTP Verification & Cooldown Enforcement...");
     const simPhone = "9876599903";
-    const otpKey = `otp:phone:${simPhone}`;
+    const otpKey = otpStorageKey(simPhone);
     const cooldownKey = `otp:cooldown:${simPhone}`;
 
     // Clean up previous test state
@@ -208,40 +209,38 @@ async function runProductionReadinessTestSuite() {
     }
     console.log("   ✓ Verified: Non-existent OTP returns null (fails immediately).");
 
-    // 2. Issuance: Generate 4-digit OTP & set in Redis with 300s TTL
-    const liveOtp = "7391";
-    await redis.set(otpKey, liveOtp, "EX", 300);
+    // 2. Issuance: Generate a 6-digit OTP and store only its HMAC.
+    const liveOtp = generateOtp();
+    await redis.set(otpKey, hashOtp(simPhone, liveOtp), "EX", 300);
     await redis.set(cooldownKey, "1", "EX", 60);
 
-    const storedLiveOtp = await redis.get(otpKey);
+    const storedLiveOtpHash = await redis.get(otpKey);
     const storedCooldown = await redis.get(cooldownKey);
     const cooldownTtl = await redis.ttl(cooldownKey);
 
-    if (storedLiveOtp !== liveOtp) {
-      throw new Error("Redis OTP storage failure.");
+    if (!verifyOtpHash(simPhone, liveOtp, storedLiveOtpHash)) {
+      throw new Error("Hashed OTP storage/verification failed.");
     }
     if (!storedCooldown || cooldownTtl <= 0) {
       throw new Error("Redis 60-second cooldown not enforced.");
     }
-    console.log(`   ✓ OTP stored in Redis: ${storedLiveOtp} (TTL: 300s)`);
+    console.log("   ✓ OTP stored as an HMAC in Redis (TTL: 300s)");
     console.log(`   ✓ Cooldown rate-limit active: ${cooldownTtl}s remaining (Target: 60s)`);
 
-    // 3. Negative Test: Test arbitrary bypass codes ("1234", "0000", "9999")
-    const testBypassCodes = ["1234", "0000", "9999", "7390"];
+    // 3. Negative Test: arbitrary bypass codes must not match.
+    const testBypassCodes = ["1234", "000000", "999999"];
     for (const code of testBypassCodes) {
-      const isMatch = storedLiveOtp === code;
-      if (isMatch) {
-        throw new Error(`Bypass Vulnerability! Code "${code}" incorrectly matched live OTP "${liveOtp}".`);
+      if (verifyOtpHash(simPhone, code, storedLiveOtpHash)) {
+        throw new Error(`Bypass vulnerability: code "${code}" matched the live OTP.`);
       }
     }
-    console.log("   ✓ Verified: Arbitrary test codes ('1234', '0000', '9999') correctly rejected.");
+    console.log("   ✓ Verified: arbitrary test codes are rejected against the hash.");
 
-    // 4. Positive Test: Matching live OTP
-    const isPositiveMatch = storedLiveOtp === liveOtp;
-    if (!isPositiveMatch) {
+    // 4. Positive Test: the issued code matches.
+    if (!verifyOtpHash(simPhone, liveOtp, storedLiveOtpHash)) {
       throw new Error("Valid OTP matching failed.");
     }
-    console.log("   ✓ Verified: Exact OTP code '7391' correctly verified.");
+    console.log("   ✓ Verified: the issued 6-digit OTP verifies correctly.");
 
     // 5. Single-Use Security: Delete OTP after verification
     await redis.del(otpKey);
@@ -261,14 +260,14 @@ async function runProductionReadinessTestSuite() {
     // -------------------------------------------------------------
     console.log("🧪 TEST 5: Validating Production Environment Startup Security...");
 
-    // Confirm REQUIRED_PRODUCTION_ENVS has all 6 keys
+    // Confirm REQUIRED_PRODUCTION_ENVS covers the runtime-critical keys.
+    // Owner bootstrap values are validated when present but are not a boot
+    // requirement: an already-provisioned owner has a hashed PIN in the DB.
     const expectedKeys = [
       "NEXTAUTH_SECRET",
       "DATABASE_URL",
       "REDIS_URL",
-      "RAZORPAY_KEY_ID",
-      "RAZORPAY_KEY_SECRET",
-      "SMS_GATEWAY_API_KEY",
+      "NEXTAUTH_URL",
     ];
 
     for (const k of expectedKeys) {

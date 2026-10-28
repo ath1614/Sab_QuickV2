@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 import { checkDeliveryServiceability } from "@/lib/geo";
+import { isOnlinePaymentsEnabled } from "@/lib/env";
 import { OrderStatus, PaymentStatus, PaymentMethod } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -124,6 +125,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { addressId, items, tipAmount, paymentMethod, couponCode } = parseResult.data;
+
+    if (paymentMethod === PaymentMethod.ONLINE_PREPAID && !isOnlinePaymentsEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Online payments are temporarily unavailable. Please choose cash on delivery or UPI at delivery.",
+          code: "ONLINE_PAYMENTS_DISABLED",
+        },
+        { status: 503 }
+      );
+    }
 
     // 5. Verify delivery address and 3.5 km Geofence
     const address = await prisma.address.findUnique({

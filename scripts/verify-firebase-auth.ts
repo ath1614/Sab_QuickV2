@@ -11,6 +11,7 @@
 
 import fs from "fs";
 import path from "path";
+import { hashPasscode, verifyPasscode } from "../lib/passcode";
 
 // Auto-load .env.local for local verification runs
 const envLocalPath = path.resolve(__dirname, "../.env.local");
@@ -106,59 +107,65 @@ async function main() {
 
   // TEST 4: Preservation of Store Owner Master Passcode (Zero SMS/reCAPTCHA)
   console.log("🧪 TEST 4: Verifying Store Owner zero-SMS Passcode bypass...");
-  const ownerPhone = "9109066668";
-  const ownerPasscode = "140974";
+  const ownerPhone = process.env.OWNER_PHONE?.trim() || "6000000000";
+  const ownerPasscode = process.env.OWNER_PASSCODE?.trim() || "test-owner-passcode-123";
 
   const ownerUser = await prisma.user.upsert({
     where: { phone: ownerPhone },
-    update: { role: Role.OWNER, phoneVerified: true, pin: ownerPasscode },
+    update: { role: Role.OWNER, roles: [Role.OWNER], phoneVerified: true, pin: hashPasscode(ownerPasscode) },
     create: {
       phone: ownerPhone,
-      name: "Anurag Soni",
-      email: "sabsupermart68@gmail.com",
+      name: "Test Store Owner",
       role: Role.OWNER,
-      pin: ownerPasscode,
+      roles: [Role.OWNER],
+      pin: hashPasscode(ownerPasscode),
       phoneVerified: true,
     },
   });
 
-  if (ownerUser.role !== Role.OWNER || ownerUser.pin !== ownerPasscode) {
-    throw new Error("Store Owner Master Passcode was compromised or not configured.");
+  if (ownerUser.role !== Role.OWNER || !verifyPasscode(ownerPasscode, ownerUser.pin)) {
+    throw new Error("Store Owner passcode hash was not configured correctly.");
   }
   console.log(`   ✓ Owner phone: +91 ${ownerPhone}`);
-  console.log(`   ✓ Passcode verified: [${ownerUser.pin}] (Zero SMS consumed)`);
+  console.log("   ✓ Passcode verified from its scrypt hash (Zero SMS consumed)");
   console.log(`   ✓ Owner portal access: Role [${ownerUser.role}] verified.`);
   console.log("✅ TEST 4 PASSED: Store Owner bypass operational.\n");
 
   // TEST 5: Preservation of Staff PIN Shift Clock-In
   console.log("🧪 TEST 5: Verifying Staff PIN Shift Clock-in bypass...");
-  const staffPhone = "9876500001";
-  const staffPin = "4321";
+  const staffPhone = "9876599912";
+  const staffPin = "432198";
 
   const staffUser = await prisma.user.upsert({
     where: { phone: staffPhone },
-    update: { role: Role.PACKER, pin: staffPin, phoneVerified: true },
+    update: {
+      role: Role.PACKER,
+      roles: [Role.PACKER],
+      pin: hashPasscode(staffPin),
+      phoneVerified: true,
+    },
     create: {
       phone: staffPhone,
       name: "Test Dark Store Packer",
       role: Role.PACKER,
-      pin: staffPin,
+      roles: [Role.PACKER],
+      pin: hashPasscode(staffPin),
       phoneVerified: true,
     },
   });
 
-  if (staffUser.role !== Role.PACKER || staffUser.pin !== staffPin) {
+  if (staffUser.role !== Role.PACKER || !verifyPasscode(staffPin, staffUser.pin)) {
     throw new Error("Staff PIN authentication was compromised.");
   }
   console.log(`   ✓ Staff phone: +91 ${staffPhone}`);
   console.log(`   ✓ Staff role: [${staffUser.role}]`);
-  console.log(`   ✓ Staff PIN: [${staffUser.pin}] (Zero SMS consumed)`);
+  console.log("   ✓ 6-digit staff PIN verified from its scrypt hash (Zero SMS consumed)");
   console.log("✅ TEST 5 PASSED: Dark Store Staff bypass operational.\n");
 
   // Cleanup test users
   await prisma.user.deleteMany({
     where: {
-      phone: { in: [testPhone, staffPhone] },
+      phone: { in: [testPhone, staffPhone, ownerPhone] },
     },
   });
   console.log("🧹 Temporary verification test accounts cleaned up.");

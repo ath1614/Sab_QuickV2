@@ -15,6 +15,7 @@ import {
   Sparkles,
   Search,
   ArrowLeft,
+  ArrowRightLeft,
   DollarSign,
   AlertCircle,
   CheckCircle2,
@@ -29,6 +30,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { compressProductImage } from "@/lib/image-compress";
+import { cleanProductImages, resolveProductImages } from "@/lib/productImages";
+import { ProductImageGalleryEditor } from "@/components/owner/ProductImageGalleryEditor";
 import { CameraCaptureModal } from "@/components/ui/CameraCaptureModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,7 @@ interface ProductData {
   stockCount: number;
   isAvailable: boolean;
   imageUrl: string;
+  imageUrls?: string[];
   tags: string[];
   description?: string | null;
   categoryId: string;
@@ -120,6 +124,15 @@ export default function OwnerCatalogPage() {
   const [editCatDisplayRank, setEditCatDisplayRank] = React.useState<string>("0");
   const [editCatIsParent, setEditCatIsParent] = React.useState<boolean>(true);
 
+  // Move Subcategory (products follow automatically)
+  const [moveSubModalOpen, setMoveSubModalOpen] = React.useState<boolean>(false);
+  const [moveSubId, setMoveSubId] = React.useState<string>("");
+  const [moveSubName, setMoveSubName] = React.useState<string>("");
+  const [moveSubCurrentParentId, setMoveSubCurrentParentId] = React.useState<string>("");
+  const [moveSubTargetParentId, setMoveSubTargetParentId] = React.useState<string>("");
+  const [moveSubProductCount, setMoveSubProductCount] = React.useState<number>(0);
+  const [isMovingSub, setIsMovingSub] = React.useState<boolean>(false);
+
   // Delete Aisle / Sub-Aisle Confirmation
   const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = React.useState<boolean>(false);
   const [deleteCatId, setDeleteCatId] = React.useState<string>("");
@@ -136,7 +149,7 @@ export default function OwnerCatalogPage() {
   const [prodMrp, setProdMrp] = React.useState<string>("");
   const [prodSalePrice, setProdSalePrice] = React.useState<string>("");
   const [prodStock, setProdStock] = React.useState<string>("50");
-  const [prodImage, setProdImage] = React.useState("");
+  const [prodImages, setProdImages] = React.useState<string[]>([]);
   const [prodTags, setProdTags] = React.useState("");
   const [prodDesc, setProdDesc] = React.useState("");
   const [prodDiscountPercent, setProdDiscountPercent] = React.useState<string>("");
@@ -150,7 +163,7 @@ export default function OwnerCatalogPage() {
   const [editProdSalePrice, setEditProdSalePrice] = React.useState<string>("");
   const [editProdStock, setEditProdStock] = React.useState<string>("");
   const [editProdUnitQty, setEditProdUnitQty] = React.useState("");
-  const [editProdImage, setEditProdImage] = React.useState("");
+  const [editProdImages, setEditProdImages] = React.useState<string[]>([]);
   const [editProdDesc, setEditProdDesc] = React.useState("");
 
   // Bi-directional pricing calculation handlers for Add Product
@@ -277,9 +290,9 @@ export default function OwnerCatalogPage() {
       const uploadedUrl = data.url || data.relativePath;
 
       if (target === "add-product") {
-        setProdImage(uploadedUrl);
+        setProdImages((prev) => cleanProductImages([...prev, uploadedUrl]));
       } else if (target === "edit-product") {
-        setEditProdImage(uploadedUrl);
+        setEditProdImages((prev) => cleanProductImages([...prev, uploadedUrl]));
       } else if (target === "add-parent-cat") {
         setParentImage(uploadedUrl);
       } else if (target === "add-sub-cat") {
@@ -458,6 +471,41 @@ export default function OwnerCatalogPage() {
     }
   };
 
+  // 2c-move. Open + submit the "move subcategory" flow. Products reference the
+  // subcategory itself, so they move with it and stay fully intact.
+  const handleOpenMoveSubcategory = (sub: SubCategoryData, currentParentId: string) => {
+    setMoveSubId(sub.id);
+    setMoveSubName(sub.name);
+    setMoveSubCurrentParentId(currentParentId);
+    setMoveSubTargetParentId("");
+    setMoveSubProductCount(sub.products?.length || sub._count?.products || 0);
+    setMoveSubModalOpen(true);
+  };
+
+  const handleMoveSubcategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!moveSubTargetParentId) return;
+
+    try {
+      setIsMovingSub(true);
+      const res = await fetch("/api/ops/categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: moveSubId, parentId: moveSubTargetParentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to move subcategory.");
+
+      setSuccessMsg(data.message || `"${moveSubName}" moved successfully.`);
+      setMoveSubModalOpen(false);
+      fetchCatalogData();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to move subcategory.");
+    } finally {
+      setIsMovingSub(false);
+    }
+  };
+
   // 2d. Open Delete Category Confirmation
   const handleOpenDeleteCategory = (
     cat: { id: string; name: string },
@@ -514,6 +562,8 @@ export default function OwnerCatalogPage() {
         .map((t) => t.trim().toLowerCase())
         .filter(Boolean);
 
+      const gallery = cleanProductImages(prodImages);
+
       const res = await fetch("/api/ops/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -525,7 +575,10 @@ export default function OwnerCatalogPage() {
           mrp: numMrp,
           salePrice: numSalePrice,
           stockCount: numStock,
-          imageUrl: prodImage.trim() || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80",
+          imageUrl:
+            gallery[0] ||
+            "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80",
+          imageUrls: gallery.length > 0 ? gallery : undefined,
           tags: tagsArray,
           description: prodDesc.trim() || undefined,
         }),
@@ -543,7 +596,7 @@ export default function OwnerCatalogPage() {
       setProdMrp("");
       setProdSalePrice("");
       setProdStock("50");
-      setProdImage("");
+      setProdImages([]);
       setProdTags("");
       setProdDesc("");
       fetchCatalogData();
@@ -570,6 +623,8 @@ export default function OwnerCatalogPage() {
     }
 
     try {
+      const gallery = cleanProductImages(editProdImages);
+
       const res = await fetch(`/api/ops/products/${editProdId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -580,7 +635,9 @@ export default function OwnerCatalogPage() {
           salePrice: numSalePrice,
           stockCount: isNaN(numStock) ? undefined : numStock,
           unitQuantity: editProdUnitQty.trim(),
-          imageUrl: editProdImage.trim(),
+          ...(gallery.length > 0
+            ? { imageUrl: gallery[0], imageUrls: gallery }
+            : {}),
           description: editProdDesc.trim() || null,
         }),
       });
@@ -610,7 +667,7 @@ export default function OwnerCatalogPage() {
     setEditProdSalePrice(prod.salePrice.toString());
     setEditProdStock(prod.stockCount.toString());
     setEditProdUnitQty(prod.unitQuantity);
-    setEditProdImage(prod.imageUrl);
+    setEditProdImages(resolveProductImages(prod.imageUrls, prod.imageUrl));
     setEditProdDesc(prod.description || "");
     setEditProductModalOpen(true);
   };
@@ -1113,6 +1170,16 @@ export default function OwnerCatalogPage() {
                                     </button>
                                   </div>
 
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleOpenMoveSubcategory(sub, parent.id)}
+                                    className="h-8 px-2.5 text-amber-200 hover:text-amber-100 hover:bg-amber-500/20 rounded-xl text-xs gap-1 border border-amber-500/30 bg-slate-950"
+                                    title="Move this subcategory and all its products to another category"
+                                  >
+                                    <ArrowRightLeft className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>Move</span>
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -1833,63 +1900,14 @@ export default function OwnerCatalogPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-black text-slate-200 block">
-                        Image URL *
-                      </label>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          id="upload-add-prod"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) handleFileUpload(f, "add-product");
-                            e.target.value = "";
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={uploadingTarget === "add-product"}
-                          onClick={() => openCameraFor("add-product", "Snap Product Photo")}
-                          className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                          title="Snap photo with in-app camera"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>Camera</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={uploadingTarget === "add-product"}
-                          onClick={() => document.getElementById("upload-add-prod")?.click()}
-                          className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
-                          title="Upload image from device gallery"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Gallery</span>
-                        </Button>
-                      </div>
-                    </div>
-                    <Input
-                      required
-                      placeholder="https://... or capture using Camera above"
-                      value={prodImage}
-                      onChange={(e) => setProdImage(e.target.value)}
-                      className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
-                    />
-                    {uploadingTarget === "add-product" && (
-                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Compressing &amp; uploading photo (WebP)...</span>
-                      </div>
-                    )}
-                  </div>
+                  <ProductImageGalleryEditor
+                    images={prodImages}
+                    onChange={setProdImages}
+                    uploading={uploadingTarget === "add-product"}
+                    onPickFile={(file) => handleFileUpload(file, "add-product")}
+                    onCamera={() => openCameraFor("add-product", "Snap Product Photo")}
+                    inputId="upload-add-prod"
+                  />
 
                   <div>
                     <label className="text-xs font-black text-slate-200 block mb-1.5">
@@ -1948,9 +1966,9 @@ export default function OwnerCatalogPage() {
                         </Badge>
                       </div>
 
-                      {prodImage ? (
+                      {prodImages[0] ? (
                         <img
-                          src={prodImage}
+                          src={prodImages[0]}
                           alt="Preview"
                           className="w-full h-full object-contain p-2"
                           onError={(e) => {
@@ -2158,82 +2176,14 @@ export default function OwnerCatalogPage() {
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-black text-slate-200 block">
-                    Image URL
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      id="upload-edit-prod"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleFileUpload(f, "edit-product");
-                        e.target.value = "";
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={uploadingTarget === "edit-product"}
-                      onClick={() => openCameraFor("edit-product", "Snap Product Photo")}
-                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-950/70 hover:bg-emerald-900 border-emerald-500/50 text-emerald-300 gap-1 shadow-2xs"
-                      title="Snap photo with in-app camera"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>Camera</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={uploadingTarget === "edit-product"}
-                      onClick={() => document.getElementById("upload-edit-prod")?.click()}
-                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 gap-1 shadow-2xs"
-                      title="Upload image from device gallery"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Gallery</span>
-                    </Button>
-                  </div>
-                </div>
-                <Input
-                  value={editProdImage}
-                  onChange={(e) => setEditProdImage(e.target.value)}
-                  placeholder="https://... or capture using Camera above"
-                  className="h-10 bg-slate-950 border-2 border-slate-700 focus:border-emerald-400 rounded-xl text-white font-mono text-xs"
-                />
-                {uploadingTarget === "edit-product" && (
-                  <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-emerald-400 font-semibold animate-pulse">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Compressing &amp; uploading photo (WebP)...</span>
-                  </div>
-                )}
-                {editProdImage && (
-                  <div className="mt-2 flex items-center gap-2.5 p-2 bg-slate-950/80 border border-slate-800 rounded-xl">
-                    <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center p-1">
-                      <img
-                        src={editProdImage}
-                        alt="Product Preview"
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Live Image Preview
-                      </p>
-                      <p className="text-[10px] text-slate-400 truncate font-mono">{editProdImage}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ProductImageGalleryEditor
+                images={editProdImages}
+                onChange={setEditProdImages}
+                uploading={uploadingTarget === "edit-product"}
+                onPickFile={(file) => handleFileUpload(file, "edit-product")}
+                onCamera={() => openCameraFor("edit-product", "Snap Product Photo")}
+                inputId="upload-edit-prod"
+              />
 
               <div>
                 <label className="text-xs font-black text-slate-200 block mb-1.5">
@@ -2434,6 +2384,115 @@ export default function OwnerCatalogPage() {
                 </Button>
                 <Button type="submit" className="h-10 px-5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md">
                   Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL 5b: MOVE SUBCATEGORY (AND ITS PRODUCTS) TO ANOTHER AISLE */}
+      {/* ------------------------------------------------------------- */}
+      {moveSubModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center">
+          <div className="bg-slate-900 border-2 border-slate-700 rounded-3xl w-full max-w-md p-6 text-white space-y-4 shadow-2xl my-4 sm:my-8 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setMoveSubModalOpen(false)}
+                  className="h-8 px-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl gap-1 border border-slate-700"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Close</span>
+                </Button>
+                <h3 className="text-sm font-black flex items-center gap-2 text-white">
+                  <ArrowRightLeft className="w-4 h-4 text-amber-300" />
+                  Move Subcategory
+                </h3>
+              </div>
+              <button
+                onClick={() => setMoveSubModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleMoveSubcategory} className="space-y-4 text-xs">
+              <p className="text-slate-200 text-sm leading-relaxed">
+                Move <strong className="text-white font-black">&quot;{moveSubName}&quot;</strong>{" "}
+                and its{" "}
+                <strong className="text-emerald-300 font-black">
+                  {moveSubProductCount} product{moveSubProductCount === 1 ? "" : "s"}
+                </strong>{" "}
+                to another category.
+              </p>
+
+              <div>
+                <label className="text-xs font-black text-slate-200 block mb-1.5">
+                  Destination Category *
+                </label>
+                <select
+                  required
+                  value={moveSubTargetParentId}
+                  onChange={(e) => setMoveSubTargetParentId(e.target.value)}
+                  className="w-full h-11 rounded-xl bg-slate-950 border-2 border-slate-700 px-3 text-xs text-white font-bold focus:outline-none focus:border-amber-400"
+                >
+                  <option value="">Select destination category</option>
+                  {categories
+                    .filter((c) => c.id !== moveSubCurrentParentId)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.subCategories.length} subcategories)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {moveSubTargetParentId && (
+                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-[11px] leading-relaxed">
+                  <p className="font-bold text-emerald-300">Ready to move</p>
+                  <p>
+                    {moveSubName} →{" "}
+                    {categories.find((c) => c.id === moveSubTargetParentId)?.name}
+                  </p>
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-700 text-[11px] text-slate-300 leading-relaxed flex gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  Products, prices, stock and photos stay attached to this
+                  subcategory. Nothing is deleted or re-created.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMoveSubModalOpen(false)}
+                  disabled={isMovingSub}
+                  className="h-10 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600 gap-1"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!moveSubTargetParentId || isMovingSub}
+                  className="h-10 px-5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md gap-2"
+                >
+                  {isMovingSub ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ArrowRightLeft className="w-4 h-4" />
+                  )}
+                  <span>Move Subcategory</span>
                 </Button>
               </div>
             </form>

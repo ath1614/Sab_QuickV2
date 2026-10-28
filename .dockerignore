@@ -16,3 +16,11 @@ backups/
 *.pem
 *.key
 .system_generated/
+.env
+.env.*
+!.env.example
+!.env.prod.example
+build/
+ios/App/build/
+journey_audit/
+*.mobileprovision

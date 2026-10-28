@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Zap, Plus, Minus, Package, ShoppingBag } from "lucide-react";
 import { useCartStore, MAX_PER_ITEM_LIMIT } from "@/store/useCartStore";
+import { ProductImageCarousel } from "@/components/catalog/ProductImageCarousel";
 import { cn } from "@/lib/utils";
 
 export interface ProductData {
@@ -19,6 +20,7 @@ export interface ProductData {
   stockCount: number;
   isAvailable: boolean;
   imageUrl: string;
+  imageUrls?: string[];
   tags: string[];
   category?: {
     id: string;
@@ -42,8 +44,6 @@ export function CompactProductCard({
   onDecrement,
   onProductClick,
 }: ProductCardProps) {
-  const [imageError, setImageError] = React.useState<boolean>(false);
-
   const discountPercent =
     product.mrp > product.salePrice
       ? Math.round(((product.mrp - product.salePrice) / product.mrp) * 100)
@@ -100,19 +100,17 @@ export function CompactProductCard({
                 {discountPercent}% OFF
               </span>
             )}
-            {!imageError && product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.title}
-                onError={() => setImageError(true)}
-                className="w-full h-full object-contain p-1.5"
-                loading="lazy"
-              />
-            ) : (
-              <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
-                {product.title.slice(0, 2).toUpperCase()}
-              </span>
-            )}
+            <ProductImageCarousel
+              images={product.imageUrls}
+              fallbackImage={product.imageUrl}
+              alt={product.title}
+              imageClassName="w-full h-full object-contain p-1.5"
+              fallback={
+                <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                  {product.title.slice(0, 2).toUpperCase()}
+                </span>
+              }
+            />
           </div>
 
           {/* Floating ADD control (Blinkit parity) */}
@@ -203,8 +201,6 @@ export function ProductCard({
   onDecrement,
   onProductClick,
 }: ProductCardProps) {
-  const [imageError, setImageError] = React.useState<boolean>(false);
-
   const discountPercent =
     product.mrp > product.salePrice
       ? Math.round(((product.mrp - product.salePrice) / product.mrp) * 100)
@@ -270,25 +266,23 @@ export function ProductCard({
             </div>
           </div>
 
-          {/* Product Image with Fallback */}
-          {!imageError && product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.title}
-              onError={() => setImageError(true)}
-              className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 text-center">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
-                {product.title.slice(0, 2).toUpperCase()}
+          {/* Product gallery with fallback */}
+          <ProductImageCarousel
+            images={product.imageUrls}
+            fallbackImage={product.imageUrl}
+            alt={product.title}
+            imageClassName="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+            fallback={
+              <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 text-center">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
+                  {product.title.slice(0, 2).toUpperCase()}
+                </div>
+                <span className="text-[10px] text-muted-foreground line-clamp-1">
+                  {product.category?.name || "Grocery"}
+                </span>
               </div>
-              <span className="text-[10px] text-muted-foreground line-clamp-1">
-                {product.category?.name || "Grocery"}
-              </span>
-            </div>
-          )}
+            }
+          />
         </div>
 
         {/* Unit Quantity Pill */}

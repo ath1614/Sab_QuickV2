@@ -198,6 +198,18 @@ export async function PATCH(req: NextRequest) {
 
     const { id, name, phone, email, phoneVerified } = parseResult.data;
 
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+
+    if (!target || target.role !== Role.CUSTOMER) {
+      return NextResponse.json(
+        { error: "Only customer accounts can be edited from this screen." },
+        { status: 403 }
+      );
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;

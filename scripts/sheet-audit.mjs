@@ -14,7 +14,7 @@
  *
  * Usage:
  *   node scripts/sheet-audit.mjs --base http://localhost:3100
- *   node scripts/sheet-audit.mjs --phone 9820088991 --code 742918
+ *   AUDIT_PHONE=<number> AUDIT_CODE=<code> node scripts/sheet-audit.mjs
  *
  * Exit code is non-zero when any width fails, so CI can gate on it.
  */
@@ -28,8 +28,12 @@ const arg = (name, fallback) => {
 };
 
 const BASE = (arg("base", "http://localhost:3100")).replace(/\/$/, "");
-const PHONE = arg("phone", "9820088991");
-const CODE = arg("code", "742918");
+const PHONE = arg("phone", process.env.AUDIT_PHONE || "");
+const CODE = arg("code", process.env.AUDIT_CODE || "");
+if (!PHONE || !CODE) {
+  console.error("Set --phone/--code or AUDIT_PHONE/AUDIT_CODE; credentials are never stored in the repo.");
+  process.exit(1);
+}
 const STATE = "/tmp/sq-audit-customer.json";
 
 const DEVICES = [

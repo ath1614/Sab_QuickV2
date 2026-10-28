@@ -64,9 +64,9 @@ function StorefrontContent() {
     (session?.user as any)?.roles?.length
       ? (session?.user as any).roles
       : [userRole];
-  const isStaffOrReviewer =
-    userRoles.some((r) => ["OWNER", "MANAGER", "PACKER", "RIDER"].includes(r)) ||
-    (session?.user as any)?.phone === "9999999999";
+  const isStaffOrReviewer = userRoles.some((r) =>
+    ["OWNER", "MANAGER", "PACKER", "RIDER"].includes(r)
+  );
 
   // URL state
   const categoryParam = searchParams.get("category") || "all";

@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Swipeable product galleries: hide the scrollbar without disabling scroll. */
+  .sq-no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .sq-no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 @layer base {
   :root {
     /* SabQuick Brand Tokens - CSS variables for dynamic seasonal theme overrides */

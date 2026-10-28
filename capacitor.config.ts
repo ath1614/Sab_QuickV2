@@ -22,9 +22,11 @@ const config: CapacitorConfig = {
     ],
   },
   android: {
-    allowMixedContent: true,
+    // The shell only loads the production HTTPS site; mixed content and remote
+    // WebView debugging are development conveniences, not release settings.
+    allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: false,
   },
   plugins: {
     PushNotifications: {

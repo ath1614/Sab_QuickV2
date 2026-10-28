@@ -2,6 +2,11 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  poweredByHeader: false,
+  // Next 14 requires this flag; it becomes stable in Next 15.
+  experimental: {
+    instrumentationHook: true,
+  },
   images: {
     remotePatterns: [
       {

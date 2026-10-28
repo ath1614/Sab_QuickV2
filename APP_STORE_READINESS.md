@@ -127,8 +127,7 @@ balanced rows of five on iPad instead of a 6/8-column layout with a two-item orp
    name, delivery address, order history, and payment status (processed by Cashfree/UPI —
    the app does not store card numbers). Declare these as *linked to the user* and used for
    *app functionality*; no tracking/ads.
-4. **Review notes.** Keep the reviewer bypass documented: phone `9820088991`, passcode
-   `742918` (no SMS required), and note that the app is a storefront for physical groceries
+4. **Review notes.** Provision a time-limited reviewer account through staff management; never commit its phone or passcode, and note that the app is a storefront for physical groceries
    and that payments open the UPI app / Cashfree.
 5. **Support URL** in the listing (a page or mailto) and the **marketing URL**. The privacy
    policy URL must match `/privacy`.

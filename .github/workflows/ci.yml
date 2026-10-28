@@ -198,6 +198,9 @@ jobs:
             sed -i 's/^HUB_LATITUDE=.*/HUB_LATITUDE=23.131617/' .env.prod || true
             sed -i 's/^HUB_LONGITUDE=.*/HUB_LONGITUDE=83.191015/' .env.prod || true
             sed -i 's/^GEOFENCE_RADIUS_KM=.*/GEOFENCE_RADIUS_KM=3.5/' .env.prod || true
+            # Online payments are opt-in in code. The store already sells online,
+            # so keep that enabled across deploys instead of defaulting to off.
+            grep -q '^ONLINE_PAYMENTS_ENABLED=' .env.prod || echo 'ONLINE_PAYMENTS_ENABLED=true' >> .env.prod
             # Apply database migrations to production PostgreSQL container
             docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER TABLE \"User\" ADD COLUMN IF NOT EXISTS pin TEXT;"' || true
             for f in $(find prisma/migrations -name "migration.sql" | sort); do

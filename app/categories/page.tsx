@@ -16,6 +16,7 @@ import {
 import { CATEGORY_ICONS, ParentCategoryItem, SubCategoryItem } from "@/components/catalog/CategoryNav";
 import { ProductData } from "@/components/catalog/ProductCard";
 import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
+import { ProductImageCarousel } from "@/components/catalog/ProductImageCarousel";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
 
@@ -70,8 +71,6 @@ function SplitProductCard({
   onDecrement,
   onProductClick,
 }: SplitProductCardProps) {
-  const [imageError, setImageError] = React.useState(false);
-
   const discountPercent =
     product.mrp > product.salePrice
       ? Math.round(((product.mrp - product.salePrice) / product.mrp) * 100)
@@ -106,22 +105,20 @@ function SplitProductCard({
             </div>
           )}
 
-          {/* Product Image */}
-          {!imageError && product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.title}
-              onError={() => setImageError(true)}
-              className="w-full h-full object-contain p-1.5 sm:p-2 group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 text-center">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                {product.title.slice(0, 2).toUpperCase()}
+          {/* Product gallery (swipeable when multiple photos exist) */}
+          <ProductImageCarousel
+            images={product.imageUrls}
+            fallbackImage={product.imageUrl}
+            alt={product.title}
+            imageClassName="w-full h-full object-contain p-1.5 sm:p-2 group-hover:scale-105 transition-transform duration-300"
+            fallback={
+              <div className="flex flex-col items-center justify-center text-slate-400 gap-1 p-2 text-center">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                  {product.title.slice(0, 2).toUpperCase()}
+                </div>
               </div>
-            </div>
-          )}
+            }
+          />
         </div>
 
         {/* Unit Quantity */}

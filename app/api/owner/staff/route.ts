@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { hashPasscode } from "@/lib/passcode";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const staffPayloadSchema = z.object({
   email: z.string().trim().email("Invalid email format").optional().or(z.literal("")),
   roles: z.array(z.enum(["MANAGER", "PACKER", "RIDER"])).min(1, "Select at least one role").optional(),
   role: z.enum(["MANAGER", "PACKER", "RIDER"]).optional(),
-  pin: z.string().trim().regex(/^\d{4}$/, "Staff PIN must be exactly 4 digits"),
+  pin: z.string().trim().regex(/^\d{6}$/, "Staff PIN must be exactly 6 digits").optional(),
   vehicleDetails: z.string().trim().optional(),
 });
 
@@ -97,8 +98,15 @@ export async function POST(req: NextRequest) {
 
     const { id, name, phone, email, roles, role, pin, vehicleDetails } = parseResult.data;
 
-    // Disallow overriding the main Owner account via this endpoint
-    if (phone === "9109066668") {
+    if (!id && !pin) {
+      return NextResponse.json(
+        { error: "A 6-digit PIN is required for a new staff account." },
+        { status: 400 }
+      );
+    }
+
+    const ownerPhone = process.env.OWNER_PHONE?.trim();
+    if (ownerPhone && phone === ownerPhone) {
       return NextResponse.json(
         { error: "Owner account cannot be modified via Staff management." },
         { status: 400 }
@@ -111,6 +119,25 @@ export async function POST(req: NextRequest) {
       : [((role as Role) || Role.PACKER)];
     const primaryRole = assignedRoles[0];
 
+    const existingTarget = id
+      ? await prisma.user.findUnique({
+          where: { id },
+          select: { role: true, disabledAt: true },
+        })
+      : await prisma.user.findUnique({
+          where: { phone },
+          select: { role: true, disabledAt: true },
+        });
+
+    if (existingTarget?.role === Role.OWNER) {
+      return NextResponse.json(
+        { error: "Owner account cannot be modified via Staff management." },
+        { status: 400 }
+      );
+    }
+
+    const reactivating = Boolean(existingTarget?.disabledAt);
+
     // If ID provided, update existing record
     let staffUser;
     if (id) {
@@ -122,8 +149,11 @@ export async function POST(req: NextRequest) {
           email: email || null,
           role: primaryRole,
           roles: assignedRoles,
-          pin,
+          ...(pin ? { pin: hashPasscode(pin), pinChangedAt: new Date() } : {}),
           phoneVerified: true,
+          ...(reactivating
+            ? { disabledAt: null, sessionVersion: { increment: 1 } }
+            : {}),
         },
         select: {
           id: true,
@@ -143,8 +173,11 @@ export async function POST(req: NextRequest) {
           email: email || null,
           role: primaryRole,
           roles: assignedRoles,
-          pin,
+          ...(pin ? { pin: hashPasscode(pin), pinChangedAt: new Date() } : {}),
           phoneVerified: true,
+          ...(reactivating
+            ? { disabledAt: null, sessionVersion: { increment: 1 } }
+            : {}),
         },
         create: {
           phone,
@@ -152,7 +185,8 @@ export async function POST(req: NextRequest) {
           email: email || null,
           role: primaryRole,
           roles: assignedRoles,
-          pin,
+          pin: hashPasscode(pin as string),
+          pinChangedAt: new Date(),
           phoneVerified: true,
         },
         select: {
@@ -233,17 +267,34 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Staff member not found." }, { status: 404 });
     }
 
-    if (targetUser.role === Role.OWNER || targetUser.phone === "9109066668") {
+    const ownerPhone = process.env.OWNER_PHONE?.trim();
+    if (targetUser.role === Role.OWNER || (ownerPhone && targetUser.phone === ownerPhone)) {
       return NextResponse.json({ error: "Cannot delete the Store Owner account." }, { status: 400 });
     }
 
-    // Demote to CUSTOMER and clear PIN
-    await prisma.user.update({
-      where: { id: staffId },
-      data: {
-        role: Role.CUSTOMER,
-        pin: null,
-      },
+    // Demote, revoke every existing session, drop push tokens, and take the
+    // rider offline in one transaction. Leaving any of these behind is what let
+    // a terminated manager keep staff access in the old code.
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: staffId },
+        data: {
+          role: Role.CUSTOMER,
+          roles: [Role.CUSTOMER],
+          pin: null,
+          disabledAt: new Date(),
+          sessionVersion: { increment: 1 },
+        },
+      });
+
+      await tx.riderProfile.updateMany({
+        where: { userId: staffId },
+        data: { isOnline: false },
+      });
+
+      await tx.deviceToken.deleteMany({
+        where: { userId: staffId },
+      });
     });
 
     return NextResponse.json({

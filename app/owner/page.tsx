@@ -331,8 +331,13 @@ export default function OwnerControlPage() {
       setStaffFormError("Phone must be a valid 10-digit Indian number starting with 6-9.");
       return;
     }
-    if (!/^\d{4}$/.test(staffFormData.pin.trim())) {
-      setStaffFormError("Staff PIN must be exactly 4 numeric digits.");
+    const cleanPin = staffFormData.pin.trim();
+    if (!isEditingStaff && !/^\d{6}$/.test(cleanPin)) {
+      setStaffFormError("Staff PIN must be exactly 6 numeric digits.");
+      return;
+    }
+    if (isEditingStaff && cleanPin && !/^\d{6}$/.test(cleanPin)) {
+      setStaffFormError("A new staff PIN must be exactly 6 numeric digits.");
       return;
     }
     if (staffFormData.name.trim().length < 2) {
@@ -356,7 +361,7 @@ export default function OwnerControlPage() {
           email: staffFormData.email.trim() || undefined,
           roles: staffFormData.roles,
           role: staffFormData.roles[0] || "PACKER",
-          pin: staffFormData.pin.trim(),
+          pin: cleanPin || undefined,
           vehicleDetails: staffFormData.vehicleDetails.trim() || undefined,
         }),
       });
@@ -1895,7 +1900,7 @@ export default function OwnerControlPage() {
           <DialogHeader>
             <DialogTitle>{isEditingStaff ? "Edit Staff Member" : "Add New Staff Member"}</DialogTitle>
             <DialogDescription>
-              Staff log in with their mobile number + 4-digit PIN for shift access.
+              Staff log in with their mobile number + 6-digit PIN for shift access.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateStaff} className="space-y-3">
@@ -1908,8 +1913,8 @@ export default function OwnerControlPage() {
               <Input value={staffFormData.phone} onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value.replace(/\D/g, "") })} maxLength={10} inputMode="numeric" placeholder="10-digit number" className="h-10 rounded-xl font-mono" required />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">{isEditingStaff ? "Reset PIN (leave blank to keep current)" : "4-Digit Shift PIN"}</label>
-              <Input value={staffFormData.pin} onChange={(e) => setStaffFormData({ ...staffFormData, pin: e.target.value.replace(/\D/g, "") })} maxLength={4} inputMode="numeric" type="password" placeholder="••••" className="h-10 rounded-xl font-mono tracking-widest" required={!isEditingStaff} />
+              <label className="text-xs font-bold text-slate-700">{isEditingStaff ? "Reset PIN (leave blank to keep current)" : "6-Digit Shift PIN"}</label>
+              <Input value={staffFormData.pin} onChange={(e) => setStaffFormData({ ...staffFormData, pin: e.target.value.replace(/\D/g, "") })} maxLength={6} inputMode="numeric" type="password" placeholder="••••••" className="h-10 rounded-xl font-mono tracking-widest" required={!isEditingStaff} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Shift Roles</label>

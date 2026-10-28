@@ -116,20 +116,18 @@ export function isMaliciousScanner(userAgent: string | null | undefined): boolea
  * Respects Cloudflare, Caddy reverse-proxy, and standard proxies.
  */
 export function getClientIp(headers: Headers): string {
-  // 1. Cloudflare Connecting IP (when Cloudflare is active)
-  const cfIp = headers.get("cf-connecting-ip")?.trim();
-  if (cfIp) return cfIp;
-
-  // 2. Standard X-Forwarded-For (from Caddy reverse proxy)
-  const xForwardedFor = headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const firstIp = xForwardedFor.split(",")[0]?.trim();
-    if (firstIp) return firstIp;
-  }
-
-  // 3. X-Real-IP
+  // Caddy overwrites X-Real-IP and X-Forwarded-For with the socket peer. Those
+  // are the only headers trusted here: CF-Connecting-IP is client-controlled
+  // unless a trusted Cloudflare proxy is explicitly configured in Caddy.
   const xRealIp = headers.get("x-real-ip")?.trim();
   if (xRealIp) return xRealIp;
+
+  const xForwardedFor = headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const parts = xForwardedFor.split(",").map((part) => part.trim()).filter(Boolean);
+    const nearestProxyIp = parts[parts.length - 1];
+    if (nearestProxyIp) return nearestProxyIp;
+  }
 
   return "127.0.0.1";
 }

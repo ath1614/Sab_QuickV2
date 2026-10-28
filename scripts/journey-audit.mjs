@@ -27,8 +27,12 @@ const arg = (name, fallback) => {
 };
 
 const BASE = (arg("base", "https://srv1985371.hstgr.cloud")).replace(/\/$/, "");
-const PHONE = arg("phone", "9820088991");
-const CODE = arg("code", "742918");
+const PHONE = arg("phone", process.env.AUDIT_PHONE || "");
+const CODE = arg("code", process.env.AUDIT_CODE || "");
+if (!PHONE || !CODE) {
+  console.error("Set --phone/--code or AUDIT_PHONE/AUDIT_CODE; credentials are never stored in the repo.");
+  process.exit(1);
+}
 const OUT = arg("out", path.join("journey_audit", new Date().toISOString().slice(0, 10)));
 const ONLY = arg("only", "customer,owner,static").split(",");
 const ROUTE_FILTER = arg("routes", "") ? arg("routes").split(",").filter(Boolean) : null;

@@ -83,9 +83,12 @@ async function main() {
   console.log(`   ✓ Active Theme: [${theme.themeName}] (${theme.primaryColor})`);
 
   // 3. Provision Verified Primary Store Owner Account
-  const ownerPhone = process.env.OWNER_PHONE || "9876500001";
-  const ownerEmail = process.env.OWNER_EMAIL || "owner@sabquick.com";
-  const ownerName = process.env.OWNER_NAME || "SabQuick Store Owner";
+  const ownerPhone = process.env.OWNER_PHONE?.trim();
+  if (!ownerPhone) {
+    throw new Error("OWNER_PHONE is required for the production seed. Refusing to create a default owner.");
+  }
+  const ownerEmail = process.env.OWNER_EMAIL?.trim() || null;
+  const ownerName = process.env.OWNER_NAME?.trim() || "Store Owner";
 
   console.log("👑 Provisioning verified Store Owner account...");
   const owner = await prisma.user.upsert({

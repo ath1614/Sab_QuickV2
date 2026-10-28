@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
+import { OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -46,14 +47,46 @@ export async function POST(
       );
     }
 
-    // Switch payment method to CASH_ON_DELIVERY and confirm order
-    const updatedOrder = await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentMethod: "CASH_ON_DELIVERY",
-        paymentStatus: "PENDING",
-        status: "CONFIRMED",
+    // Only an unpaid, still-pending online checkout may switch to COD. A paid,
+    // delivered, cancelled, or already-fulfilling order must never be rewritten.
+    if (
+      order.status !== OrderStatus.PENDING ||
+      order.paymentStatus !== PaymentStatus.PENDING ||
+      order.paymentMethod !== PaymentMethod.ONLINE_PREPAID
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This order can no longer be switched to Cash on Delivery.",
+          code: "ORDER_NOT_SWITCHABLE",
+        },
+        { status: 409 }
+      );
+    }
+
+    const claimed = await prisma.order.updateMany({
+      where: {
+        id: order.id,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+        paymentMethod: PaymentMethod.ONLINE_PREPAID,
       },
+      data: {
+        paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+        paymentStatus: PaymentStatus.PENDING,
+        status: OrderStatus.CONFIRMED,
+      },
+    });
+
+    if (claimed.count === 0) {
+      return NextResponse.json(
+        { success: false, error: "This order changed while you were switching it." },
+        { status: 409 }
+      );
+    }
+
+    const updatedOrder = await prisma.order.findUniqueOrThrow({
+      where: { id: order.id },
     });
 
     // Notify dark store dispatch channel via Redis

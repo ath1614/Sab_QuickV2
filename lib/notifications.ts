@@ -277,10 +277,10 @@ export async function sendOrderStatusPushNotification(
 
       case OrderStatus.OUT_FOR_DELIVERY:
         title = "Out for Delivery! 🚴💨";
-        const otpNote = order.deliveryOtp ? ` • Share OTP ${order.deliveryOtp}` : "";
+        // Never put the delivery OTP in a lock-screen-visible notification.
         body = order.rider?.name
-          ? `${order.rider.name} is on the way with your order #${order.orderNumber}${otpNote} (superfast delivery).`
-          : `Your SABQuick rider is speeding to your doorstep with order #${order.orderNumber}${otpNote} (superfast delivery).`;
+          ? `${order.rider.name} is on the way with your order #${order.orderNumber}. Open the order to view your delivery code.`
+          : `Your SABQuick rider is on the way with order #${order.orderNumber}. Open the order to view your delivery code.`;
         break;
 
       case OrderStatus.DELIVERED:

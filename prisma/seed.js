@@ -421,6 +421,7 @@ async function main() {
         stockCount: item.stockCount,
         isAvailable: true,
         imageUrl: item.imageUrl,
+        imageUrls: [item.imageUrl],
         tags: item.tags
       }
     });

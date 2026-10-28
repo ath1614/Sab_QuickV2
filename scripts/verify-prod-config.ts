@@ -68,9 +68,9 @@ async function runProdConfigTestSuite() {
     const dockerfileContent = fs.readFileSync(dockerfilePath, "utf-8");
 
     const requiredStages = [
-      "FROM node:20-alpine AS deps",
-      "FROM node:20-alpine AS builder",
-      "FROM node:20-alpine AS runner",
+      "FROM node:22-alpine AS deps",
+      "FROM node:22-alpine AS builder",
+      "FROM node:22-alpine AS runner",
     ];
     for (const stage of requiredStages) {
       if (!dockerfileContent.includes(stage)) {
@@ -255,6 +255,9 @@ async function runProdConfigTestSuite() {
       "POSTGRES_PASSWORD",
       "POSTGRES_DB",
       "REDIS_PASSWORD",
+      "OWNER_PHONE",
+      "OWNER_PASSCODE",
+      "ONLINE_PAYMENTS_ENABLED",
       "HUB_LATITUDE",
       "HUB_LONGITUDE",
       "GEOFENCE_RADIUS_KM",

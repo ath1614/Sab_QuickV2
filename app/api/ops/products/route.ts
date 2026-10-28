@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
+import { MAX_PRODUCT_IMAGES, resolveProductImages } from "@/lib/productImages";
 import { z } from "zod";
+
+const HOME_CATALOG_KEY = "cache:products:home:v1";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,10 @@ const createProductSchema = z.object({
   unitQuantity: z.string().trim().min(1, "Unit quantity is required (e.g. 500 ml, 1 kg)"),
   stockCount: z.number().int().min(0).default(0),
   imageUrl: z.string().trim().min(1, "Image URL is required"),
+  imageUrls: z
+    .array(z.string().trim().min(1))
+    .max(MAX_PRODUCT_IMAGES, `A product can have at most ${MAX_PRODUCT_IMAGES} images.`)
+    .optional(),
   tags: z.array(z.string()).default([]),
   description: z.string().optional(),
 });
@@ -52,6 +60,7 @@ export async function POST(req: NextRequest) {
       unitQuantity,
       stockCount,
       imageUrl,
+      imageUrls,
       tags,
       description,
     } = parseResult.data;
@@ -100,6 +109,9 @@ export async function POST(req: NextRequest) {
     // Dynamic discount percentage calculation
     const discountPercent = Math.round(((mrp - salePrice) / mrp) * 100);
 
+    // imageUrls[0] is the primary image and always mirrors imageUrl.
+    const gallery = resolveProductImages(imageUrls, imageUrl);
+
     const product = await prisma.product.create({
       data: {
         title,
@@ -110,7 +122,8 @@ export async function POST(req: NextRequest) {
         unitQuantity,
         stockCount,
         isAvailable: stockCount > 0,
-        imageUrl,
+        imageUrl: gallery[0] || imageUrl,
+        imageUrls: gallery,
         tags: tags || [],
         description: description || null,
       },
@@ -118,6 +131,8 @@ export async function POST(req: NextRequest) {
         category: true,
       },
     });
+
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
 
     return NextResponse.json(
       {

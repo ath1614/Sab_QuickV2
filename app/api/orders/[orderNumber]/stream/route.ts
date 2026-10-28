@@ -53,12 +53,14 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       );
     }
 
-    // 3. Authorization: Owner or authorized internal staff
+    // 3. Authorization: the customer, the assigned rider, or store staff.
+    // A rider who has not accepted this order must not see its address or OTP.
     const userRole = session.user.role;
     const isOwner = session.user.id === order.customerId;
-    const isAuthorizedStaff = ["RIDER", "PACKER", "MANAGER", "OWNER"].includes(
-      userRole
-    );
+    const isAssignedRider =
+      userRole === "RIDER" && order.riderId === session.user.id;
+    const isAuthorizedStaff =
+      ["PACKER", "MANAGER", "OWNER"].includes(userRole) || isAssignedRider;
 
     if (!isOwner && !isAuthorizedStaff) {
       return new Response(
@@ -78,7 +80,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
           orderId: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
-          deliveryOtp: isOwner ? order.deliveryOtp : undefined,
+          deliveryOtp: isOwner || isAssignedRider ? order.deliveryOtp : undefined,
           subtotal: order.subtotal,
           deliveryFee: order.deliveryFee,
           handlingFee: order.handlingFee,

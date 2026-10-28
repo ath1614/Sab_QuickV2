@@ -44,6 +44,20 @@ export async function POST(req: NextRequest) {
 
     const { orderId, status, riderId } = parseResult.data;
 
+    const effectiveRoles = session.user.roles?.length
+      ? session.user.roles
+      : [userRole];
+    const isManager = effectiveRoles.includes("MANAGER") || effectiveRoles.includes("OWNER");
+
+    // Packers may move an order through packing, but they may not cancel it,
+    // mark it delivered, or perform any manager-only transition.
+    if (!isManager && status !== OrderStatus.PACKING && status !== OrderStatus.READY_FOR_PICKUP) {
+      return NextResponse.json(
+        { error: "Forbidden: a Packer cannot perform this order transition." },
+        { status: 403 }
+      );
+    }
+
     // Update status and broadcast via SSE
     const updated = await updateOrderStatus(orderId, status, riderId);
 

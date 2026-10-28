@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:seed:prod": "tsx prisma/seed.prod.ts",
+    "db:migrate-pins": "tsx scripts/migrate-pin-hashes.ts",
     "db:studio": "prisma studio",
     "generate:assets": "tsx scripts/generate-brand-assets.ts",
     "build:apk": "bash scripts/build-apk.sh",

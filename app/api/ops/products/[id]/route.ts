@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import { MAX_PRODUCT_IMAGES, resolveProductImages } from "@/lib/productImages";
 import { z } from "zod";
+
+const HOME_CATALOG_KEY = "cache:products:home:v1";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,10 @@ const updateProductSchema = z.object({
   stockCount: z.number().int().min(0).optional(),
   unitQuantity: z.string().trim().min(1).optional(),
   imageUrl: z.string().trim().min(1).optional(),
+  imageUrls: z
+    .array(z.string().trim().min(1))
+    .max(MAX_PRODUCT_IMAGES, `A product can have at most ${MAX_PRODUCT_IMAGES} images.`)
+    .optional(),
   isAvailable: z.boolean().optional(),
   description: z.string().nullable().optional(),
 });
@@ -103,6 +111,22 @@ export async function PUT(
       }
     }
 
+    // Keep imageUrl (primary) and the gallery in lockstep. When only the
+    // gallery is sent, its first entry becomes the primary image.
+    if (parseResult.data.imageUrls !== undefined || parseResult.data.imageUrl !== undefined) {
+      const requestedGallery = parseResult.data.imageUrls;
+      const gallery = resolveProductImages(
+        requestedGallery ?? currentProduct.imageUrls,
+        requestedGallery?.[0] ?? currentProduct.imageUrl,
+        parseResult.data.imageUrl
+      );
+
+      if (gallery.length > 0) {
+        updateData.imageUrls = gallery;
+        updateData.imageUrl = gallery[0];
+      }
+    }
+
     // Auto-sync availability with stock count if stockCount is updated
     if (parseResult.data.stockCount !== undefined) {
       if (parseResult.data.isAvailable === undefined) {
@@ -117,6 +141,8 @@ export async function PUT(
         category: true,
       },
     });
+
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -169,6 +195,8 @@ export async function DELETE(
     await prisma.product.delete({
       where: { id },
     });
+
+    await redis.del(HOME_CATALOG_KEY).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,15 @@ import { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
+import {
+  isOtpLocked,
+  otpStorageKey,
+  recordOtpFailure,
+  resetOtpAttempts,
+  verifyOtpHash,
+} from "@/lib/otp";
+import { getClientIp } from "@/lib/rateLimit";
+import { enforceRateLimit, rateLimitHeaders } from "@/lib/rateLimitServer";
 
 const verifyOtpSchema = z.object({
   phone: z
@@ -14,7 +23,7 @@ const verifyOtpSchema = z.object({
   otp: z
     .string()
     .trim()
-    .regex(/^\d{4,6}$/, "Code must be 4 to 6 digits"),
+    .regex(/^\d{6}$/, "Code must be exactly 6 digits"),
   name: z.string().trim().optional(),
 });
 
@@ -31,35 +40,48 @@ export async function POST(req: NextRequest) {
     }
 
     const { phone, otp, name } = parseResult.data;
-    const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
-    const reviewerPasscode = process.env.REVIEWER_PASSCODE?.trim() || "742918";
-    const isReviewer = phone === reviewerPhone && otp === reviewerPasscode;
 
-    // Backward compatibility for legacy demo test
-    const legacyDemoPhone = process.env.DEMO_REVIEW_PHONE || "9999999999";
-    const legacyDemoOtp = process.env.DEMO_REVIEW_OTP || "1234";
-    const isLegacyDemo = phone === legacyDemoPhone && otp === legacyDemoOtp;
-
-    if (!isReviewer && !isLegacyDemo) {
-      const otpKey = `otp:phone:${phone}`;
-      const storedOtp = await redis.get(otpKey);
-
-      if (!storedOtp) {
-        return NextResponse.json(
-          { error: "OTP expired or not found. Please request a new code." },
-          { status: 400 }
-        );
-      }
-
-      if (storedOtp !== otp) {
-        return NextResponse.json(
-          { error: "Invalid OTP. Please check and try again." },
-          { status: 400 }
-        );
-      }
-      // Note: We defer redis.del(otpKey) until after the DB transaction succeeds,
-      // so if any DB constraint/issue occurs, the OTP is not prematurely destroyed.
+    const ipLimit = await enforceRateLimit(
+      `otp:verify:${getClientIp(req.headers)}:${phone}`,
+      10,
+      10 * 60_000
+    );
+    if (!ipLimit.success) {
+      return NextResponse.json(
+        { error: "Too many verification attempts. Please wait and try again." },
+        { status: 429, headers: rateLimitHeaders(ipLimit) }
+      );
     }
+
+    if (await isOtpLocked(phone)) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many incorrect attempts. Please request a fresh code in a few minutes.",
+        },
+        { status: 429 }
+      );
+    }
+
+    const otpKey = otpStorageKey(phone);
+    const storedOtpHash = await redis.get(otpKey);
+
+    if (!storedOtpHash) {
+      return NextResponse.json(
+        { error: "OTP expired or not found. Please request a new code." },
+        { status: 400 }
+      );
+    }
+
+    if (!verifyOtpHash(phone, otp, storedOtpHash)) {
+      await recordOtpFailure(phone);
+      return NextResponse.json(
+        { error: "Invalid OTP. Please check and try again." },
+        { status: 400 }
+      );
+    }
+    // The OTP is deleted only after the database operations below succeed, so a
+    // transient database error does not force the customer to request a new code.
 
     // Optional active session check
     const session = await getServerSession(authOptions);
@@ -187,6 +209,7 @@ export async function POST(req: NextRequest) {
             name: name?.trim() || "Customer",
             phoneVerified: true,
             role: Role.CUSTOMER,
+            roles: [Role.CUSTOMER],
           },
           select: {
             id: true,
@@ -200,10 +223,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Single-use security: purge OTP from Redis now that database operations succeeded
-    if (!isReviewer && !isLegacyDemo) {
-      await redis.del(`otp:phone:${phone}`);
-    }
+    // Single-use security: purge the OTP and clear the failure counter only
+    // after the database operations succeeded.
+    await redis.del(otpKey);
+    await resetOtpAttempts(phone);
 
     return NextResponse.json({
       success: true,

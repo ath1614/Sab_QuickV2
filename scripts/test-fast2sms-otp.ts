@@ -90,5 +90,9 @@ async function testFast2Sms(phone: string) {
   }
 }
 
-const targetPhone = process.argv[2] || "9109066668";
+const targetPhone = process.argv[2] || process.env.TEST_PHONE || "";
+if (!targetPhone) {
+  console.error("Usage: npx tsx scripts/test-fast2sms-otp.ts <10-digit-phone> (or set TEST_PHONE)");
+  process.exit(1);
+}
 testFast2Sms(targetPhone);

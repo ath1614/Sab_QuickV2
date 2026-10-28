@@ -55,6 +55,12 @@ model User {
   role               Role          @default(CUSTOMER)
   roles              Role[]        @default([])
   pin                String?
+  /// Incremented to revoke every existing JWT for this user.
+  sessionVersion     Int           @default(0)
+  /// Set when a staff account is deactivated; authz helpers reject it.
+  disabledAt         DateTime?
+  pinChangedAt       DateTime?
+  mustChangePin      Boolean       @default(false)
   addresses          Address[]
   orders             Order[]       @relation("CustomerOrders")
   deliveries         Order[]       @relation("RiderDeliveries")
@@ -66,6 +72,7 @@ model User {
 
   @@index([role])
   @@index([phone])
+  @@index([disabledAt])
 }
 
 model Address {
@@ -114,7 +121,12 @@ model Product {
   unitQuantity String
   stockCount   Int         @default(0)
   isAvailable  Boolean     @default(true)
+  /// Primary image. Kept in sync with imageUrls[0] so every existing surface
+  /// (cart, orders, packer, rider) keeps working without changes.
   imageUrl     String
+  /// Full gallery; the first entry is the primary image. Empty on legacy rows
+  /// until they are read through the resolveProductImages helper.
+  imageUrls    String[]    @default([])
   tags         String[]
   orderItems   OrderItem[]
   createdAt    DateTime    @default(now())
@@ -156,6 +168,9 @@ model Order {
   razorpayPaymentId       String?
   razorpaySignature       String?
   cashfreeOrderId         String?
+  /// The order_id actually sent to Cashfree; differs from orderNumber when a
+  /// recovery retry had to use a suffixed id.
+  cashfreeMerchantOrderId String?
   cashfreePaymentId       String?
   cashfreePaymentStatus   String?
   packedAt                DateTime?

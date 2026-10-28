@@ -30,7 +30,7 @@ export interface CashfreePaymentEntity {
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID?.trim() || "";
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY?.trim() || "";
-const CASHFREE_API_VERSION = process.env.CASHFREE_API_VERSION?.trim() || "2023-08-01";
+const CASHFREE_API_VERSION = process.env.CASHFREE_API_VERSION?.trim() || "2026-01-01";
 const CASHFREE_ENV = (process.env.CASHFREE_ENV || process.env.NEXT_PUBLIC_CASHFREE_ENV || "PRODUCTION")
   .trim()
   .toUpperCase();
@@ -51,7 +51,13 @@ export const isCashfreeConfigured = Boolean(
  * Server-side: Creates a Cashfree payment order and returns a paymentSessionId.
  */
 export async function createCashfreeOrder(params: CreateOrderParams) {
-  const cleanPhone = params.customerPhone.replace(/\D/g, "").slice(-10) || "9999999999";
+  const cleanPhone = String(params.customerPhone || "").replace(/\D/g, "").slice(-10);
+  // Cashfree rejects or misroutes orders with a placeholder phone. Refuse to
+  // invent one: the customer must have a verified number before a gateway order
+  // is created.
+  if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+    throw new Error("A valid 10-digit customer phone number is required for online payment.");
+  }
   const cleanEmail =
     params.customerEmail && params.customerEmail.includes("@")
       ? params.customerEmail
@@ -83,6 +89,7 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
       return {
         success: true,
         orderId: params.orderId,
+        merchantOrderId: params.orderId,
         paymentSessionId: `session_mock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         cfOrderId: `cf_order_mock_${Date.now()}`,
         isMock: true,
@@ -108,13 +115,9 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
     const errorMsg = data.message || data.error || "Failed to create Cashfree order";
     console.warn("[Cashfree Create Order Warning/Error]:", data);
 
-    // Auto-Recovery: If order already exists in Cashfree, fetch the active session
-    if (
-      typeof errorMsg === "string" &&
-      (errorMsg.toLowerCase().includes("order with same id") ||
-        errorMsg.toLowerCase().includes("order_already_exists") ||
-        data.code === "order_already_exists")
-    ) {
+    // Auto-Recovery: branch on Cashfree's error code, never on human-readable
+    // message text. The message wording changes between API versions.
+    if (data.code === "order_already_exists" || response.status === 409) {
       console.log(`[Cashfree Recovery] Order ${params.orderId} already registered. Retrieving active payment session...`);
       try {
         const existingOrderRes = await fetch(
@@ -136,6 +139,7 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
             return {
               success: true,
               orderId: params.orderId,
+              merchantOrderId: params.orderId,
               cfOrderId: String(existingData.cf_order_id),
               paymentSessionId: existingData.payment_session_id as string,
               orderStatus: existingData.order_status as string,
@@ -147,9 +151,10 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
 
         // If the existing order was expired, create a fresh payment session with a unique retry suffix
         const retrySuffix = `_R${Date.now().toString().slice(-4)}`;
+        const retryOrderId = `${params.orderId}${retrySuffix}`.slice(0, 45);
         const retryPayload = {
           ...payload,
-          order_id: `${params.orderId}${retrySuffix}`.slice(0, 45),
+          order_id: retryOrderId,
         };
 
         const retryRes = await fetch(`${CASHFREE_BASE_URL}/orders`, {
@@ -168,6 +173,9 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
           return {
             success: true,
             orderId: params.orderId,
+            // The retry lives under a suffixed merchant order id. Persist it so
+            // webhook/verify can find the payment that actually settles.
+            merchantOrderId: retryOrderId,
             cfOrderId: String(retryData.cf_order_id),
             paymentSessionId: retryData.payment_session_id as string,
             orderStatus: retryData.order_status as string,
@@ -186,6 +194,7 @@ export async function createCashfreeOrder(params: CreateOrderParams) {
   return {
     success: true,
     orderId: params.orderId,
+    merchantOrderId: params.orderId,
     cfOrderId: String(data.cf_order_id),
     paymentSessionId: data.payment_session_id as string,
     orderStatus: data.order_status as string,
@@ -338,7 +347,9 @@ export function verifyCashfreeWebhookSignature({
       .update(signatureData)
       .digest("base64");
 
-    return computedSignature === signature;
+    const expected = Buffer.from(computedSignature, "utf8");
+    const received = Buffer.from(signature, "utf8");
+    return expected.length === received.length && crypto.timingSafeEqual(expected, received);
   } catch (err) {
     console.error("[Cashfree Webhook Signature Verification Error]:", err);
     return false;

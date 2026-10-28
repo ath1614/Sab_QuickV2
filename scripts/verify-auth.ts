@@ -1,6 +1,7 @@
 import redis from "../lib/redis";
 import prisma from "../lib/prisma";
 import { z } from "zod";
+import { generateOtp, hashOtp, otpStorageKey, verifyOtpHash } from "../lib/otp";
 
 const sendOtpSchema = z.object({
   phone: z
@@ -17,7 +18,7 @@ const verifyOtpSchema = z.object({
   otp: z
     .string()
     .trim()
-    .regex(/^\d{4}$/, "OTP must be exactly 4 digits"),
+    .regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
 
 async function runAuthVerification() {
@@ -37,7 +38,7 @@ async function runAuthVerification() {
   console.log("\n🧪 2. Validating Phone & OTP Zod Schemas...");
   const testPhoneValid = "9876543210";
   const testPhoneInvalid = "1234567890"; // does not start with 6-9
-  const testOtpValid = "4921";
+  const testOtpValid = "492183";
   const testOtpInvalid = "12a";
 
   const validPhoneRes = sendOtpSchema.safeParse({ phone: testPhoneValid });
@@ -47,39 +48,39 @@ async function runAuthVerification() {
 
   console.log(` - Valid Indian Phone (+91 ${testPhoneValid}): ${validPhoneRes.success ? "✅ ACCEPTED" : "❌ REJECTED"}`);
   console.log(` - Invalid Phone (${testPhoneInvalid}): ${!invalidPhoneRes.success ? "✅ CORRECTLY REJECTED" : "❌ FAILED"}`);
-  console.log(` - Valid 4-Digit OTP (${testOtpValid}): ${validOtpRes.success ? "✅ ACCEPTED" : "❌ REJECTED"}`);
+  console.log(` - Valid 6-Digit OTP (${testOtpValid}): ${validOtpRes.success ? "✅ ACCEPTED" : "❌ REJECTED"}`);
   console.log(` - Invalid OTP (${testOtpInvalid}): ${!invalidOtpRes.success ? "✅ CORRECTLY REJECTED" : "❌ FAILED"}`);
 
   // 3. Test Redis OTP Storage & TTL
   console.log("\n⚡ 3. Testing Redis OTP Generation, Storage & TTL...");
   const simulatedPhone = "9876543210";
-  const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-  const otpKey = `otp:phone:${simulatedPhone}`;
+  const generatedOtp = generateOtp();
+  const otpKey = otpStorageKey(simulatedPhone);
   const cooldownKey = `otp:cooldown:test-user-id`;
 
-  // Store in Redis with 300s TTL
-  await redis.set(otpKey, generatedOtp, "EX", 300);
+  // Store only the HMAC in Redis, with a 300s TTL.
+  await redis.set(otpKey, hashOtp(simulatedPhone, generatedOtp), "EX", 300);
   await redis.set(cooldownKey, "1", "EX", 30);
 
-  const storedOtp = await redis.get(otpKey);
+  const storedOtpHash = await redis.get(otpKey);
   const otpTtl = await redis.ttl(otpKey);
   const cooldownTtl = await redis.ttl(cooldownKey);
 
-  console.log(` - Generated OTP: ${generatedOtp}`);
-  console.log(` - Stored in Redis key [${otpKey}]: ${storedOtp === generatedOtp ? "✅ MATCHED" : "❌ MISMATCH"}`);
+  console.log(` - Generated 6-digit OTP (not printed)`);
+  console.log(` - Stored in Redis key [${otpKey}]: ${verifyOtpHash(simulatedPhone, generatedOtp, storedOtpHash) ? "✅ MATCHED (hashed)" : "❌ MISMATCH"}`);
   console.log(` - OTP TTL: ${otpTtl}s (Target: 300s) ${otpTtl > 290 ? "✅ EXPIRES IN 5 MINS" : "❌ WRONG TTL"}`);
   console.log(` - Cooldown TTL: ${cooldownTtl}s (Target: 30s) ${cooldownTtl > 20 ? "✅ 30S RATE LIMIT ACTIVE" : "❌ WRONG TTL"}`);
 
   // 4. Test OTP Verification Logic
   console.log("\n🔐 4. Testing OTP Verification Logic...");
   // Negative test
-  const wrongCode = "0000";
-  const isWrongCodeValid = storedOtp === wrongCode;
+  const wrongCode = "000000";
+  const isWrongCodeValid = verifyOtpHash(simulatedPhone, wrongCode, storedOtpHash);
   console.log(` - Negative Test: Checking incorrect code '${wrongCode}': ${!isWrongCodeValid ? "✅ REJECTED" : "❌ FAILED"}`);
 
   // Positive test
-  const isCorrectCodeValid = storedOtp === generatedOtp;
-  console.log(` - Positive Test: Checking correct code '${generatedOtp}': ${isCorrectCodeValid ? "✅ VERIFIED" : "❌ FAILED"}`);
+  const isCorrectCodeValid = verifyOtpHash(simulatedPhone, generatedOtp, storedOtpHash);
+  console.log(` - Positive Test: Checking the issued code: ${isCorrectCodeValid ? "✅ VERIFIED" : "❌ FAILED"}`);
 
   // 5. Test Database Phone & Verification Update
   console.log("\n🗄️  5. Testing PostgreSQL User Update via Prisma...");

@@ -12,17 +12,11 @@ export async function middleware(req: NextRequest) {
     return new NextResponse("Access Denied", { status: 403 });
   }
 
-  // 2. Sliding-Window IP Rate Limiter & Flood Shield (protects against 10,000+ request bombardment)
-  // Speculative Next.js viewport prefetch requests from <Link> components on scroll are exempted
-  const isPrefetch =
-    req.headers.get("x-middleware-prefetch") === "1" ||
-    req.headers.get("purpose") === "prefetch" ||
-    req.headers.get("sec-purpose") === "prefetch";
-
+  // 2. Sliding-Window IP Rate Limiter & Flood Shield.
+  // No header-based prefetch exemption: it was a documented bypass for every
+  // API route. Next.js prefetches are normal GETs and fit the generous limits.
   const clientIp = getClientIp(req.headers);
-  const rateLimit = isPrefetch
-    ? { success: true, limit: 9999, remaining: 9999, retryAfterSeconds: 0 }
-    : checkRateLimit(clientIp, pathname);
+  const rateLimit = checkRateLimit(clientIp, pathname);
 
   if (!rateLimit.success) {
     const isApi = pathname.startsWith("/api/");
@@ -71,19 +65,28 @@ export async function middleware(req: NextRequest) {
     { prefix: "/packer", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
     { prefix: "/rider", allowedRoles: ["RIDER", "OWNER", "MANAGER"] },
     { prefix: "/api/owner", allowedRoles: ["OWNER", "MANAGER"] },
+    { prefix: "/api/ops", allowedRoles: ["PACKER", "MANAGER", "OWNER"] },
   ];
 
   const matchedRule = protectedRoutes.find((r) => pathname.startsWith(r.prefix));
 
   if (matchedRule) {
-    const token = await getToken({
-      req,
-      secret: process.env.NEXTAUTH_SECRET || "local_development_secret_32_chars_minimum",
-    });
-
     const isApi = pathname.startsWith("/api/");
+    const authSecret = process.env.NEXTAUTH_SECRET;
 
-    if (!token) {
+    if (!authSecret) {
+      if (isApi) {
+        return NextResponse.json(
+          { error: "Server configuration error." },
+          { status: 500 }
+        );
+      }
+      return new NextResponse("Server configuration error", { status: 500 });
+    }
+
+    const token = await getToken({ req, secret: authSecret });
+
+    if (!token || !token.id || (token as any).invalid) {
       if (isApi) {
         return NextResponse.json(
           { error: "Unauthorized: Authentication required." },

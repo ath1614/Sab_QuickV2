@@ -1,7 +1,6 @@
 # Signed-in review — 23 Oct 2026
 
-Reviewer account: phone `9820088991`, passcode `742918` (the credentials handed to
-Google Play / App Store review). Run against the live site
+Reviewer account credentials are not stored in the repository; provision them per review and revoke afterwards. Run against the live site
 `https://srv1985371.hstgr.cloud`, plus a local dev server for the one fix.
 
 Devices: phone `390×844`, tablet portrait `820×1180`, laptop `1180×820`.

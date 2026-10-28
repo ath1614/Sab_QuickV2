@@ -17,11 +17,11 @@ export async function GET(req: NextRequest) {
     const userRoles: string[] = (session.user as any)?.roles?.length
       ? (session.user as any).roles
       : [userRole];
-    const isAllowed = userRoles.includes("OWNER") || userRoles.includes("MANAGER");
+    const isAllowed = userRoles.includes("OWNER");
 
     if (!isAllowed) {
       return NextResponse.json(
-        { error: "Forbidden: Store Owner or Manager role strictly required to export database backup." },
+        { error: "Forbidden: only the Store Owner can export the database backup." },
         { status: 403 }
       );
     }

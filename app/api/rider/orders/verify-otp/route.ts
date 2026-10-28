@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/orderStatus";
 import { z } from "zod";
 
@@ -75,6 +75,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
+      return NextResponse.json(
+        { error: "This order is not out for delivery yet." },
+        { status: 409 }
+      );
+    }
+
+    // Cash/UPI-at-doorstep money must be recorded before the delivery is closed.
+    // Marking it PAID here would make an uncollected order look settled forever.
+    const isPrepaidOnline =
+      order.paymentMethod === PaymentMethod.CASHFREE ||
+      order.paymentMethod === PaymentMethod.ONLINE_PREPAID ||
+      order.paymentMethod === PaymentMethod.RAZORPAY;
+
+    if (
+      !isPrepaidOnline &&
+      (order.paymentStatus !== PaymentStatus.PAID || !order.offlineCollectedAt)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Collect the doorstep payment (cash or UPI) before completing this delivery.",
+          code: "PAYMENT_NOT_COLLECTED",
+        },
+        { status: 409 }
+      );
+    }
+
     // Rate-limit OTP attempts per order (prevent brute-forcing 1000-9999)
     const otpAttemptsKey = `order:otp-attempts:${orderId}`;
     const attempts = await redis.incr(otpAttemptsKey);
@@ -102,13 +130,13 @@ export async function POST(req: NextRequest) {
     // OTP matched: reset attempts and mark delivered
     await redis.del(otpAttemptsKey);
 
-    // OTP matched: Update order to DELIVERED and paymentStatus to PAID
+    // OTP matched. Prepaid orders were already PAID; doorstep orders were
+    // verified above, so never overwrite a payment state here.
     await prisma.order.update({
       where: { id: orderId },
       data: {
         status: OrderStatus.DELIVERED,
         deliveredAt: new Date(),
-        paymentStatus: PaymentStatus.PAID,
       },
     });
 

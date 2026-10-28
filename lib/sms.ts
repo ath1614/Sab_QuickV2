@@ -121,12 +121,15 @@ export async function sendOtpSms(
     }
   }
 
-  // Development/Local Fallback Log
-  console.log(`\n======================================================`);
-  console.log(
-    `[SABQUICK OTP DEV CONSOLE] Phone: +91 ${normalizedPhone} | OTP: ${otpCode}`
-  );
-  console.log(`======================================================\n`);
+  // Development/Local Fallback Log. Never print an OTP in production: a
+  // misconfigured gateway would turn the server log into an OTP oracle.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n======================================================`);
+    console.log(
+      `[SABQUICK OTP DEV CONSOLE] Phone: +91 ${normalizedPhone} | OTP: ${otpCode}`
+    );
+    console.log(`======================================================\n`);
+  }
 
   return {
     success: false,

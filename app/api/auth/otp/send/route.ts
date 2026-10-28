@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
-import { resetOtpAttempts } from "@/lib/otp";
+import {
+  OTP_TTL_SECONDS,
+  generateOtp,
+  hashOtp,
+  otpCooldownKey,
+  otpStorageKey,
+} from "@/lib/otp";
 import { sendOtpSms } from "@/lib/sms";
+import { getClientIp } from "@/lib/rateLimit";
+import { enforceRateLimit, rateLimitHeaders } from "@/lib/rateLimitServer";
 
 const sendOtpSchema = z.object({
   phone: z
@@ -26,71 +34,67 @@ export async function POST(req: NextRequest) {
 
     const { phone } = parseResult.data;
 
-    // 1. Google Play Reviewer Account, Owner, and Internal Staff check
-    const reviewerPhone = process.env.REVIEWER_PHONE?.trim() || "9820088991";
-    const ownerPhone = process.env.OWNER_PHONE?.trim() || "9109066668";
+    const ipLimit = await enforceRateLimit(
+      `otp:send:${getClientIp(req.headers)}:${phone}`,
+      5,
+      60_000
+    );
+    if (!ipLimit.success) {
+      return NextResponse.json(
+        { error: "Too many OTP requests. Please wait and try again." },
+        { status: 429, headers: rateLimitHeaders(ipLimit) }
+      );
+    }
+
+    // Staff and owners authenticate with a PIN, never an SMS OTP. Return the
+    // same generic response so this endpoint cannot enumerate staff numbers.
+    // The owner phone is intentionally read without any fallback.
+    const ownerPhone = process.env.OWNER_PHONE?.trim();
     const existingUser = await prisma.user.findUnique({
       where: { phone },
       select: { id: true, name: true, role: true, email: true },
     });
 
-    const isReviewer = phone === reviewerPhone;
-    const isOwner = phone === ownerPhone || existingUser?.role === "OWNER";
+    const isOwner = Boolean(ownerPhone && phone === ownerPhone) || existingUser?.role === "OWNER";
     const isStaff = Boolean(existingUser && existingUser.role !== "CUSTOMER");
 
-    // Zero-SMS Authentication for Reviewer, Store Owner, and Internal Staff.
-    // Return identical response to prevent account enumeration / role leakage.
-    if (isReviewer || isOwner || isStaff) {
+    if (isOwner || isStaff) {
       return NextResponse.json({
         success: true,
         useFirebase: false,
         message: "Verification code sent to your mobile phone",
-        expiresIn: 300,
+        expiresIn: OTP_TTL_SECONDS,
         cooldown: 60,
-        isNewUser: false,
       });
     }
 
-    // 2. Enforce strict 60-second rate-limiting cooldown per phone number via Redis
-    const cooldownKey = `otp:cooldown:${phone}`;
+    // Strict 60-second cooldown per phone number.
+    const cooldownKey = otpCooldownKey(phone);
     const inCooldown = await redis.get(cooldownKey);
     if (inCooldown) {
       const ttl = await redis.ttl(cooldownKey);
       return NextResponse.json(
-        {
-          error: `Please wait ${ttl > 0 ? ttl : 60} seconds before requesting a new OTP.`,
-        },
+        { error: `Please wait ${ttl > 0 ? ttl : 60} seconds before requesting a new OTP.` },
         { status: 429 }
       );
     }
 
-    // 3. Generate secure 4-digit OTP for Customer
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const otpCode = generateOtp();
+    const otpKey = otpStorageKey(phone);
 
-    // 4. Store OTP in Redis with 300-second (5 minutes) TTL
-    const otpKey = `otp:phone:${phone}`;
-    await redis.set(otpKey, otpCode, "EX", 300);
-
-    // 5. Set 60-second cooldown in Redis
+    // Only the HMAC is stored. A Redis dump cannot be used to log in.
+    await redis.set(otpKey, hashOtp(phone, otpCode), "EX", OTP_TTL_SECONDS);
     await redis.set(cooldownKey, "1", "EX", 60);
 
-    // A fresh OTP invalidates any previous failed-attempt lockout.
-    await resetOtpAttempts(phone);
-
-    const isNewUser = !existingUser || !existingUser.name;
-
-    // 6. Direct SMS Dispatch Gateway Integration (Renflair / Fast2SMS / 2Factor)
     const smsResult = await sendOtpSms(phone, otpCode);
     const smsDispatched = smsResult.success;
 
-    // STRICT PRODUCTION POLICY:
-    // Under no circumstance is the demo/free OTP returned or displayed in production.
     const isProduction = process.env.NODE_ENV === "production";
     const hasSmsGateway = Boolean(
       process.env.RENFLAIR_API_KEY ||
-      process.env.FAST2SMS_API_KEY ||
-      process.env.SMS_GATEWAY_API_KEY ||
-      process.env.TWOFACTOR_API_KEY
+        process.env.FAST2SMS_API_KEY ||
+        process.env.SMS_GATEWAY_API_KEY ||
+        process.env.TWOFACTOR_API_KEY
     );
     const otpDeliveryMode = process.env.OTP_DELIVERY_MODE || "auto";
     const exposeDevCode =
@@ -103,9 +107,8 @@ export async function POST(req: NextRequest) {
       message: smsDispatched
         ? "Verification code sent to your mobile phone"
         : "Verification code sent",
-      expiresIn: 300,
+      expiresIn: OTP_TTL_SECONDS,
       cooldown: 60,
-      isNewUser,
       ...(exposeDevCode ? { freeOtp: otpCode } : {}),
     });
   } catch (error: any) {

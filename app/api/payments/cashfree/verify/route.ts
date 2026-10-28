@@ -16,6 +16,14 @@ const verifyCashfreeSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
+    }
+
     await ensureDatabaseSchema();
 
     const body = await req.json().catch(() => ({}));
@@ -44,16 +52,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify ownership
-    const session = await getServerSession(authOptions);
-    if (
-      session?.user?.id &&
-      order.customerId !== session.user.id &&
-      !["OWNER", "MANAGER"].includes(session.user.role)
-    ) {
+    const effectiveRoles = session.user.roles?.length
+      ? session.user.roles
+      : [session.user.role];
+    const isStaff = effectiveRoles.includes("OWNER") || effectiveRoles.includes("MANAGER");
+
+    if (order.customerId !== session.user.id && !isStaff) {
       return NextResponse.json(
         { error: "Forbidden: Access denied to verify this order." },
         { status: 403 }
+      );
+    }
+
+    if (order.status === OrderStatus.CANCELLED || order.status === OrderStatus.DELIVERED) {
+      return NextResponse.json(
+        { error: "This order can no longer be confirmed as paid." },
+        { status: 409 }
       );
     }
 
@@ -67,20 +81,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Query Cashfree for payment attempts
-    const payments = await getCashfreeOrderPayments(order.orderNumber);
+    // Query Cashfree for payment attempts. A recovered/retried order lives under
+    // a suffixed merchant order id, so always ask for the id we actually created.
+    const payments = await getCashfreeOrderPayments(
+      order.cashfreeMerchantOrderId || order.orderNumber
+    );
 
     // Look for successful transaction
     const successfulPayment = payments.find(
-      (p) => p.payment_status === "SUCCESS"
+      (p) =>
+        p.payment_status === "SUCCESS" &&
+        p.payment_amount === order.totalAmount &&
+        p.payment_currency === "INR"
     );
 
-    if (successfulPayment && successfulPayment.payment_amount < order.totalAmount) {
+    if (payments.some((p) => p.payment_status === "SUCCESS") && !successfulPayment) {
       return NextResponse.json(
         {
-          error: `Payment amount ₹${successfulPayment.payment_amount} does not match required order total ₹${order.totalAmount}.`,
+          error:
+            "A payment was found but its amount or currency does not match this order. The store will review it.",
         },
-        { status: 400 }
+        { status: 409 }
       );
     }
 

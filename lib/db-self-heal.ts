@@ -35,6 +35,7 @@ export async function ensureDatabaseSchema() {
       END $$;
     `);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreeOrderId" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreeMerchantOrderId" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentId" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "cashfreePaymentStatus" TEXT;`);
 
@@ -76,6 +77,17 @@ export async function ensureDatabaseSchema() {
         WHEN others THEN NULL;
       END $$;
     `);
+
+    // 5b. Ensure Product image gallery column exists (multi-image products)
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrls" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];`
+    );
+    // Backfill legacy single-image rows so they render as a one-image gallery.
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Product" SET "imageUrls" = ARRAY["imageUrl"]
+       WHERE ("imageUrls" IS NULL OR "imageUrls" = ARRAY[]::TEXT[])
+         AND "imageUrl" IS NOT NULL AND btrim("imageUrl") <> '';`
+    );
 
     // 6. Ensure DeviceToken table exists for Push Notifications
     await prisma.$executeRawUnsafe(`

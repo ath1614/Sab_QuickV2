@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { ProductData } from "@/components/catalog/ProductCard";
+import { ProductImageCarousel } from "@/components/catalog/ProductImageCarousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,13 +39,7 @@ export function ProductDetailModal({
   onIncrement,
   onDecrement,
 }: ProductDetailModalProps) {
-  const [imageError, setImageError] = React.useState<boolean>(false);
   const setWarningToast = useCartStore((s) => s.setWarningToast);
-
-  // Reset image error state when product changes
-  React.useEffect(() => {
-    setImageError(false);
-  }, [product?.id]);
 
   if (!product) return null;
 
@@ -99,25 +94,24 @@ export function ProductDetailModal({
             </div>
           </div>
 
-          {/* Product Image Display */}
+          {/* Swipeable product gallery (single image renders unchanged) */}
           <div className="w-48 h-48 sm:w-56 sm:h-56 relative flex items-center justify-center">
-            {!imageError && product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.title}
-                onError={() => setImageError(true)}
-                className="w-full h-full object-contain drop-shadow-sm transition-transform hover:scale-105 duration-300"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-2xl">
-                  {product.title.slice(0, 2).toUpperCase()}
+            <ProductImageCarousel
+              images={product.imageUrls}
+              fallbackImage={product.imageUrl}
+              alt={product.title}
+              imageClassName="w-full h-full object-contain drop-shadow-sm transition-transform hover:scale-105 duration-300"
+              fallback={
+                <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-2xl">
+                    {product.title.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {product.category?.name || "Grocery"}
+                  </span>
                 </div>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {product.category?.name || "Grocery"}
-                </span>
-              </div>
-            )}
+              }
+            />
           </div>
         </div>
 

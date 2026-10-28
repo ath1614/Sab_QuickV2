@@ -51,6 +51,7 @@ const DELETION_ATTEMPT_LIMIT = 5;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
+    const ownerPhone = process.env.OWNER_PHONE?.trim();
     const session = await getServerSession(authOptions);
     const sessionPhone =
       typeof session?.user?.phone === "string" ? session.user.phone : undefined;
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Safety: Prevent deleting the Store Owner account.
-      if (targetUser.role === "OWNER" || phone === "9109066668") {
+      if (targetUser.role === "OWNER" || (ownerPhone && phone === ownerPhone)) {
         return NextResponse.json(
           { error: "Store Owner account cannot be deleted via customer deletion request." },
           { status: 403 }
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (targetUser.role === "OWNER" || phone === "9109066668") {
+      if (targetUser.role === "OWNER" || (ownerPhone && phone === ownerPhone)) {
         return NextResponse.json(
           { error: "Store Owner account cannot be deleted via customer deletion request." },
           { status: 403 }

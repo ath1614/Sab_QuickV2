@@ -110,18 +110,25 @@ export async function GET(req: NextRequest) {
     });
 
     // 4. Available Orders Ready for Pickup (unassigned)
+    // Pre-accept view: enough to decide whether to take the job, without
+    // exposing the customer's flat, coordinates, name, or phone. Full details
+    // are returned in activeOrder only after the rider accepts.
     const availableOrders = await prisma.order.findMany({
       where: {
         status: OrderStatus.READY_FOR_PICKUP,
         riderId: null,
       },
-      include: {
-        address: true,
-        customer: {
-          select: { id: true, name: true },
-        },
+      select: {
+        id: true,
+        orderNumber: true,
+        totalAmount: true,
+        paymentMethod: true,
+        createdAt: true,
+        address: { select: { landmark: true } },
         items: {
-          include: {
+          select: {
+            id: true,
+            quantity: true,
             product: {
               select: {
                 id: true,

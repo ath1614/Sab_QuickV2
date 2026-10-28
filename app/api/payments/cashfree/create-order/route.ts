@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createCashfreeOrder } from "@/lib/cashfree";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import { isOnlinePaymentsEnabled } from "@/lib/env";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,13 @@ const createCashfreeOrderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isOnlinePaymentsEnabled()) {
+      return NextResponse.json(
+        { error: "Online payments are temporarily unavailable. Please choose cash on delivery or UPI at delivery." },
+        { status: 503 }
+      );
+    }
+
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.id) {
       return NextResponse.json(
@@ -58,20 +66,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const origin =
-      req.headers.get("origin") ||
-      req.headers.get("host") ||
-      process.env.NEXTAUTH_URL ||
-      "https://srv1985371.hstgr.cloud";
+    // Never derive the return URL from Origin/Host: an attacker could make
+    // Cashfree redirect a paying customer to their own site after checkout.
+    const configuredBase = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+    if (!configuredBase) {
+      return NextResponse.json(
+        { error: "Payment return URL is not configured on the server." },
+        { status: 500 }
+      );
+    }
 
-    const baseOrigin = origin.startsWith("http") ? origin : `https://${origin}`;
-    const returnUrl = `${baseOrigin}/pay/verify?order_id=${order.orderNumber}`;
+    let baseOrigin: string;
+    try {
+      baseOrigin = new URL(configuredBase).origin;
+    } catch {
+      return NextResponse.json(
+        { error: "Payment return URL is not configured correctly." },
+        { status: 500 }
+      );
+    }
+
+    if (order.paymentStatus !== "PENDING" || order.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "This order is no longer awaiting payment." },
+        { status: 409 }
+      );
+    }
+
+    const returnUrl = `${baseOrigin}/pay/verify?order_id=${encodeURIComponent(order.orderNumber)}`;
+
+    const customerPhone = (order.customer?.phone || session.user.phone || "").replace(/\D/g, "").slice(-10);
+    if (!/^[6-9]\d{9}$/.test(customerPhone)) {
+      return NextResponse.json(
+        { error: "A verified mobile number is required for online payment. Please log in again." },
+        { status: 400 }
+      );
+    }
 
     const cashfreeRes = await createCashfreeOrder({
       orderId: order.orderNumber,
       orderAmount: order.totalAmount,
       customerId: order.customerId,
-      customerPhone: order.customer?.phone || session.user.phone || "9999999999",
+      customerPhone,
       customerName: order.customer?.name || session.user.name || "Customer",
       customerEmail: order.customer?.email || session.user.email || undefined,
       returnUrl,
@@ -82,6 +118,7 @@ export async function POST(req: NextRequest) {
       where: { id: orderId },
       data: {
         cashfreeOrderId: cashfreeRes.cfOrderId,
+        cashfreeMerchantOrderId: cashfreeRes.merchantOrderId,
       },
     });
 

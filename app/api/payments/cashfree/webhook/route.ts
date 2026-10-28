@@ -4,6 +4,7 @@ import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/lib/orderStatus";
 import { verifyCashfreeWebhookSignature } from "@/lib/cashfree";
 import { ensureDatabaseSchema } from "@/lib/db-self-heal";
+import redis from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Reject stale/replayed deliveries. Cashfree sends Unix seconds; accept
+    // milliseconds too so a dashboard test does not fail a valid event.
+    const rawTimestamp = Number(timestamp);
+    const timestampMs = rawTimestamp < 1_000_000_000_000 ? rawTimestamp * 1000 : rawTimestamp;
+    if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60_000) {
+      return NextResponse.json({ error: "Stale webhook timestamp." }, { status: 401 });
+    }
+
     // Verify HMAC-SHA256 signature
     const isValid = verifyCashfreeWebhookSignature({
       signature,
@@ -27,7 +36,7 @@ export async function POST(req: NextRequest) {
       rawBody,
     });
 
-    if (!isValid && process.env.NODE_ENV === "production") {
+    if (!isValid) {
       console.warn("Invalid Cashfree webhook signature rejected.");
       return NextResponse.json(
         { error: "Invalid webhook signature." },
@@ -52,6 +61,8 @@ export async function POST(req: NextRequest) {
     const orderNumber = orderData.order_id || payload.orderId;
     const cfPaymentId = paymentData.cf_payment_id || payload.referenceId;
     const paymentStatus = paymentData.payment_status || payload.txStatus;
+    const paymentAmount = Number(paymentData.payment_amount ?? payload.orderAmount);
+    const paymentCurrency = String(paymentData.payment_currency || "INR").toUpperCase();
 
     if (!orderNumber) {
       return NextResponse.json({ message: "No order_id in webhook payload, ignored." });
@@ -59,13 +70,49 @@ export async function POST(req: NextRequest) {
 
     // Handle successful payment events
     if (eventType === "PAYMENT_SUCCESS_WEBHOOK" || paymentStatus === "SUCCESS") {
+      // Cashfree reports the merchant order id. On a recovered/retried payment
+      // that id carries a suffix, so match the persisted gateway reference too.
       const order = await prisma.order.findFirst({
         where: {
-          OR: [{ orderNumber }, { id: orderNumber }],
+          OR: [
+            { orderNumber },
+            { id: orderNumber },
+            { cashfreeMerchantOrderId: orderNumber },
+            { cashfreeOrderId: orderNumber },
+          ],
         },
       });
 
-      if (order && order.paymentStatus !== PaymentStatus.PAID) {
+      if (order) {
+        // Exact amount and currency are part of the payment contract. A valid
+        // signature for a ₹1 payment must never settle a ₹500 order.
+        if (
+          !Number.isFinite(paymentAmount) ||
+          paymentAmount !== order.totalAmount ||
+          paymentCurrency !== "INR"
+        ) {
+          console.warn(
+            `[Cashfree Webhook] Amount/currency mismatch for ${order.orderNumber}: got ${paymentAmount} ${paymentCurrency}, expected ${order.totalAmount} INR`
+          );
+          return NextResponse.json(
+            { error: "Payment amount or currency does not match the order." },
+            { status: 409 }
+          );
+        }
+
+        if (order.paymentStatus === PaymentStatus.PAID) {
+          return NextResponse.json({ status: "OK", received: true, duplicate: true });
+        }
+
+        // Interim replay guard. The durable WebhookEvent table replaces this in
+        // the payment-ledger migration; this already prevents concurrent
+        // duplicate alerts in the common case.
+        const eventKey = `webhook:cashfree:${String(cfPaymentId || order.id)}:${eventType || paymentStatus}`;
+        const firstDelivery = await redis.set(eventKey, "1", "EX", 7 * 24 * 60 * 60, "NX");
+        if (!firstDelivery) {
+          return NextResponse.json({ status: "OK", received: true, duplicate: true });
+        }
+
         const updatedOrder = await prisma.order.update({
           where: { id: order.id },
           data: {
