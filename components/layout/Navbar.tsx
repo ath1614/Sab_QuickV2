@@ -296,6 +296,7 @@ export function Navbar({
                 <img
                   src={BRAND_ASSETS.navbarLogo}
                   alt="SABQuick"
+                  data-boot-logo="nav"
                   className="h-9 max-w-[120px] w-auto object-contain shrink-0 drop-shadow-xs"
                 />
               </Link>

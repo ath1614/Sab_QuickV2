@@ -11,7 +11,7 @@
     "standalone",
     "minimal-ui"
   ],
-  "background_color": "#0B0F19",
+  "background_color": "#F7F6F2",
   "theme_color": "#0B6E4F",
   "orientation": "portrait",
   "categories": [

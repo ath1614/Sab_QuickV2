@@ -27,7 +27,7 @@ import { ProductDetailModal } from "@/components/catalog/ProductDetailModal";
 import { AisleProductRow } from "@/components/catalog/AisleProductRow";
 import { useCartStore } from "@/store/useCartStore";
 import { Logo } from "@/components/brand/Logo";
-import { SplashScreen } from "@/components/brand/SplashScreen";
+import { BootGate } from "@/components/brand/BootGate";
 import { LoginView } from "@/components/auth/LoginView";
 import { CustomLoadingScreen } from "@/components/ui/CustomLoadingScreen";
 import { Button } from "@/components/ui/button";
@@ -270,19 +270,6 @@ function StorefrontContent() {
     return result;
   }, [categories, products, categoryParam, activeSearch]);
 
-  // Cold-start splash screen runs only once per session
-  const [showSplash, setShowSplash] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const alreadyShown = sessionStorage.getItem("sq_splash_seen");
-      if (!alreadyShown) {
-        setShowSplash(true);
-        sessionStorage.setItem("sq_splash_seen", "true");
-      }
-    }
-  }, []);
-
   const [reloadTrigger, setReloadTrigger] = React.useState<number>(0);
   const [productFetchError, setProductFetchError] = React.useState<string | null>(null);
 
@@ -452,13 +439,12 @@ function StorefrontContent() {
 
   if (isPreLaunchMode && !isStaffOrReviewer && !forcePreview) {
     return (
-      <>
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      <BootGate destination="prelaunch" authReady={status !== "loading"}>
         <ComingSoonView
           launchDate={theme.launchDate}
           onEnterPreview={() => setForcePreview(true)}
         />
-      </>
+      </BootGate>
     );
   }
 
@@ -466,18 +452,15 @@ function StorefrontContent() {
   // Show dedicated onboarding & phone OTP login view if user is unauthenticated
   if (status === "unauthenticated" && !guestBypass) {
     return (
-      <>
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      <BootGate destination="login" authReady={true}>
         <LoginView onExploreAsGuest={() => setGuestBypass(true)} />
-      </>
+      </BootGate>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/60 text-surface-dark font-sans selection:bg-primary selection:text-white">
-      {/* Animated SabQuick Initial Splash Screen */}
-      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
-
+    <BootGate destination="storefront" authReady={status !== "loading"}>
+    <div className="min-h-screen bg-[#F7F6F2] text-surface-dark font-sans selection:bg-primary selection:text-white">
       {/* Pre-launch Staff Preview Banner */}
       {isPreLaunchMode && (
         <div className="bg-amber-400 border-b border-amber-500 text-amber-950 px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-xs sticky top-0 z-50">
@@ -536,18 +519,12 @@ function StorefrontContent() {
         <section
           className="relative z-30 rounded-3xl overflow-hidden bg-surface-dark text-white p-5 sm:p-8 md:p-10 shadow-xl border border-white/10"
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.35) 80%, rgba(0,0,0,0.10) 100%), url(${theme.bannerImageUrl || "/brand/banners/original-theme.jpg"})`,
+            backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.15) 100%), url(${theme.bannerImageUrl || "/brand/banners/original-theme.jpg"})`,
             backgroundSize: "cover",
             backgroundPosition: "right center",
             backgroundRepeat: "no-repeat",
           }}
         >
-          {/* Background Ambient Circles (Clipped within card bounds) */}
-          <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-            <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary-accent/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
-          </div>
-
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
             {/* Left Content Area: Typography, Badges & Quick Action Tags */}
             <div className="space-y-3 sm:space-y-4 max-w-xl">
@@ -798,12 +775,15 @@ function StorefrontContent() {
         </div>
       </footer>
     </div>
+    </BootGate>
   );
 }
 
 export default function HomePage() {
   return (
-    <React.Suspense fallback={<SplashScreen durationMs={2000} forceShow />}>
+    // A suspended route must not replay the brand frame on a warm navigation.
+    // On a cold start the pre-hydration static frame already covers this.
+    <React.Suspense fallback={<div className="min-h-screen bg-[#F7F6F2]" aria-hidden="true" />}>
       <StorefrontContent />
     </React.Suspense>
   );

@@ -16,6 +16,7 @@
     "db:migrate-pins": "tsx scripts/migrate-pin-hashes.ts",
     "db:studio": "prisma studio",
     "generate:assets": "tsx scripts/generate-brand-assets.ts",
+    "generate:splash": "node scripts/generate-splash-assets.mjs",
     "build:apk": "bash scripts/build-apk.sh",
     "postinstall": "node scripts/patch-next-font.js"
   },
@@ -30,6 +31,7 @@
     "@capacitor/geolocation": "^8.2.3",
     "@capacitor/ios": "^8.5.2",
     "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
     "@prisma/client": "5.22.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-slot": "^1.1.2",

@@ -19,7 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Logo, BRAND_COLORS, LogoVariant, LogoTheme } from "@/components/brand/Logo";
-import { SplashScreen } from "@/components/brand/SplashScreen";
+import { SplashScreenPreview } from "@/components/brand/SplashScreen";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -608,7 +608,7 @@ export default function BrandShowcasePage() {
 
         {/* Fullscreen Splash Player */}
         {replaySplash && (
-          <SplashScreen onComplete={() => setReplaySplash(false)} forceShow={true} />
+          <SplashScreenPreview onDone={() => setReplaySplash(false)} />
         )}
       </main>
     </div>

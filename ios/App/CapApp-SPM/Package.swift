@@ -15,6 +15,9 @@ let package = Package(
         .package(name: "CapacitorApp", path: "../../../node_modules/@capacitor/app"),
         .package(name: "CapacitorGeolocation", path: "../../../node_modules/@capacitor/geolocation"),
         .package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications"),
+        .package(name: "CapacitorSplashScreen", path: "../../../node_modules/@capacitor/splash-screen"),
+        // Native Cashfree UPI bridge imports CashfreePG. `npx cap sync ios`
+        // regenerates this file and drops the entry, so re-add it after sync.
         .package(url: "https://github.com/cashfree/core-ios-sdk.git", branch: "master")
     ],
     targets: [
@@ -26,6 +29,7 @@ let package = Package(
                 .product(name: "CapacitorApp", package: "CapacitorApp"),
                 .product(name: "CapacitorGeolocation", package: "CapacitorGeolocation"),
                 .product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),
+                .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CashfreePG", package: "core-ios-sdk"),
                 .product(name: "CashfreePGCoreSDK", package: "core-ios-sdk"),
                 .product(name: "CashfreePGUISDK", package: "core-ios-sdk"),

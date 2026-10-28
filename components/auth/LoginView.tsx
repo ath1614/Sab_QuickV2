@@ -237,6 +237,7 @@ export function LoginView({ onSuccess, onExploreAsGuest }: LoginViewProps) {
             <img
               src={BRAND_ASSETS.appIcon}
               alt="SABQuick"
+              data-boot-logo="login"
               className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-contain shadow-lg shadow-emerald-950/10 border border-emerald-100/80 bg-white"
             />
           </div>

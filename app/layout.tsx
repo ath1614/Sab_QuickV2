@@ -110,7 +110,25 @@ export default function RootLayout({
     // Font CSS variables must live on <html>: Tailwind's preflight applies
     // font-family: var(--font-inter) at the html level, and an undefined var
     // there would make the whole document fall back to the browser serif.
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Runs before the first paint so a cold start shows the brand frame,
+            not the storefront. BootGate removes the flag once its frame is up. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(!sessionStorage.getItem("sq_splash_seen")){document.documentElement.dataset.booting="1";setTimeout(function(){delete document.documentElement.dataset.booting},9000)}}catch(e){}`,
+          }}
+        />
+        <link
+          rel="preload"
+          as="image"
+          href={`/brand/splash-logo.png?v=${ASSET_VERSION}`}
+        />
+      </head>
       <body className="sq-skin">
         <AuthProvider>
           <MobileAuthBridge />

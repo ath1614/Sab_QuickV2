@@ -328,3 +328,125 @@ div[class*="cashfree"] {
 
 
 
+
+/* ==========================================================================
+   Cold-start brand frame
+   Paper, the existing wordmark, and one emerald rule. No glow, shimmer,
+   pulse, or progress bar. The native launch frame uses the same colour and
+   logo position, so the hand-off has no visible cut.
+   ========================================================================== */
+
+:root {
+  --sq-paper: #f7f6f2;
+}
+
+html[data-booting="1"] body {
+  background: var(--sq-paper);
+}
+
+/* First paint before React hydrates: identical geometry to <SplashScreen />. */
+html[data-booting="1"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background-color: var(--sq-paper);
+  background-image: url("/brand/splash-logo.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(72vw, 320px) auto;
+  pointer-events: none;
+}
+
+.sq-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sq-paper);
+  clip-path: inset(0 0 0 0);
+  will-change: clip-path;
+}
+
+.sq-boot[data-phase="revealing"] {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sq-boot__stage {
+  position: relative;
+  width: min(72vw, 320px);
+}
+
+/* The native launch image already shows this wordmark, so it must not
+   re-enter. Matching the pre-hydration frame exactly also avoids a flash when
+   the static ::before frame is swapped for this element. */
+.sq-boot__logo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.sq-boot__rule {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  margin-top: 18px;
+  background: var(--brand-primary, #0b6e4f);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: sq-boot-rule-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) 40ms forwards;
+}
+
+@keyframes sq-boot-rule-in {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The destination is already mounted underneath; it only fades in. No
+   transform on this wrapper: LoginView uses position: fixed and a transformed
+   ancestor would change its containing block. */
+.sq-boot-content[data-boot-state="booting"] {
+  opacity: 0;
+}
+
+.sq-boot-content[data-boot-state="revealing"] {
+  animation: sq-boot-content-in 260ms cubic-bezier(0.22, 1, 0.36, 1) 60ms forwards;
+}
+
+@keyframes sq-boot-content-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sq-boot {
+    transition: opacity 120ms linear;
+  }
+
+  .sq-boot[data-phase="revealing"] {
+    clip-path: none;
+    opacity: 0;
+    transition: opacity 120ms linear;
+  }
+
+  .sq-boot__rule {
+    animation: none;
+    clip-path: none;
+    transform: none;
+  }
+
+  .sq-boot-content[data-boot-state="revealing"] {
+    animation: none;
+    opacity: 1;
+  }
+}
