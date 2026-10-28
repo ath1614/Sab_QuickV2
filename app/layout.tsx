@@ -8,6 +8,7 @@ import { ActiveOrderFloatingBar } from "@/components/orders/ActiveOrderFloatingB
 import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageFrame } from "@/components/layout/PageFrame";
 import { MobileAuthBridge } from "@/components/auth/MobileAuthBridge";
 import { PushNotificationManager } from "@/components/notifications/PushNotificationManager";
 import { GlobalOverlays } from "@/app/providers/GlobalOverlays";
@@ -135,9 +136,7 @@ export default function RootLayout({
           <PushNotificationManager />
           <PwaProvider>
             <ThemeSync />
-            <div className="pb-28 sm:pb-32 md:pb-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
-              {children}
-            </div>
+            <PageFrame>{children}</PageFrame>
             <ActiveOrderFloatingBar />
             <GlobalOverlays />
             <GlobalCartWarningToast />

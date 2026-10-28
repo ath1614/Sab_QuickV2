@@ -1,12 +1,15 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Download, X, Share, PlusSquare, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
 import { usePwa } from "./PwaProvider";
+import { isDocumentRoute } from "@/lib/documentRoutes";
 
 export function PwaInstallPrompt() {
+  const pathname = usePathname();
   const { isInstalled, isInstallable, installApp } = usePwa();
   const [isVisible, setIsVisible] = React.useState(false);
   const [isIos, setIsIos] = React.useState(false);
@@ -72,7 +75,7 @@ export function PwaInstallPrompt() {
     (Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
       Boolean((window as any).Capacitor));
 
-  if (isNative || !isVisible || isInstalled) {
+  if (isNative || !isVisible || isInstalled || isDocumentRoute(pathname)) {
     return null;
   }
 

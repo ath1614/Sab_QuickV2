@@ -18,6 +18,7 @@ import { useCartStore, formatCurrency } from "@/store/useCartStore";
 import { useAuthModalStore } from "@/store/useAuthModalStore";
 import { MobileOperationsSheet } from "./MobileOperationsSheet";
 import { PhoneVerificationDrawer } from "@/components/auth/PhoneVerificationDrawer";
+import { isDocumentRoute } from "@/lib/documentRoutes";
 
 function MobileBottomNavInner() {
   const pathname = usePathname();
@@ -32,9 +33,10 @@ function MobileBottomNavInner() {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const itemTotal = getItemTotal();
 
-  // Hide bottom nav on dedicated full-screen order tracking, scanner pages, staff operations dashboards, and login screen
+  // Hide bottom nav on dedicated full-screen order tracking, scanner pages, staff operations dashboards, legal documents, and the login screen
   const isExcludedPage =
     isLoginScreenActive ||
+    isDocumentRoute(pathname) ||
     (pathname?.startsWith("/orders/") && pathname !== "/orders/active") ||
     pathname?.startsWith("/packer") ||
     pathname?.startsWith("/manager") ||

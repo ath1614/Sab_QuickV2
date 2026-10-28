@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/store/useCartStore";
+import { isDocumentRoute } from "@/lib/documentRoutes";
 import {
   Bike,
   Package,
@@ -213,6 +214,11 @@ export function ActiveOrderFloatingBar() {
 
   // Visibility checks
   if (!order || authStatus !== "authenticated" || isDismissed) {
+    return null;
+  }
+
+  // Policy screens read as documents; a live order card must not cover them.
+  if (isDocumentRoute(pathname)) {
     return null;
   }
 

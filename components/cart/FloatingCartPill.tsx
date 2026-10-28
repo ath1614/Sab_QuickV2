@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, ChevronRight, ChevronDown } from "lucide-react";
 import { useCartStore, formatCurrency } from "@/store/useCartStore";
+import { isDocumentRoute } from "@/lib/documentRoutes";
 
 /**
  * Blinkit-style floating cart pill — compact, sits directly above the
@@ -11,6 +13,7 @@ import { useCartStore, formatCurrency } from "@/store/useCartStore";
  * bars never collide (and it can be re-expanded any time).
  */
 export function FloatingCartPill() {
+  const pathname = usePathname();
   const { items, openCart, getItemTotal, isPillMinimized, setPillMinimized } =
     useCartStore();
 
@@ -28,7 +31,7 @@ export function FloatingCartPill() {
     setIsVisible(false);
   }, [totalQuantity]);
 
-  if (totalQuantity === 0) return null;
+  if (totalQuantity === 0 || isDocumentRoute(pathname)) return null;
 
   // Minimized: tiny round dot — tap to restore.
   if (isPillMinimized) {

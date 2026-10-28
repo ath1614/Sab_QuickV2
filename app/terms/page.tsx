@@ -1,7 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
-import { FileText, ArrowLeft, CheckCircle2, ShieldCheck, AlertCircle, Clock, MapPin } from "lucide-react";
+import { FileText, CheckCircle2, ShieldCheck, AlertCircle, Clock, MapPin } from "lucide-react";
 import { BRAND_ASSETS } from "@/lib/assets";
+import { LegalBackButton } from "@/components/legal/LegalBackButton";
 
 export const metadata = {
   title: "Terms of Service | SabQuick Provision Store",
@@ -14,14 +15,7 @@ export default function TermsOfServicePage() {
       {/* Header with Safe Area Notch Clearance */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-xs pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 px-4 sm:px-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-xs font-bold text-slate-700 hover:text-primary transition-all active:scale-95"
-            title="Back to Store"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Store</span>
-          </Link>
+          <LegalBackButton />
           <div className="flex items-center gap-2">
             <img src={BRAND_ASSETS.navbarLogo} alt="SabQuick" className="h-7 w-auto object-contain" />
           </div>
